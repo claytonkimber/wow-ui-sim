@@ -39,12 +39,18 @@ COPY tests/ tests/
 RUN cargo fetch --locked
 
 # Copy the full source tree and build the simulator binary.
-# --no-default-features skips sound, GUI, and CASC dependencies not needed for
-# headless test runs. client-retail still selects the required runtime profile.
+# Drop the `sound` feature (rodio/ALSA) — not needed for headless test runs and
+# it would pull extra system libraries into the distroless runtime stage.
+# `gui` is still required: src/iced_app/frame_collect.rs (always compiled)
+# references hit_grid::HitOrderKey, and `mod hit_grid` is #[cfg(feature="gui")].
+# `client-retail` selects the retail BlizzardUI profile and defines
+# client_profile::ACTIVE. This matches the repo's CI build (test.yml /
+# release.yml use `sound,gui,client-retail`); we omit only `sound`.
 COPY build.rs ./
 COPY data/ data/
 COPY src/ src/
-RUN cargo build --release --bin wow-sim --no-default-features --features client-retail --locked \
+RUN cargo build --release --bin wow-sim --no-default-features \
+        --features gui,client-retail --locked \
     && strip /build/target/release/wow-sim
 
 # =============================================================================
@@ -66,7 +72,24 @@ RUN git clone --filter=blob:none --no-checkout --depth=1 --branch ${BLIZZARD_UI_
 # =============================================================================
 # Runtime Stage
 # =============================================================================
-FROM gcr.io/distroless/cc-debian12
+# debian:bookworm-slim (not distroless) so we can install the Mesa software
+# Vulkan stack. The `screenshot` command renders via wgpu, which needs a Vulkan
+# adapter; the distroless image had none, so screenshots panicked with
+# "Failed to find GPU adapter". mesa-vulkan-drivers provides lavapipe (the
+# llvmpipe CPU Vulkan ICD), and headless.rs selects it via
+# force_fallback_adapter when WOW_SIM_SOFTWARE_RENDER=1 (set below). This is the
+# same software-render path upstream CI uses (.github/workflows/test.yml), so it
+# needs no GPU passthrough and renders deterministically anywhere. Same Debian 12
+# glibc base as the rust:1.92-bookworm builder, so the binary is ABI-compatible.
+FROM debian:bookworm-slim
+
+# Vulkan loader + Mesa lavapipe (software Vulkan) for headless screenshot
+# rendering. ca-certificates kept for any runtime TLS (CASC fallback fetches).
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libvulkan1 \
+    mesa-vulkan-drivers \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -91,5 +114,9 @@ COPY --from=builder /usr/share/fonts/truetype/dejavu/ /usr/share/fonts/truetype/
 
 # Skip SavedVariables loading — no WTF directory is available in the image.
 ENV WOW_SIM_NO_SAVED_VARS=1
+
+# Force the wgpu software (fallback) adapter so `screenshot` renders on lavapipe
+# without a hardware GPU. headless.rs reads this; run-tests/dump-tree ignore it.
+ENV WOW_SIM_SOFTWARE_RENDER=1
 
 ENTRYPOINT ["/app/wow-sim"]
