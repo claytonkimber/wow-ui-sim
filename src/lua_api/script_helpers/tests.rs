@@ -1,6 +1,98 @@
 use super::*;
 use crate::lua_api::WowLuaEnv;
-use rilua::LuaApi;
+use crate::lua_api::methods::call_function_state_multi;
+use rilua::{LuaApi, LuaApiMut};
+
+#[test]
+fn direct_state_call_restores_call_frame_after_lua_error() {
+    let mut lua = rilua::Lua::new().expect("lua should initialize");
+    let failing = lua
+        .state_mut()
+        .load("error('direct-state boom')")
+        .expect("failing function should compile");
+
+    let error = call_function_state(lua.state_mut(), Val::Function(failing.gc_ref()), &[])
+        .expect_err("failing function should return its Lua error");
+    assert!(error.to_string().contains("direct-state boom"));
+    assert_eq!(
+        lua.state().ci,
+        0,
+        "failed direct calls must unwind call frames"
+    );
+
+    let succeeding = lua
+        .state_mut()
+        .load("return 42")
+        .expect("succeeding function should compile");
+    let result = call_function_state(lua.state_mut(), Val::Function(succeeding.gc_ref()), &[])
+        .expect("subsequent direct call should not see a stale Lua frame");
+    assert_eq!(result, Val::Num(42.0));
+}
+
+#[test]
+fn direct_void_state_call_does_not_retry_matching_lua_error_text() {
+    let mut lua = rilua::Lua::new().expect("lua should initialize");
+    lua.exec("__direct_void_error_calls = 0")
+        .expect("counter should initialize");
+    let loader = lua
+        .state_mut()
+        .load(
+            r#"
+                return function()
+                    __direct_void_error_calls = __direct_void_error_calls + 1
+                    error("expected Lua closure in execute: genuine Lua failure")
+                end
+            "#,
+        )
+        .expect("failing function source should compile");
+    let failing = call_function_state(lua.state_mut(), Val::Function(loader.gc_ref()), &[])
+        .expect("failing function should load");
+
+    let error = call_void_function_state(lua.state_mut(), failing, &[])
+        .expect_err("genuine Lua failure should be returned");
+    assert!(error.contains("genuine Lua failure"));
+    assert_eq!(
+        lua.state().ci,
+        0,
+        "failed direct calls must unwind call frames"
+    );
+
+    let counter_loader = lua
+        .state_mut()
+        .load("return __direct_void_error_calls")
+        .expect("counter source should compile");
+    let calls = call_function_state(lua.state_mut(), Val::Function(counter_loader.gc_ref()), &[])
+        .expect("subsequent direct call should succeed");
+    assert_eq!(calls, Val::Num(1.0), "failing function must run once");
+}
+
+#[test]
+fn direct_void_state_call_runs_successful_function_once() {
+    let mut lua = rilua::Lua::new().expect("lua should initialize");
+    let loader = lua
+        .state_mut()
+        .load(
+            r#"
+                local calls = 0
+                return function()
+                    calls = calls + 1
+                    return calls
+                end,
+                function()
+                    return calls
+                end
+            "#,
+        )
+        .expect("function source should compile");
+    let functions = call_function_state_multi(lua.state_mut(), Val::Function(loader.gc_ref()), &[])
+        .expect("functions should load");
+
+    call_void_function_state(lua.state_mut(), functions[0], &[])
+        .expect("successful function should return");
+    let calls = call_function_state(lua.state_mut(), functions[1], &[])
+        .expect("counter function should return");
+    assert_eq!(calls, Val::Num(1.0), "successful function must run once");
+}
 
 #[test]
 fn protected_lua_pcall_state_caches_wrapper_factory() {

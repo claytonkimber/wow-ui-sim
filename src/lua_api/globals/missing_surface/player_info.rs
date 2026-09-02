@@ -67,12 +67,6 @@ pub(super) fn register_player_info_surface(state: &mut LuaState) -> LuaResult<()
     table_set_rust_fn_static(
         state,
         ns,
-        "IsExpansionLandingPageUnlockedForPlayer",
-        is_expansion_landing_page_unlocked_for_player,
-    )?;
-    table_set_rust_fn_static(
-        state,
-        ns,
         "IsPlayerEligibleForNPE",
         is_player_eligible_for_npe,
     )?;
@@ -213,12 +207,6 @@ fn is_trading_post_available(state: &mut LuaState) -> LuaResult<u32> {
 }
 
 fn is_tutorials_tab_available(state: &mut LuaState) -> LuaResult<u32> {
-    let _ = state;
-    state.push(Val::Bool(false));
-    Ok(1)
-}
-
-fn is_expansion_landing_page_unlocked_for_player(state: &mut LuaState) -> LuaResult<u32> {
     let _ = state;
     state.push(Val::Bool(false));
     Ok(1)

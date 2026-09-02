@@ -54,7 +54,11 @@ pub fn repair_direct_child_parent_keys(state: &mut LuaState, parent_id: u64) -> 
             .filter_map(|child_id| {
                 let child = sim.widgets.get(*child_id)?;
                 let key = child.parent_key.clone().or_else(|| {
-                    infer_parent_key_from_child_name(parent_name, child.name.as_deref())
+                    infer_parent_key_from_child_name(
+                        parent_name,
+                        child.name.as_deref(),
+                        child.widget_type,
+                    )
                 });
                 let key = key?;
                 (parent.children_keys.get(&key) != Some(child_id)).then(|| (key, *child_id))
@@ -109,8 +113,12 @@ fn collect_transparent_wrapper_aliases(
                 return Vec::new();
             };
             let key = child.parent_key.clone().or_else(|| {
-                infer_parent_key_from_child_name(target_parent_name, child.name.as_deref())
-                    .map(lowercase_first)
+                infer_parent_key_from_child_name(
+                    target_parent_name,
+                    child.name.as_deref(),
+                    child.widget_type,
+                )
+                .map(lowercase_first)
             });
             key.into_iter()
                 .map(|key| (target_parent_id, key, *child_id))
@@ -148,9 +156,11 @@ pub fn repair_descendant_name_aliases(state: &mut LuaState, parent_id: u64) -> L
             if child.parent_id == Some(parent_id) {
                 continue;
             }
-            if let Some(key) =
-                infer_parent_key_from_child_name(parent.name.as_deref(), child.name.as_deref())
-            {
+            if let Some(key) = infer_parent_key_from_child_name(
+                parent.name.as_deref(),
+                child.name.as_deref(),
+                child.widget_type,
+            ) {
                 aliases.push((parent_id, lowercase_first(key), child_id));
             }
         }
@@ -217,20 +227,20 @@ fn lowercase_first(value: String) -> String {
 fn infer_parent_key_from_child_name(
     parent_name: Option<&str>,
     child_name: Option<&str>,
+    child_type: crate::widget::WidgetType,
 ) -> Option<String> {
     let parent_name = parent_name?;
     let child_name = child_name?;
-    let special_case = [
-        ("Check", "CheckButton"),
-        ("CheckButton", "CheckButton"),
-        ("Checkbox", "CheckButton"),
-    ]
-    .into_iter()
-    .find_map(|(suffix, key)| {
-        (child_name == format!("{parent_name}{suffix}")).then(|| key.to_string())
-    });
+    let check_button_key = (child_type == crate::widget::WidgetType::CheckButton)
+        .then(|| {
+            ["Check", "CheckButton", "Checkbox"]
+                .into_iter()
+                .find(|suffix| child_name == format!("{parent_name}{suffix}"))
+                .map(|_| "CheckButton".to_string())
+        })
+        .flatten();
 
-    special_case.or_else(|| {
+    check_button_key.or_else(|| {
         child_name
             .strip_prefix(parent_name)
             .filter(|suffix| !suffix.is_empty())

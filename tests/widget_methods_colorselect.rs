@@ -462,6 +462,34 @@ fn test_statusbar_interpolation_methods_track_target_and_displayed_value() {
 }
 
 #[test]
+fn test_statusbar_set_min_max_values_clamps_existing_value() {
+    let env = WowLuaEnv::new().unwrap();
+
+    let result: (f64, f64, f64, f64, f64, f64) = env
+        .eval(
+            r#"
+            local sb = CreateFrame("StatusBar", "TestStatusBarMinMax", UIParent)
+            sb:SetMinMaxValues(0, 100)
+            sb:SetValue(80)
+
+            sb:SetMinMaxValues(10, 50)
+            local upperMin, upperMax = sb:GetMinMaxValues()
+            local upperValue = sb:GetValue()
+
+            sb:SetValue(20)
+            sb:SetMinMaxValues(30, 40)
+            local lowerMin, lowerMax = sb:GetMinMaxValues()
+            local lowerValue = sb:GetValue()
+            return upperMin, upperMax, upperValue, lowerMin, lowerMax, lowerValue
+        "#,
+        )
+        .unwrap();
+
+    assert_eq!((result.0, result.1, result.2), (10.0, 50.0, 50.0));
+    assert_eq!((result.3, result.4, result.5), (30.0, 40.0, 30.0));
+}
+
+#[test]
 fn test_statusbar_desaturation_methods_share_persisted_state() {
     let env = WowLuaEnv::new().unwrap();
 

@@ -11,7 +11,10 @@ pub(super) fn scene_set_allow_overlapped_models(state: &mut LuaState) -> LuaResu
     let allow = opt_bool(state, 2).unwrap_or(false);
     let mut sim = borrow_state_mut(state)?;
     if let Some(frame) = sim.widgets.get_mut_visual(id) {
-        frame.model_scene_state.allow_overlapped_models = allow;
+        frame
+            .model_state_mut()
+            .model_scene_state
+            .allow_overlapped_models = allow;
     }
     Ok(0)
 }
@@ -22,7 +25,7 @@ pub(super) fn scene_set_view_translation(state: &mut LuaState) -> LuaResult<u32>
     let y = val_to_f64(stack_val(state, 3)) as f32;
     let mut sim = borrow_state_mut(state)?;
     if let Some(frame) = sim.widgets.get_mut_visual(id) {
-        frame.model_scene_state.view_translation = (x, y);
+        frame.model_state_mut().model_scene_state.view_translation = (x, y);
     }
     Ok(0)
 }
@@ -34,7 +37,7 @@ pub(super) fn scene_set_camera_position(state: &mut LuaState) -> LuaResult<u32> 
     let z = val_to_f64(stack_val(state, 4)) as f32;
     let mut sim = borrow_state_mut(state)?;
     if let Some(frame) = sim.widgets.get_mut_visual(id) {
-        frame.model_scene_state.camera.position = (x, y, z);
+        frame.model_state_mut().model_scene_state.camera.position = (x, y, z);
     }
     Ok(0)
 }
@@ -44,7 +47,7 @@ pub(super) fn scene_get_camera_position(state: &mut LuaState) -> LuaResult<u32> 
     let pos = borrow_state(state)?
         .widgets
         .get(id)
-        .map(|frame| frame.model_scene_state.camera.position)
+        .map(|frame| frame.model_state().model_scene_state.camera.position)
         .unwrap_or((0.0, 0.0, 0.0));
     (pos.0 as f64, pos.1 as f64, pos.2 as f64).into_stack(state)
 }
@@ -68,9 +71,9 @@ pub(super) fn scene_set_camera_orientation_by_axis_vectors(state: &mut LuaState)
     );
     let mut sim = borrow_state_mut(state)?;
     if let Some(frame) = sim.widgets.get_mut_visual(id) {
-        frame.model_scene_state.camera.forward = forward;
-        frame.model_scene_state.camera.right = right;
-        frame.model_scene_state.camera.up = up;
+        frame.model_state_mut().model_scene_state.camera.forward = forward;
+        frame.model_state_mut().model_scene_state.camera.right = right;
+        frame.model_state_mut().model_scene_state.camera.up = up;
     }
     Ok(0)
 }
@@ -80,7 +83,7 @@ pub(super) fn scene_get_camera_forward(state: &mut LuaState) -> LuaResult<u32> {
     let value = borrow_state(state)?
         .widgets
         .get(id)
-        .map(|frame| frame.model_scene_state.camera.forward)
+        .map(|frame| frame.model_state().model_scene_state.camera.forward)
         .unwrap_or((0.0, 0.0, 1.0));
     (value.0 as f64, value.1 as f64, value.2 as f64).into_stack(state)
 }
@@ -90,7 +93,7 @@ pub(super) fn scene_get_camera_right(state: &mut LuaState) -> LuaResult<u32> {
     let value = borrow_state(state)?
         .widgets
         .get(id)
-        .map(|frame| frame.model_scene_state.camera.right)
+        .map(|frame| frame.model_state().model_scene_state.camera.right)
         .unwrap_or((1.0, 0.0, 0.0));
     (value.0 as f64, value.1 as f64, value.2 as f64).into_stack(state)
 }
@@ -100,7 +103,7 @@ pub(super) fn scene_get_camera_up(state: &mut LuaState) -> LuaResult<u32> {
     let value = borrow_state(state)?
         .widgets
         .get(id)
-        .map(|frame| frame.model_scene_state.camera.up)
+        .map(|frame| frame.model_state().model_scene_state.camera.up)
         .unwrap_or((0.0, 1.0, 0.0));
     (value.0 as f64, value.1 as f64, value.2 as f64).into_stack(state)
 }
@@ -110,7 +113,11 @@ pub(super) fn scene_set_camera_field_of_view(state: &mut LuaState) -> LuaResult<
     let value = val_to_f64(stack_val(state, 2)) as f32;
     let mut sim = borrow_state_mut(state)?;
     if let Some(frame) = sim.widgets.get_mut_visual(id) {
-        frame.model_scene_state.camera.field_of_view = value;
+        frame
+            .model_state_mut()
+            .model_scene_state
+            .camera
+            .field_of_view = value;
     }
     Ok(0)
 }
@@ -120,7 +127,7 @@ pub(super) fn scene_get_camera_field_of_view(state: &mut LuaState) -> LuaResult<
     let value = borrow_state(state)?
         .widgets
         .get(id)
-        .map(|frame| frame.model_scene_state.camera.field_of_view as f64)
+        .map(|frame| frame.model_state().model_scene_state.camera.field_of_view as f64)
         .unwrap_or(0.785);
     value.into_stack(state)
 }
@@ -130,7 +137,7 @@ pub(super) fn scene_set_camera_near_clip(state: &mut LuaState) -> LuaResult<u32>
     let value = val_to_f64(stack_val(state, 2)) as f32;
     let mut sim = borrow_state_mut(state)?;
     if let Some(frame) = sim.widgets.get_mut_visual(id) {
-        frame.model_scene_state.camera.near_clip = value;
+        frame.model_state_mut().model_scene_state.camera.near_clip = value;
     }
     Ok(0)
 }
@@ -140,7 +147,7 @@ pub(super) fn scene_get_camera_near_clip(state: &mut LuaState) -> LuaResult<u32>
     let value = borrow_state(state)?
         .widgets
         .get(id)
-        .map(|frame| frame.model_scene_state.camera.near_clip as f64)
+        .map(|frame| frame.model_state().model_scene_state.camera.near_clip as f64)
         .unwrap_or(1.0);
     value.into_stack(state)
 }
@@ -150,7 +157,7 @@ pub(super) fn scene_set_camera_far_clip(state: &mut LuaState) -> LuaResult<u32> 
     let value = val_to_f64(stack_val(state, 2)) as f32;
     let mut sim = borrow_state_mut(state)?;
     if let Some(frame) = sim.widgets.get_mut_visual(id) {
-        frame.model_scene_state.camera.far_clip = value;
+        frame.model_state_mut().model_scene_state.camera.far_clip = value;
     }
     Ok(0)
 }
@@ -160,7 +167,7 @@ pub(super) fn scene_get_camera_far_clip(state: &mut LuaState) -> LuaResult<u32> 
     let value = borrow_state(state)?
         .widgets
         .get(id)
-        .map(|frame| frame.model_scene_state.camera.far_clip as f64)
+        .map(|frame| frame.model_state().model_scene_state.camera.far_clip as f64)
         .unwrap_or(100.0);
     value.into_stack(state)
 }
@@ -170,7 +177,7 @@ pub(super) fn scene_set_light_type(state: &mut LuaState) -> LuaResult<u32> {
     let value = val_to_f64(stack_val(state, 2)) as i32;
     let mut sim = borrow_state_mut(state)?;
     if let Some(frame) = sim.widgets.get_mut_visual(id) {
-        frame.model_scene_state.light.light_type = value;
+        frame.model_state_mut().model_scene_state.light.light_type = value;
     }
     Ok(0)
 }
@@ -180,7 +187,7 @@ pub(super) fn scene_get_light_type(state: &mut LuaState) -> LuaResult<u32> {
     let value = borrow_state(state)?
         .widgets
         .get(id)
-        .map(|frame| frame.model_scene_state.light.light_type as f64)
+        .map(|frame| frame.model_state().model_scene_state.light.light_type as f64)
         .unwrap_or(0.0);
     value.into_stack(state)
 }
@@ -194,7 +201,7 @@ pub(super) fn scene_set_light_position(state: &mut LuaState) -> LuaResult<u32> {
     );
     let mut sim = borrow_state_mut(state)?;
     if let Some(frame) = sim.widgets.get_mut_visual(id) {
-        frame.model_scene_state.light.position = value;
+        frame.model_state_mut().model_scene_state.light.position = value;
     }
     Ok(0)
 }
@@ -204,7 +211,7 @@ pub(super) fn scene_get_light_position(state: &mut LuaState) -> LuaResult<u32> {
     let value = borrow_state(state)?
         .widgets
         .get(id)
-        .map(|frame| frame.model_scene_state.light.position)
+        .map(|frame| frame.model_state().model_scene_state.light.position)
         .unwrap_or((0.0, 0.0, 0.0));
     (value.0 as f64, value.1 as f64, value.2 as f64).into_stack(state)
 }
@@ -218,7 +225,7 @@ pub(super) fn scene_set_light_direction(state: &mut LuaState) -> LuaResult<u32> 
     );
     let mut sim = borrow_state_mut(state)?;
     if let Some(frame) = sim.widgets.get_mut_visual(id) {
-        frame.model_scene_state.light.direction = value;
+        frame.model_state_mut().model_scene_state.light.direction = value;
     }
     Ok(0)
 }
@@ -228,7 +235,7 @@ pub(super) fn scene_get_light_direction(state: &mut LuaState) -> LuaResult<u32> 
     let value = borrow_state(state)?
         .widgets
         .get(id)
-        .map(|frame| frame.model_scene_state.light.direction)
+        .map(|frame| frame.model_state().model_scene_state.light.direction)
         .unwrap_or((0.0, -1.0, 0.0));
     (value.0 as f64, value.1 as f64, value.2 as f64).into_stack(state)
 }
@@ -246,7 +253,11 @@ pub(super) fn scene_set_light_ambient_color(state: &mut LuaState) -> LuaResult<u
     let value = color_arg(state, 2);
     let mut sim = borrow_state_mut(state)?;
     if let Some(frame) = sim.widgets.get_mut_visual(id) {
-        frame.model_scene_state.light.ambient_color = value;
+        frame
+            .model_state_mut()
+            .model_scene_state
+            .light
+            .ambient_color = value;
     }
     Ok(0)
 }
@@ -256,7 +267,7 @@ pub(super) fn scene_get_light_ambient_color(state: &mut LuaState) -> LuaResult<u
     let value = borrow_state(state)?
         .widgets
         .get(id)
-        .map(|frame| frame.model_scene_state.light.ambient_color)
+        .map(|frame| frame.model_state().model_scene_state.light.ambient_color)
         .unwrap_or(crate::widget::Color::rgb(1.0, 1.0, 1.0));
     (value.r as f64, value.g as f64, value.b as f64).into_stack(state)
 }
@@ -266,7 +277,11 @@ pub(super) fn scene_set_light_diffuse_color(state: &mut LuaState) -> LuaResult<u
     let value = color_arg(state, 2);
     let mut sim = borrow_state_mut(state)?;
     if let Some(frame) = sim.widgets.get_mut_visual(id) {
-        frame.model_scene_state.light.diffuse_color = value;
+        frame
+            .model_state_mut()
+            .model_scene_state
+            .light
+            .diffuse_color = value;
     }
     Ok(0)
 }
@@ -276,7 +291,7 @@ pub(super) fn scene_get_light_diffuse_color(state: &mut LuaState) -> LuaResult<u
     let value = borrow_state(state)?
         .widgets
         .get(id)
-        .map(|frame| frame.model_scene_state.light.diffuse_color)
+        .map(|frame| frame.model_state().model_scene_state.light.diffuse_color)
         .unwrap_or(crate::widget::Color::rgb(1.0, 1.0, 1.0));
     (value.r as f64, value.g as f64, value.b as f64).into_stack(state)
 }
@@ -286,7 +301,7 @@ pub(super) fn scene_set_light_visible(state: &mut LuaState) -> LuaResult<u32> {
     let value = opt_bool(state, 2).unwrap_or(false);
     let mut sim = borrow_state_mut(state)?;
     if let Some(frame) = sim.widgets.get_mut_visual(id) {
-        frame.model_scene_state.light.visible = value;
+        frame.model_state_mut().model_scene_state.light.visible = value;
     }
     Ok(0)
 }
@@ -296,7 +311,7 @@ pub(super) fn scene_is_light_visible(state: &mut LuaState) -> LuaResult<u32> {
     let value = borrow_state(state)?
         .widgets
         .get(id)
-        .map(|frame| frame.model_scene_state.light.visible)
+        .map(|frame| frame.model_state().model_scene_state.light.visible)
         .unwrap_or(true);
     state.push(Val::Bool(value));
     Ok(1)
@@ -307,7 +322,7 @@ pub(super) fn scene_set_fog_near(state: &mut LuaState) -> LuaResult<u32> {
     let value = val_to_f64(stack_val(state, 2)) as f32;
     let mut sim = borrow_state_mut(state)?;
     if let Some(frame) = sim.widgets.get_mut_visual(id) {
-        frame.model_scene_state.fog.near = value;
+        frame.model_state_mut().model_scene_state.fog.near = value;
     }
     Ok(0)
 }
@@ -317,7 +332,7 @@ pub(super) fn scene_get_fog_near(state: &mut LuaState) -> LuaResult<u32> {
     let value = borrow_state(state)?
         .widgets
         .get(id)
-        .map(|frame| frame.model_scene_state.fog.near as f64)
+        .map(|frame| frame.model_state().model_scene_state.fog.near as f64)
         .unwrap_or(0.0);
     value.into_stack(state)
 }
@@ -327,7 +342,7 @@ pub(super) fn scene_set_fog_far(state: &mut LuaState) -> LuaResult<u32> {
     let value = val_to_f64(stack_val(state, 2)) as f32;
     let mut sim = borrow_state_mut(state)?;
     if let Some(frame) = sim.widgets.get_mut_visual(id) {
-        frame.model_scene_state.fog.far = value;
+        frame.model_state_mut().model_scene_state.fog.far = value;
     }
     Ok(0)
 }
@@ -337,7 +352,7 @@ pub(super) fn scene_get_fog_far(state: &mut LuaState) -> LuaResult<u32> {
     let value = borrow_state(state)?
         .widgets
         .get(id)
-        .map(|frame| frame.model_scene_state.fog.far as f64)
+        .map(|frame| frame.model_state().model_scene_state.fog.far as f64)
         .unwrap_or(0.0);
     value.into_stack(state)
 }
@@ -347,7 +362,7 @@ pub(super) fn scene_set_fog_color(state: &mut LuaState) -> LuaResult<u32> {
     let value = color_arg(state, 2);
     let mut sim = borrow_state_mut(state)?;
     if let Some(frame) = sim.widgets.get_mut_visual(id) {
-        frame.model_scene_state.fog.color = value;
+        frame.model_state_mut().model_scene_state.fog.color = value;
     }
     Ok(0)
 }
@@ -357,7 +372,7 @@ pub(super) fn scene_get_fog_color(state: &mut LuaState) -> LuaResult<u32> {
     let value = borrow_state(state)?
         .widgets
         .get(id)
-        .map(|frame| frame.model_scene_state.fog.color)
+        .map(|frame| frame.model_state().model_scene_state.fog.color)
         .unwrap_or(crate::widget::Color::rgb(0.0, 0.0, 0.0));
     (value.r as f64, value.g as f64, value.b as f64).into_stack(state)
 }
@@ -367,7 +382,7 @@ pub(super) fn scene_set_paused(state: &mut LuaState) -> LuaResult<u32> {
     let paused = opt_bool(state, 2).unwrap_or(false);
     let mut sim = borrow_state_mut(state)?;
     if let Some(frame) = sim.widgets.get_mut_visual(id) {
-        frame.model_scene_state.paused = paused;
+        frame.model_state_mut().model_scene_state.paused = paused;
     }
     Ok(0)
 }
@@ -377,7 +392,7 @@ pub(super) fn scene_get_paused(state: &mut LuaState) -> LuaResult<u32> {
     let paused = borrow_state(state)?
         .widgets
         .get(id)
-        .map(|frame| frame.model_scene_state.paused)
+        .map(|frame| frame.model_state().model_scene_state.paused)
         .unwrap_or(false);
     state.push(Val::Bool(paused));
     Ok(1)
@@ -425,12 +440,12 @@ fn read_scene_projection_state(
 ) -> LuaResult<Option<SceneProjectionState>> {
     let sim = borrow_state(state)?;
     Ok(sim.widgets.get(id).map(|frame| {
-        let camera = frame.model_scene_state.camera;
+        let camera = frame.model_state().model_scene_state.camera;
         SceneProjectionState {
             width: frame.width,
             height: frame.height,
-            view_insets: frame.model_scene_state.view_insets,
-            view_translation: frame.model_scene_state.view_translation,
+            view_insets: frame.model_state().model_scene_state.view_insets,
+            view_translation: frame.model_state().model_scene_state.view_translation,
             camera_position: camera.position,
             camera_field_of_view: camera.field_of_view,
             camera_near_clip: camera.near_clip,

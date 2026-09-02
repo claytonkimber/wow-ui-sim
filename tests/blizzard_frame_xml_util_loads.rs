@@ -99,17 +99,14 @@ fn blizzard_frame_xml_util_toc_uses_dep_alias_and_allow_load_game() {
          in-world only, glue/login screens have their own utility addons"
     );
 
-    let parsed_deps = toc.dependencies();
-    assert!(
-        parsed_deps.is_empty(),
-        "src/toc.rs:210-217 only recognizes `RequiredDep` / `Dependencies` / \
-         `RequiredDeps` keys — the singular-line `## Dep:` shorthand is silently \
-         ignored, so `toc.dependencies()` returns an empty Vec for this TOC. The \
-         addon still loads correctly because all three deps (Blizzard_SharedXMLGame, \
-         Blizzard_Colors, Blizzard_StaticPopup) are themselves non-LOD addons that \
-         auto-discover and end up loaded as part of the Game-screen tier regardless \
-         of explicit dependency declaration. Got: {:?}",
-        parsed_deps
+    assert_eq!(
+        toc.dependencies(),
+        vec![
+            "Blizzard_SharedXMLGame".to_string(),
+            "Blizzard_Colors".to_string(),
+            "Blizzard_StaticPopup".to_string(),
+        ],
+        "repeated `## Dep:` directives must be exposed in source order"
     );
 }
 
@@ -155,9 +152,8 @@ fn blizzard_frame_xml_util_auto_loads_on_game_and_skips_login() {
     );
 }
 
-#[test]
-fn blizzard_frame_xml_util_loads_via_full_game_ui_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_frame_xml_util_loads_via_full_game_ui_without_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -183,10 +179,10 @@ fn blizzard_frame_xml_util_loads_via_full_game_ui_without_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_frame_xml_util_is_addon_loaded_returns_true_after_full_game_ui_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_frame_xml_util_is_addon_loaded_returns_true_after_full_game_ui_load(env: &WowLuaEnv) {
 
     let post_load: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_FrameXMLUtil') and true or false")
@@ -198,10 +194,10 @@ fn blizzard_frame_xml_util_is_addon_loaded_returns_true_after_full_game_ui_load(
          `mark_addon_loaded` registers it"
     );
 }
+}
 
-#[test]
-fn blizzard_frame_xml_util_publishes_core_item_and_aura_namespaces() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_frame_xml_util_publishes_core_item_and_aura_namespaces(env: &WowLuaEnv) {
 
     let core_namespaces: (bool, bool, bool, bool) = env
         .eval(
@@ -223,12 +219,11 @@ fn blizzard_frame_xml_util_publishes_core_item_and_aura_namespaces() {
          (CalendarUtil.lua — date formatting and event-status mapping)"
     );
 }
+}
 
 #[cfg(feature = "retail-12-1-0")]
-#[test]
-fn blizzard_frame_xml_util_restores_patch_12_1_difficulty_color_delegates() {
-    let env = load_full_game_ui();
-
+prefork_full_ui_case! {
+fn blizzard_frame_xml_util_restores_patch_12_1_difficulty_color_delegates(env: &WowLuaEnv) {
     let result: String = env
         .eval(
             r#"
@@ -265,11 +260,11 @@ fn blizzard_frame_xml_util_restores_patch_12_1_difficulty_color_delegates() {
 
     assert_eq!(result, "ok");
 }
+}
 
 #[cfg(not(feature = "retail-12-1-0"))]
-#[test]
-fn blizzard_frame_xml_util_does_not_publish_patch_12_1_difficulty_color_delegates() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_frame_xml_util_does_not_publish_patch_12_1_difficulty_color_delegates(env: &WowLuaEnv) {
 
     let result: bool = env
         .eval(
@@ -285,10 +280,10 @@ fn blizzard_frame_xml_util_does_not_publish_patch_12_1_difficulty_color_delegate
 
     assert!(result, "12.1 DifficultyUtil delegates leaked into an older epoch");
 }
+}
 
-#[test]
-fn blizzard_frame_xml_util_publishes_communities_and_pvp_namespaces() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_frame_xml_util_publishes_communities_and_pvp_namespaces(env: &WowLuaEnv) {
 
     let group_namespaces: (bool, bool, bool, bool, bool) = env
         .eval(
@@ -311,10 +306,10 @@ fn blizzard_frame_xml_util_publishes_communities_and_pvp_namespaces() {
          enum-to-name mapping)"
     );
 }
+}
 
-#[test]
-fn blizzard_frame_xml_util_publishes_achievement_and_collection_namespaces() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_frame_xml_util_publishes_achievement_and_collection_namespaces(env: &WowLuaEnv) {
 
     let achieve_namespaces: (bool, bool, bool, bool) = env
         .eval(
@@ -336,10 +331,10 @@ fn blizzard_frame_xml_util_publishes_achievement_and_collection_namespaces() {
          CollectionWardrobeUtil (CollectionsUtil.lua — wardrobe set/source helpers)"
     );
 }
+}
 
-#[test]
-fn blizzard_frame_xml_util_publishes_mainline_subdir_namespaces() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_frame_xml_util_publishes_mainline_subdir_namespaces(env: &WowLuaEnv) {
 
     let mainline_namespaces: (bool, bool, bool, bool) = env
         .eval(
@@ -380,10 +375,10 @@ fn blizzard_frame_xml_util_publishes_mainline_subdir_namespaces() {
          `EXPANSION_NAME<id>` localization strings via _G[tag])"
     );
 }
+}
 
-#[test]
-fn blizzard_frame_xml_util_publishes_runeforge_and_renown_namespaces() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_frame_xml_util_publishes_runeforge_and_renown_namespaces(env: &WowLuaEnv) {
 
     let mixins: (bool, bool, bool, bool) = env
         .eval(
@@ -403,10 +398,10 @@ fn blizzard_frame_xml_util_publishes_runeforge_and_renown_namespaces() {
          used by major-faction renown reward icons. All four are mainline-gated"
     );
 }
+}
 
-#[test]
-fn blizzard_frame_xml_util_publishes_currency_and_profession_namespaces() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_frame_xml_util_publishes_currency_and_profession_namespaces(env: &WowLuaEnv) {
 
     let currency_namespaces: (bool, bool, bool, bool) = env
         .eval(
@@ -427,10 +422,10 @@ fn blizzard_frame_xml_util_publishes_currency_and_profession_namespaces() {
          lookups)"
     );
 }
+}
 
-#[test]
-fn blizzard_frame_xml_util_publishes_cooldown_and_fading_helpers() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_frame_xml_util_publishes_cooldown_and_fading_helpers(env: &WowLuaEnv) {
 
     let cooldown_helpers: (bool, bool, bool) = env
         .eval(
@@ -467,10 +462,10 @@ fn blizzard_frame_xml_util_publishes_cooldown_and_fading_helpers() {
          warning text, and similar HUD overlays"
     );
 }
+}
 
-#[test]
-fn blizzard_frame_xml_util_publishes_animation_system_helpers() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_frame_xml_util_publishes_animation_system_helpers(env: &WowLuaEnv) {
 
     let anim_helpers: (bool, bool) = env
         .eval(
@@ -487,10 +482,10 @@ fn blizzard_frame_xml_util_publishes_animation_system_helpers() {
          queued animations on a frame"
     );
 }
+}
 
-#[test]
-fn blizzard_frame_xml_util_publishes_item_button_util_event_registry() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_frame_xml_util_publishes_item_button_util_event_registry(env: &WowLuaEnv) {
 
     let registry: (bool, bool, bool, bool) = env
         .eval(
@@ -510,10 +505,10 @@ fn blizzard_frame_xml_util_publishes_item_button_util_event_registry() {
          crafting and item-context UIs"
     );
 }
+}
 
-#[test]
-fn blizzard_frame_xml_util_publishes_item_context_enums() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_frame_xml_util_publishes_item_context_enums(env: &WowLuaEnv) {
 
     let enums: (bool, bool) = env
         .eval(
@@ -530,10 +525,10 @@ fn blizzard_frame_xml_util_publishes_item_context_enums() {
          by the bag / character-frame filter-result coloring pipeline"
     );
 }
+}
 
-#[test]
-fn blizzard_frame_xml_util_publishes_dragonriding_and_arena_namespaces() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_frame_xml_util_publishes_dragonriding_and_arena_namespaces(env: &WowLuaEnv) {
 
     let extras: (bool, bool, bool, bool) = env
         .eval(
@@ -552,4 +547,5 @@ fn blizzard_frame_xml_util_publishes_dragonriding_and_arena_namespaces() {
          namespace; ItemTransmogInfoMixin (ItemUtil.lua) is the shared transmog-info \
          table mixed into every transmog-aware item display"
     );
+}
 }

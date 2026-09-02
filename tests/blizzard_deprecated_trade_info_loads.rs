@@ -106,9 +106,8 @@ fn blizzard_deprecated_trade_info_appears_in_game_discovery_only() {
     );
 }
 
-#[test]
-fn blizzard_deprecated_trade_info_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_trade_info_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -126,10 +125,10 @@ fn blizzard_deprecated_trade_info_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_trade_info_installs_pickup_trade_money_as_function() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_trade_info_installs_pickup_trade_money_as_function(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(PickupTradeMoney)")
@@ -144,10 +143,10 @@ fn blizzard_deprecated_trade_info_installs_pickup_trade_money_as_function() {
          top-level). The result is the same: a single global function value"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_trade_info_pickup_trade_money_is_not_identity_equal_to_c_trade_info() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_trade_info_pickup_trade_money_is_not_identity_equal_to_c_trade_info(env: &WowLuaEnv) {
 
     let not_identity_equal: bool = env
         .eval("return PickupTradeMoney ~= C_TradeInfo.PickupTradeMoney")
@@ -160,10 +159,10 @@ fn blizzard_deprecated_trade_info_pickup_trade_money_is_not_identity_equal_to_c_
          The wrapper and the underlying namespace lookup are distinct function values"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_trade_info_pickup_trade_money_swallows_return_value() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_trade_info_pickup_trade_money_swallows_return_value(env: &WowLuaEnv) {
 
     let returns_nothing: bool = env
         .eval(
@@ -181,10 +180,10 @@ fn blizzard_deprecated_trade_info_pickup_trade_money_swallows_return_value() {
          wrapper would discard it. This matches the real API which returns nothing"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_trade_info_pickup_trade_money_calls_without_error() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_trade_info_pickup_trade_money_calls_without_error(env: &WowLuaEnv) {
 
     let no_error: bool = env
         .eval("return pcall(PickupTradeMoney, 1000)")
@@ -197,10 +196,10 @@ fn blizzard_deprecated_trade_info_pickup_trade_money_calls_without_error() {
          closure. pcall returns ok=true"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_trade_info_load_deprecation_fallbacks_cvar_is_default_on() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_trade_info_load_deprecation_fallbacks_cvar_is_default_on(env: &WowLuaEnv) {
 
     let cvar_on: bool = env
         .eval("return GetCVarBool('loadDeprecationFallbacks')")
@@ -213,6 +212,7 @@ fn blizzard_deprecated_trade_info_load_deprecation_fallbacks_cvar_is_default_on(
          and any legacy trade-frame addon calling it blows up with `attempt to call a nil \
          value`"
     );
+}
 }
 
 #[test]

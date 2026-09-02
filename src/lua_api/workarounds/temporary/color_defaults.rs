@@ -95,12 +95,75 @@ QuestDifficultyHighlightColors.difficult = QuestDifficultyHighlightColors.diffic
 QuestDifficultyHighlightColors.verydifficult = QuestDifficultyHighlightColors.verydifficult or { r = 1.00, g = 0.75, b = 0.50 }
 QuestDifficultyHighlightColors.impossible = QuestDifficultyHighlightColors.impossible or { r = 1.00, g = 0.40, b = 0.40 }
 
+local function __wow_clamp_normalized(value)
+  local number = tonumber(value) or 0
+  return math.min(math.max(number, 0), 1)
+end
+
+local function __wow_normalize_hue(value)
+  local hue = tonumber(value) or 0
+  return (hue % 1 + 1) % 1
+end
+
 C_ColorUtil = __wow_color_merge_namespace(C_ColorUtil, {
-  ConvertRGBToHSV = function(r, g, b)
-    return 0, 0, math.max(r or 0, g or 0, b or 0)
+  ConvertHSLToHSV = function(h, s, l)
+    local hue = __wow_normalize_hue(h)
+    local saturation = __wow_clamp_normalized(s)
+    local lightness = __wow_clamp_normalized(l)
+    local value = lightness + saturation * math.min(lightness, 1 - lightness)
+    local valueSaturation = value == 0 and 0 or 2 * (1 - lightness / value)
+    return hue, valueSaturation, value
   end,
   ConvertHSVToHSL = function(h, s, v)
-    return h or 0, s or 0, v or 0
+    local hue = __wow_normalize_hue(h)
+    local saturation = __wow_clamp_normalized(s)
+    local value = __wow_clamp_normalized(v)
+    local lightness = value * (1 - saturation / 2)
+    local lightnessSaturation = (lightness == 0 or lightness == 1)
+      and 0
+      or (value - lightness) / math.min(lightness, 1 - lightness)
+    return hue, lightnessSaturation, lightness
+  end,
+  ConvertHSVToRGB = function(h, s, v)
+    local hue = __wow_normalize_hue(h)
+    local saturation = __wow_clamp_normalized(s)
+    local value = __wow_clamp_normalized(v)
+    if saturation == 0 then
+      return value, value, value
+    end
+
+    local sector = math.floor(hue * 6)
+    local fraction = hue * 6 - sector
+    local p = value * (1 - saturation)
+    local q = value * (1 - saturation * fraction)
+    local t = value * (1 - saturation * (1 - fraction))
+    if sector % 6 == 0 then return value, t, p end
+    if sector % 6 == 1 then return q, value, p end
+    if sector % 6 == 2 then return p, value, t end
+    if sector % 6 == 3 then return p, q, value end
+    if sector % 6 == 4 then return t, p, value end
+    return value, p, q
+  end,
+  ConvertRGBToHSV = function(r, g, b)
+    local red = __wow_clamp_normalized(r)
+    local green = __wow_clamp_normalized(g)
+    local blue = __wow_clamp_normalized(b)
+    local maximum = math.max(red, green, blue)
+    local minimum = math.min(red, green, blue)
+    local delta = maximum - minimum
+    if delta == 0 then
+      return -1, 0, maximum
+    end
+
+    local hue
+    if maximum == red then
+      hue = ((green - blue) / delta) % 6
+    elseif maximum == green then
+      hue = (blue - red) / delta + 2
+    else
+      hue = (red - green) / delta + 4
+    end
+    return (hue / 6) % 1, delta / maximum, maximum
   end,
   GenerateTextColorCode = function(color)
     local r = math.floor((color.r or 1) * 255)
@@ -176,6 +239,76 @@ mod tests {
                 "#,
             )
             .expect("color defaults probe should run");
+
+        assert_eq!(result, "ok");
+    }
+
+    #[cfg(feature = "retail-12-0-0")]
+    #[test]
+    fn patch_12_0_0_color_util_conversions_and_wrapping() {
+        let env = WowLuaEnv::new().expect("lua env should initialize");
+
+        let result: String = env
+            .eval(
+                r#"
+                local function assert_close(actual, expected, label)
+                  if math.abs(actual - expected) > 0.000001 then return label end
+                end
+
+                local h, s, v = C_ColorUtil.ConvertRGBToHSV(1, 0, 0)
+                if assert_close(h, 0, "rgb_h") or assert_close(s, 1, "rgb_s") or assert_close(v, 1, "rgb_v") then
+                  return assert_close(h, 0, "rgb_h") or assert_close(s, 1, "rgb_s") or assert_close(v, 1, "rgb_v")
+                end
+                h, s, v = C_ColorUtil.ConvertRGBToHSV(0.25, 0.5, 0.75)
+                if assert_close(h, 0.5833333333333334, "fractional_h")
+                    or assert_close(s, 0.6666666666666666, "fractional_s")
+                    or assert_close(v, 0.75, "fractional_v") then
+                  return assert_close(h, 0.5833333333333334, "fractional_h")
+                    or assert_close(s, 0.6666666666666666, "fractional_s")
+                    or assert_close(v, 0.75, "fractional_v")
+                end
+                h, s, v = C_ColorUtil.ConvertRGBToHSV(0, 0, 0)
+                if h ~= -1 or s ~= 0 or v ~= 0 then return "black" end
+                h, s, v = C_ColorUtil.ConvertRGBToHSV(1, 1, 1)
+                if h ~= -1 or s ~= 0 or v ~= 1 then return "white" end
+
+                local r, g, b = C_ColorUtil.ConvertHSVToRGB(0, 1, 1)
+                if r ~= 1 or g ~= 0 or b ~= 0 then return "hsv_red" end
+                r, g, b = C_ColorUtil.ConvertHSVToRGB(1 / 3, 1, 1)
+                if assert_close(r, 0, "hsv_green_r") or assert_close(g, 1, "hsv_green_g") or assert_close(b, 0, "hsv_green_b") then
+                  return "hsv_green"
+                end
+                r, g, b = C_ColorUtil.ConvertHSVToRGB(1, 0, 0.5)
+                if r ~= 0.5 or g ~= 0.5 or b ~= 0.5 then return "hsv_hue_boundary" end
+
+                h, s, v = C_ColorUtil.ConvertHSVToHSL(0, 1, 1)
+                if h ~= 0 or s ~= 1 or v ~= 0.5 then return "hsv_hsl_red" end
+                h, s, v = C_ColorUtil.ConvertHSVToHSL(0, 0, 0.5)
+                if h ~= 0 or s ~= 0 or v ~= 0.5 then return "hsv_hsl_gray" end
+                h, s, v = C_ColorUtil.ConvertHSLToHSV(0, 1, 0.5)
+                if h ~= 0 or s ~= 1 or v ~= 1 then return "hsl_hsv_red" end
+                h, s, v = C_ColorUtil.ConvertHSLToHSV(0, 0, 0.5)
+                if h ~= 0 or s ~= 0 or v ~= 0.5 then return "hsl_hsv_gray" end
+
+                h, s, v = C_ColorUtil.ConvertRGBToHSV(nil, nil, nil)
+                if h ~= -1 or s ~= 0 or v ~= 0 then return "nil_rgb" end
+                r, g, b = C_ColorUtil.ConvertHSVToRGB(nil, nil, nil)
+                if r ~= 0 or g ~= 0 or b ~= 0 then return "nil_hsv" end
+                h, s, v = C_ColorUtil.ConvertHSVToHSL(nil, nil, nil)
+                if h ~= 0 or s ~= 0 or v ~= 0 then return "nil_hsl" end
+                h, s, v = C_ColorUtil.ConvertHSLToHSV(nil, nil, nil)
+                if h ~= 0 or s ~= 0 or v ~= 0 then return "nil_hsv_from_hsl" end
+
+                if C_ColorUtil.WrapTextInColor("Ready", { r = 1, g = 0.5, b = 0 }) ~= "|cffff7f00Ready|r" then
+                  return "wrap_text"
+                end
+                if C_ColorUtil.WrapTextInColor("", { r = 1, g = 0.5, b = 0 }) ~= "|cffff7f00|r" then
+                  return "wrap_empty"
+                end
+                return "ok"
+                "#,
+            )
+            .expect("ColorUtil probe should run");
 
         assert_eq!(result, "ok");
     }

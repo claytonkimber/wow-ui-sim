@@ -100,6 +100,27 @@ pub fn table_util_find_indexed_mismatch(state: &mut LuaState) -> LuaResult<u32> 
     Ok(1)
 }
 
+/// table.create(arrayCapacity?, hashCapacity?) — return an empty preallocated table.
+pub fn table_create(state: &mut LuaState) -> LuaResult<u32> {
+    let array_capacity = table_capacity(stack_val(state, 1));
+    let hash_capacity = table_capacity(stack_val(state, 2));
+    let table_ref = state
+        .gc
+        .alloc_table(Table::with_sizes(array_capacity, hash_capacity));
+    state.push(Val::Table(table_ref));
+    Ok(1)
+}
+
+fn table_capacity(value: Val) -> usize {
+    let Val::Num(capacity) = value else {
+        return 0;
+    };
+    if !capacity.is_finite() || capacity <= 0.0 {
+        return 0;
+    }
+    capacity.floor() as usize
+}
+
 /// table.count(tbl) — count total entries and array-index entries.
 pub fn table_count(state: &mut LuaState) -> LuaResult<u32> {
     let input = stack_val(state, 1);
@@ -245,5 +266,6 @@ fn register_table_library_extensions(state: &mut LuaState) -> LuaResult<()> {
     let Val::Table(table_ref) = table_library else {
         return Ok(());
     };
-    table_set_rust_fn_static(state, table_ref, "count", table_count)
+    table_set_rust_fn_static(state, table_ref, "count", table_count)?;
+    table_set_rust_fn_static(state, table_ref, "create", table_create)
 }

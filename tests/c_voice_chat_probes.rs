@@ -7,6 +7,94 @@ fn env() -> WowLuaEnv {
     WowLuaEnv::new().expect("Failed to create Lua environment")
 }
 
+fn channel(channel_id: i32, name: &str, channel_type: i32) -> VoiceChannel {
+    VoiceChannel {
+        channel_id,
+        name: name.into(),
+        channel_type,
+        members: vec![],
+    }
+}
+
+// ── GetActiveChannelType ──────────────────────────────────────────────────────
+
+#[test]
+fn get_active_channel_type_returns_seeded_channel_type() {
+    let env = env();
+    let (value_type, channel_type): (String, i32) = env
+        .eval(
+            r#"
+            local channelType = C_VoiceChat.GetActiveChannelType()
+            return type(channelType), channelType
+            "#,
+        )
+        .unwrap();
+
+    assert_eq!(value_type, "number");
+    assert_eq!(channel_type, 1);
+}
+
+#[test]
+fn get_active_channel_type_tracks_active_channel_changes() {
+    let env = env();
+    {
+        let mut sim = env.state().borrow_mut();
+        sim.voice_chat.channels = vec![channel(1, "Party", 2), channel(2, "Community", 4)];
+        sim.voice_chat.active_channel_id = Some(1);
+    }
+
+    let initial: i32 = env
+        .eval("return C_VoiceChat.GetActiveChannelType()")
+        .unwrap();
+    assert_eq!(initial, 2);
+
+    env.state().borrow_mut().voice_chat.active_channel_id = Some(2);
+    let updated: i32 = env
+        .eval("return C_VoiceChat.GetActiveChannelType()")
+        .unwrap();
+    assert_eq!(updated, 4);
+}
+
+#[test]
+fn get_active_channel_type_returns_one_nil_without_active_channel() {
+    let env = env();
+    env.state().borrow_mut().voice_chat.active_channel_id = None;
+
+    let (count, is_nil): (i32, bool) = env
+        .eval(
+            r#"
+            local function inspect(value, ...)
+                return 1 + select('#', ...), value == nil
+            end
+            return inspect(C_VoiceChat.GetActiveChannelType())
+            "#,
+        )
+        .unwrap();
+
+    assert_eq!(count, 1);
+    assert!(is_nil);
+}
+
+#[test]
+fn get_active_channel_type_returns_one_nil_for_stale_active_channel() {
+    let env = env();
+    env.state().borrow_mut().voice_chat.active_channel_id = Some(999);
+
+    let (count, is_nil): (i32, bool) = env
+        .eval(
+            r#"
+            local function inspect(value, ...)
+                return 1 + select('#', ...), value == nil
+            end
+            return inspect(C_VoiceChat.GetActiveChannelType())
+            "#,
+        )
+        .unwrap();
+
+    assert_eq!(count, 1);
+    assert!(is_nil);
+}
+
 // ── GetActiveChannelID ────────────────────────────────────────────────────────
 
 #[test]
@@ -58,20 +146,7 @@ fn get_channels_reflects_mutation() {
     let env = env();
     {
         let mut sim = env.state().borrow_mut();
-        sim.voice_chat.channels = vec![
-            VoiceChannel {
-                channel_id: 1,
-                name: "Party".into(),
-                channel_type: 1,
-                members: vec![],
-            },
-            VoiceChannel {
-                channel_id: 2,
-                name: "Guild".into(),
-                channel_type: 2,
-                members: vec![],
-            },
-        ];
+        sim.voice_chat.channels = vec![channel(1, "Party", 1), channel(2, "Guild", 2)];
     }
     let count: i32 = env.eval("return #C_VoiceChat.GetChannels()").unwrap();
     assert_eq!(count, 2);

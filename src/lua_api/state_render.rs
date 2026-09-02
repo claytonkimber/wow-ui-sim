@@ -1,6 +1,6 @@
 //! Strata rendering, layout, and visibility methods for SimState.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use super::state::SimState;
 #[path = "state_render_buckets.rs"]
@@ -12,6 +12,12 @@ use state_render_buckets::{
     uses_parent_alpha_fallback,
 };
 use state_render_repairs::{build_strata_bucket_repair_plan, splice_strata_bucket_repair};
+
+struct RaisedToplevelSegment {
+    owner_id: u64,
+    show_order: u64,
+    ids: Vec<u64>,
+}
 
 impl SimState {
     /// Initialize derived render state that must be propagated once after startup.
@@ -61,8 +67,75 @@ impl SimState {
             for root_id in roots {
                 dfs_emit(root_id, si, &self.widgets, &visible, bucket);
             }
+            self.move_raised_toplevel_segments_after_regular(bucket);
         }
         buckets
+    }
+
+    fn move_raised_toplevel_segments_after_regular(&self, bucket: &mut Vec<u64>) {
+        let (regular_ids, mut segments) = self.partition_raised_toplevel_segments(bucket);
+        segments.sort_by_key(|segment| (segment.show_order, segment.owner_id));
+
+        bucket.extend(regular_ids);
+        for mut segment in segments {
+            anchor_toplevel_owner(&mut segment.ids, segment.owner_id);
+            bucket.extend(segment.ids);
+        }
+    }
+
+    fn partition_raised_toplevel_segments(
+        &self,
+        bucket: &mut Vec<u64>,
+    ) -> (Vec<u64>, Vec<RaisedToplevelSegment>) {
+        let mut regular_ids = Vec::with_capacity(bucket.len());
+        let mut segments = Vec::<RaisedToplevelSegment>::new();
+        let mut segment_indices = HashMap::<u64, usize>::new();
+        let mut owner_cache = HashMap::<u64, Option<(u64, u64)>>::new();
+
+        for id in bucket.drain(..) {
+            match self.nearest_active_toplevel_owner(id, &mut owner_cache) {
+                Some((owner_id, show_order)) => append_raised_toplevel_id(
+                    &mut segments,
+                    &mut segment_indices,
+                    owner_id,
+                    show_order,
+                    id,
+                ),
+                None => regular_ids.push(id),
+            }
+        }
+        (regular_ids, segments)
+    }
+
+    fn nearest_active_toplevel_owner(
+        &self,
+        id: u64,
+        cache: &mut HashMap<u64, Option<(u64, u64)>>,
+    ) -> Option<(u64, u64)> {
+        if let Some(owner) = cache.get(&id) {
+            return *owner;
+        }
+
+        let mut path = Vec::new();
+        let mut current_id = Some(id);
+        let owner = loop {
+            let Some(frame_id) = current_id else {
+                break None;
+            };
+            if let Some(owner) = cache.get(&frame_id) {
+                break *owner;
+            }
+            if let Some(&show_order) = self.active_toplevel_show_orders.get(&frame_id) {
+                break Some((frame_id, show_order));
+            }
+            path.push(frame_id);
+            current_id = self.widgets.get(frame_id).and_then(|frame| frame.parent_id);
+        };
+
+        for frame_id in path {
+            cache.insert(frame_id, owner);
+        }
+        owner
     }
 
     fn frame_belongs_in_strata_bucket(&self, id: u64, frame: &crate::widget::Frame) -> bool {
@@ -355,6 +428,26 @@ impl SimState {
         }
     }
 
+    /// Set whether a shown frame participates in top-level show ordering.
+    pub fn set_frame_toplevel(&mut self, id: u64, toplevel: bool) {
+        let Some(frame) = self.widgets.get_mut(id) else {
+            return;
+        };
+        let was_toplevel = frame.toplevel;
+        let is_shown = frame.visible;
+        frame.toplevel = toplevel;
+
+        let order_changed = if toplevel && is_shown {
+            self.ensure_toplevel_show_order(id)
+        } else {
+            self.active_toplevel_show_orders.remove(&id).is_some()
+        };
+        if was_toplevel != toplevel || order_changed {
+            self.pending_hit_grid_changes.push((id, true));
+            self.invalidate_strata_buckets();
+        }
+    }
+
     /// Set a frame's visibility and eagerly propagate effective_alpha.
     /// Surgically updates strata_buckets: inserts on show, removes on hide.
     pub fn set_frame_visible(&mut self, id: u64, visible: bool) {
@@ -363,13 +456,7 @@ impl SimState {
         if was_visible == visible {
             return;
         }
-        // Toplevel frames are raised above siblings when shown (WoW behavior).
-        if visible {
-            let is_toplevel = self.widgets.get(id).map(|f| f.toplevel).unwrap_or(false);
-            if is_toplevel {
-                self.raise_frame(id);
-            }
-        }
+        let toplevel_order_changed = self.update_toplevel_show_order(id, visible);
         self.update_on_update_cache(id, visible);
         // Propagate effective_alpha: look up parent's effective_alpha.
         let parent_eff = self
@@ -388,15 +475,46 @@ impl SimState {
         }
         self.widgets.propagate_effective_alpha(id, parent_eff);
         if visible {
-            // Show: insert newly-visible frames AFTER propagating alpha.
-            if !self.try_repair_strata_buckets_after_show(id)
-                && !self.try_append_tooltip_root_after_show(id)
+            // Top-level show order crosses raw frame levels, so its complete
+            // cross-strata segment requires a full bucket regroup.
+            if toplevel_order_changed
+                || (!self.try_repair_strata_buckets_after_show(id)
+                    && !self.try_append_tooltip_root_after_show(id))
             {
                 self.invalidate_strata_buckets();
             }
         }
         // Record for incremental HitGrid update (applied by App after Lua runs).
         self.pending_hit_grid_changes.push((id, visible));
+    }
+
+    fn update_toplevel_show_order(&mut self, id: u64, visible: bool) -> bool {
+        let is_toplevel = self.widgets.get(id).is_some_and(|frame| frame.toplevel);
+        if !is_toplevel {
+            return false;
+        }
+        if visible {
+            self.assign_next_toplevel_show_order(id);
+            return true;
+        }
+        self.active_toplevel_show_orders.remove(&id).is_some()
+    }
+
+    fn ensure_toplevel_show_order(&mut self, id: u64) -> bool {
+        if self.active_toplevel_show_orders.contains_key(&id) {
+            return false;
+        }
+        self.assign_next_toplevel_show_order(id);
+        true
+    }
+
+    fn assign_next_toplevel_show_order(&mut self, id: u64) {
+        self.next_toplevel_show_order = self
+            .next_toplevel_show_order
+            .checked_add(1)
+            .expect("top-level show order overflow");
+        self.active_toplevel_show_orders
+            .insert(id, self.next_toplevel_show_order);
     }
 
     fn try_repair_strata_buckets_after_show(&mut self, shown_id: u64) -> bool {
@@ -654,6 +772,35 @@ impl SimState {
         self.visible_on_update_cache = None;
         let after = self.on_update_frames.len();
         eprintln!("[self-test] stripped OnUpdate: {before} → {after} (keeping {addon_name})");
+    }
+}
+
+fn append_raised_toplevel_id(
+    segments: &mut Vec<RaisedToplevelSegment>,
+    segment_indices: &mut HashMap<u64, usize>,
+    owner_id: u64,
+    show_order: u64,
+    id: u64,
+) {
+    let segment_index = *segment_indices.entry(owner_id).or_insert_with(|| {
+        let index = segments.len();
+        segments.push(RaisedToplevelSegment {
+            owner_id,
+            show_order,
+            ids: Vec::new(),
+        });
+        index
+    });
+    segments[segment_index].ids.push(id);
+}
+
+fn anchor_toplevel_owner(ids: &mut Vec<u64>, owner_id: u64) {
+    let Some(owner_position) = ids.iter().position(|&id| id == owner_id) else {
+        return;
+    };
+    if owner_position > 0 {
+        let owner = ids.remove(owner_position);
+        ids.insert(0, owner);
     }
 }
 

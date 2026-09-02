@@ -41,9 +41,8 @@ fn load_full_game_ui() -> WowLuaEnv {
     env
 }
 
-#[test]
-fn blizzard_character_customize_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_character_customize_loads_without_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -86,10 +85,10 @@ fn blizzard_character_customize_loads_without_errors() {
         "Blizzard_CharacterCustomize mixin tables should be defined after load"
     );
 }
+}
 
-#[test]
-fn char_customize_frame_show_and_hide_run_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn char_customize_frame_show_and_hide_run_without_errors(env: &WowLuaEnv) {
 
     load_addon(&env.loader_env(), &character_customize_toc())
         .expect("Blizzard_CharacterCustomize should load");
@@ -110,4 +109,5 @@ fn char_customize_frame_show_and_hide_run_without_errors() {
         "CharCustomizeFrame Show/Hide emitted Lua errors:\n  {}",
         unexpected_errors.join("\n  ")
     );
+}
 }

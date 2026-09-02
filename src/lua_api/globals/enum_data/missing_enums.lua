@@ -3209,21 +3209,17 @@ if not Enum.CombatAudioAlertSpecSetting then
   Enum.CombatAudioAlertSpecSetting = {
     Resource1Format = 1,
     Resource1Percent = 0,
-    Resource1Voice = 2,
-    Resource1Volume = 3,
-    Resource2Format = 5,
-    Resource2Percent = 4,
-    Resource2Voice = 6,
-    Resource2Volume = 7,
-    SayIfTargeted = 8,
+    Resource2Format = 3,
+    Resource2Percent = 2,
+    SayIfTargeted = 4,
   }
 end
 
 if not Enum.CombatAudioAlertSpecSettingMeta then
   Enum.CombatAudioAlertSpecSettingMeta = {
-    MaxValue = 8,
+    MaxValue = 4,
     MinValue = 0,
-    NumValues = 9,
+    NumValues = 5,
   }
 end
 

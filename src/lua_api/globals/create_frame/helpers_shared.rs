@@ -324,6 +324,7 @@ fn register_global_name(
         }
         state.gc.barrier_back(global);
         crate::lua_api::global_slots::refresh_installed_slots_for_name(state, &name);
+        crate::lua_api::globals::compat_overrides::record_public_global_publication(state, &name)?;
     }
     if add_to_secure_env {
         crate::lua_api::globals::security::set_secure_env_key_state(state, &name, frame_val)?;

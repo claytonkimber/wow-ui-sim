@@ -53,6 +53,67 @@ fn test_create_frame_from_xml_frame_strata() {
 }
 
 #[test]
+fn test_xml_protected_frame_retains_protection_and_lacks_legacy_setters() {
+    clear_templates();
+    let env = WowLuaEnv::new().unwrap();
+
+    let xml = r#"
+        <Ui>
+            <Frame name="XmlProtectedProbeFrame" parent="UIParent" protected="true" hidden="true" />
+        </Ui>
+    "#;
+
+    let ui = parse_xml(xml).unwrap();
+    if let XmlElement::Frame(frame) = &ui.elements[0] {
+        create_frame_from_xml(
+            &env.loader_env(),
+            frame,
+            "Frame",
+            None,
+            None,
+            None,
+            &mut LoadTiming::default(),
+        )
+        .unwrap();
+    }
+
+    let (
+        protected_before,
+        forbidden,
+        protect_missing,
+        set_protected_missing,
+        protect_call_ok,
+        set_protected_true_ok,
+        set_protected_false_ok,
+        protected_after,
+    ): (bool, bool, bool, bool, bool, bool, bool, bool) = env
+        .eval(
+            r#"
+            local frame = XmlProtectedProbeFrame
+            local protectedBefore = frame:IsProtected()
+            local forbidden = frame:IsForbidden()
+            local protectMissing = type(frame.Protect) == "nil"
+            local setProtectedMissing = type(frame.SetProtected) == "nil"
+            local protectCallOk = pcall(function() frame:Protect() end)
+            local setProtectedTrueOk = pcall(function() frame:SetProtected(true) end)
+            local setProtectedFalseOk = pcall(function() frame:SetProtected(false) end)
+            return protectedBefore, forbidden, protectMissing, setProtectedMissing,
+                protectCallOk, setProtectedTrueOk, setProtectedFalseOk, frame:IsProtected()
+            "#,
+        )
+        .unwrap();
+
+    assert!(protected_before);
+    assert!(!forbidden);
+    assert!(protect_missing);
+    assert!(set_protected_missing);
+    assert!(!protect_call_ok);
+    assert!(!set_protected_true_ok);
+    assert!(!set_protected_false_ok);
+    assert!(protected_after);
+}
+
+#[test]
 fn test_xml_parent_frame_strata_matches_dialog_parent_and_later_change() {
     clear_templates();
     let env = WowLuaEnv::new().unwrap();

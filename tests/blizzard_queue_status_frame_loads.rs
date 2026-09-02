@@ -321,9 +321,8 @@ fn blizzard_queue_status_frame_appears_in_full_addon_inventory() {
     );
 }
 
-#[test]
-fn blizzard_queue_status_frame_loads_in_eager_game_sweep_without_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_queue_status_frame_loads_in_eager_game_sweep_without_lua_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -347,10 +346,10 @@ fn blizzard_queue_status_frame_loads_in_eager_game_sweep_without_lua_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_queue_status_frame_publishes_three_mixin_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_queue_status_frame_publishes_three_mixin_globals(env: &WowLuaEnv) {
 
     for mixin in PUBLIC_MIXIN_GLOBALS {
         let kind: String = env
@@ -372,10 +371,10 @@ fn blizzard_queue_status_frame_publishes_three_mixin_globals() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_queue_status_frame_publishes_two_named_top_level_frames() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_queue_status_frame_publishes_two_named_top_level_frames(env: &WowLuaEnv) {
 
     for frame_name in PUBLIC_NAMED_FRAMES {
         let kind: String = env
@@ -397,10 +396,10 @@ fn blizzard_queue_status_frame_publishes_two_named_top_level_frames() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_queue_status_frame_virtual_templates_not_in_global_env() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_queue_status_frame_virtual_templates_not_in_global_env(env: &WowLuaEnv) {
 
     for template in VIRTUAL_TEMPLATES_SAMPLE {
         let kind: String = env
@@ -423,10 +422,10 @@ fn blizzard_queue_status_frame_virtual_templates_not_in_global_env() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_queue_status_frame_publishes_global_helper_functions() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_queue_status_frame_publishes_global_helper_functions(env: &WowLuaEnv) {
 
     for helper in PUBLIC_GLOBAL_HELPERS {
         let kind: String = env
@@ -449,10 +448,10 @@ fn blizzard_queue_status_frame_publishes_global_helper_functions() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_queue_status_frame_registers_twenty_four_events_in_onload() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_queue_status_frame_registers_twenty_four_events_in_onload(env: &WowLuaEnv) {
 
     for event in ON_LOAD_REGISTERED_EVENTS {
         let registered: bool = env
@@ -484,10 +483,10 @@ fn blizzard_queue_status_frame_registers_twenty_four_events_in_onload() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_queue_status_button_enters_searching_mode_after_lfd_join() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_queue_status_button_enters_searching_mode_after_lfd_join(env: &WowLuaEnv) {
 
     let result: String = env
         .eval(
@@ -518,4 +517,5 @@ fn blizzard_queue_status_button_enters_searching_mode_after_lfd_join() {
         result, "ok",
         "joining an LFD queue must notify QueueStatusFrame so the eye leaves static mode"
     );
+}
 }

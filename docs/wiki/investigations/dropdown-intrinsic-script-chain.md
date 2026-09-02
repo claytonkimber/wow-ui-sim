@@ -1,6 +1,6 @@
 # Dropdown Intrinsic Script Chain
 
-Reputation filter dropdowns failed to open because intrinsic `DropdownButton` XML scripts were replaced by style-template scripts. Later shared input work also made `RegisterForMouse` and click propagation real simulator state, so dropdown-like parents do not need per-widget click shims when a child or physical mouse registration is involved.
+Reputation filter dropdowns failed to open because intrinsic `DropdownButton` XML scripts were replaced by style-template scripts. Intrinsic handlers now use the simulator's precall binding, so runtime dispatch preserves the intrinsic handler before the derived style handler. Later shared input work also made `RegisterForMouse` and click propagation real simulator state, so dropdown-like parents do not need per-widget click shims when a child or physical mouse registration is involved.
 
 ## Content
 
@@ -16,7 +16,7 @@ The issue was in the simulator XML/template script application, not in the Reput
 
 ### Fix
 
-When a template chain has already applied an intrinsic base, later default scripts are chained with existing handlers instead of replacing them. This preserves Blizzard's intrinsic event path while still allowing the derived style handler to run first.
+When a template chain applies an intrinsic base, its default scripts are installed in the precall binding. A derived style template's ordinary script remains in the normal binding, so dispatch runs the intrinsic handler first and the style handler second. `GetScript("OnMouseDown")` without a binding argument reads only the normal binding; the regression therefore uses `WowLuaEnv::fire_script_handler` to exercise the real dispatch path.
 
 The fake menu path was retired:
 
@@ -27,7 +27,7 @@ The fake menu path was retired:
 
 ### Coverage
 
-- `intrinsic_dropdown_scripts_chain_with_style_template_scripts` asserts a minimal intrinsic `DropdownButton` plus style template runs both handlers in order.
+- `intrinsic_dropdown_scripts_dispatch_before_style_template_scripts` asserts a minimal intrinsic `DropdownButton` plus style template dispatches both handlers in order.
 - `reputation_filter_dropdown_opens_with_blizzard_menu_renderer` loads Blizzard UI, runs `ReputationFrame`'s real `OnShow`, clicks the real dropdown script, and asserts `Menu.GetManager()` tracks the opened menu.
 - `register_for_mouse_restricts_physical_mouse_button_events` asserts `RegisterForMouse("LeftButtonDown", "LeftButtonUp")` suppresses right-button `OnMouseDown`/`OnMouseUp` dispatch.
 - `propagated_mouse_clicks_fire_parent_mouse_handlers` asserts a child with `SetPropagateMouseClicks(true)` forwards physical mouse scripts to its parent. This covers dropdown-style parents whose base handler is on the parent while the deepest hit target is a child.
@@ -44,7 +44,10 @@ The shared fix stores physical mouse registrations on `Frame`, filters physical 
 - [MenuTemplates.xml](../../../Interface/BlizzardUI/Blizzard_Menu/Mainline/MenuTemplates.xml) — style dropdown scripts
 - [ReputationFrame.lua](../../../Interface/BlizzardUI/Blizzard_UIPanels_Game/Mainline/ReputationFrame.lua) — menu generator
 - [template_chain.rs](../../../src/lua_api/globals/create_frame/template_chain.rs) — runtime template script application
-- [helpers.rs](../../../src/loader/helpers.rs) — slow-path XML script chaining
+- [helpers.rs](../../../src/loader/helpers.rs) — slow-path XML script chaining and binding selection
+- [helpers_anim.rs](../../../src/loader/helpers_anim.rs) — animation-group mixin and XML method-script ordering
+- [xml_frame_codegen.rs](../../../src/loader/xml_frame_codegen.rs) — XML KeyValues initializer timing
+- [parse.rs](../../../src/xml/parse.rs) — inline `<Scripts>` sibling preservation
 - [mouse.rs](../../../src/iced_app/mouse.rs) — GUI mouse dispatch, physical edge checks, and click propagation
 - [input.rs](../../../src/lua_api/frame/methods/core_state/input.rs) — `RegisterForMouse` state storage
 - [startup_api_stubs.rs](../../../tests/startup_api_stubs.rs) — Reputation dropdown regression test
@@ -53,5 +56,5 @@ The shared fix stores physical mouse registrations on `Frame`, filters physical 
 
 ## See Also
 
-- [[xml-template-system]] — template registration and inheritance chain behavior
+- [[xml-template-system]] — template registration, inheritance, XML lifecycle order, and script bindings
 - [[frame-data-flow]] — Lua/Rust frame state and script dispatch

@@ -6,7 +6,6 @@ use wow_ui_sim::loader::{
 };
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
-use wow_ui_sim::startup::fire_startup_events_for_screen;
 use wow_ui_sim::toc::TocFile;
 
 fn blizzard_ui_dir() -> PathBuf {
@@ -48,32 +47,9 @@ const NAMED_FRAMES: &[&str] = &[
     "MovePadStrafeRight",
 ];
 
-fn load_full_game_ui_then_request_move_pad() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-
-    wow_ui_sim::xml::register_intrinsic_templates();
-
-    let ui = blizzard_ui_dir();
-    let addons = discover_blizzard_addons_for_screen(&ui, ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    env.apply_post_load_workarounds();
-    fire_startup_events_for_screen(&env, ScreenKind::Game);
-
+fn load_move_pad(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &move_pad_toc())
         .expect("Blizzard_MovePad on-demand load succeeds");
-
-    env
 }
 
 #[test]
@@ -209,9 +185,9 @@ fn blizzard_move_pad_appears_in_discover_all_blizzard_addons() {
     );
 }
 
-#[test]
-fn blizzard_move_pad_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui_then_request_move_pad();
+prefork_full_ui_case! {
+fn blizzard_move_pad_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
+    load_move_pad(env);
 
     let load_errors: Vec<String> = env
         .state()
@@ -237,10 +213,11 @@ fn blizzard_move_pad_loads_without_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_move_pad_is_addon_loaded_after_explicit_load_addon_call() {
-    let env = load_full_game_ui_then_request_move_pad();
+prefork_full_ui_case! {
+fn blizzard_move_pad_is_addon_loaded_after_explicit_load_addon_call(env: &WowLuaEnv) {
+    load_move_pad(env);
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_MovePad')")
@@ -253,10 +230,11 @@ fn blizzard_move_pad_is_addon_loaded_after_explicit_load_addon_call() {
          though the discovery sweep skipped it"
     );
 }
+}
 
-#[test]
-fn blizzard_move_pad_publishes_nine_mixins_as_tables() {
-    let env = load_full_game_ui_then_request_move_pad();
+prefork_full_ui_case! {
+fn blizzard_move_pad_publishes_nine_mixins_as_tables(env: &WowLuaEnv) {
+    load_move_pad(env);
     for mixin in PUBLIC_MIXINS {
         let kind: String = env
             .eval(&format!("return type(_G.{mixin})"))
@@ -271,10 +249,11 @@ fn blizzard_move_pad_publishes_nine_mixins_as_tables() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_move_pad_publishes_eight_named_xml_frames_as_globals() {
-    let env = load_full_game_ui_then_request_move_pad();
+prefork_full_ui_case! {
+fn blizzard_move_pad_publishes_eight_named_xml_frames_as_globals(env: &WowLuaEnv) {
+    load_move_pad(env);
     for frame in NAMED_FRAMES {
         let kind: String = env
             .eval(&format!("return type(_G.{frame})"))
@@ -302,10 +281,11 @@ fn blizzard_move_pad_publishes_eight_named_xml_frames_as_globals() {
          (MOVE_PAD_LOCKED + MOVE_PAD_PRESS_AND_HOLD_MODE)"
     );
 }
+}
 
-#[test]
-fn blizzard_move_pad_checkbox_template_does_not_leak_as_global() {
-    let env = load_full_game_ui_then_request_move_pad();
+prefork_full_ui_case! {
+fn blizzard_move_pad_checkbox_template_does_not_leak_as_global(env: &WowLuaEnv) {
+    load_move_pad(env);
     let kind: String = env
         .eval("return type(_G.MovePadCheckboxTemplate)")
         .expect("MovePadCheckboxTemplate _G probe succeeds");
@@ -318,10 +298,11 @@ fn blizzard_move_pad_checkbox_template_does_not_leak_as_global() {
          CreateFrame inherits parameter"
     );
 }
+}
 
-#[test]
-fn blizzard_move_pad_parent_array_collects_six_check_buttons() {
-    let env = load_full_game_ui_then_request_move_pad();
+prefork_full_ui_case! {
+fn blizzard_move_pad_parent_array_collects_six_check_buttons(env: &WowLuaEnv) {
+    load_move_pad(env);
     let count: i64 = env
         .eval("return #MovePadFrame.MoveButtons")
         .expect("MovePadFrame.MoveButtons length probe succeeds");
@@ -337,10 +318,11 @@ fn blizzard_move_pad_parent_array_collects_six_check_buttons() {
          button state on press-and-hold transitions; got {count}"
     );
 }
+}
 
-#[test]
-fn blizzard_move_pad_opposing_button_pairs_are_wired_after_onload() {
-    let env = load_full_game_ui_then_request_move_pad();
+prefork_full_ui_case! {
+fn blizzard_move_pad_opposing_button_pairs_are_wired_after_onload(env: &WowLuaEnv) {
+    load_move_pad(env);
 
     let pairs = [
         ("MovePadForward", "MovePadBackward"),
@@ -365,4 +347,5 @@ fn blizzard_move_pad_opposing_button_pairs_are_wired_after_onload() {
              user from being 'locked' moving in two opposing directions at once"
         );
     }
+}
 }

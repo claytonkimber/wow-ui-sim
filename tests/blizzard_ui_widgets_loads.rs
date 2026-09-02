@@ -8,7 +8,8 @@ use wow_ui_sim::startup::fire_startup_events_for_screen;
 use wow_ui_sim::toc::TocFile;
 
 fn blizzard_ui_dir() -> PathBuf {
-    wow_ui_sim::paths::default_blizzard_ui_addons_path().expect("Blizzard UI cache should be available")
+    wow_ui_sim::paths::default_blizzard_ui_addons_path()
+        .expect("Blizzard UI cache should be available")
 }
 
 fn ui_widgets_dir() -> PathBuf {
@@ -16,7 +17,7 @@ fn ui_widgets_dir() -> PathBuf {
 }
 
 fn ui_widgets_toc() -> PathBuf {
-    ui_widgets_dir().join("Blizzard_UIWidgets_Mainline.toc")
+    ui_widgets_dir().join("Blizzard_UIWidgets.toc")
 }
 
 const GLUE_SCREENS: &[ScreenKind] = &[
@@ -25,7 +26,12 @@ const GLUE_SCREENS: &[ScreenKind] = &[
     ScreenKind::CharacterCreate,
 ];
 
-const TOC_DEPENDENCIES: &[&str] = &["Blizzard_Minimap", "Blizzard_Colors"];
+const TOC_DEPENDENCIES: &[&str] = &[
+    "Blizzard_Minimap",
+    "Blizzard_Colors",
+    "Blizzard_LFGUtil",
+    "Blizzard_ManagedFrameSystem",
+];
 
 const REPRESENTATIVE_BODY_FILES: &[&str] = &[
     "Mainline\\Blizzard_WidgetsUtil.lua",
@@ -197,23 +203,17 @@ fn load_full_game_ui() -> WowLuaEnv {
 }
 
 #[test]
-fn find_toc_file_resolves_mainline_variant() {
+fn find_toc_file_resolves_bare_toc() {
     let resolved = find_toc_file(&ui_widgets_dir()).expect("UIWidgets TOC resolves");
     assert_eq!(
         resolved,
         ui_widgets_toc(),
-        "find_toc_file at src/loader/mod.rs:65-95 prefers \
-         `<addon>_Mainline.toc`. Blizzard_UIWidgets ships ONLY the \
-         Mainline variant — no bare TOC, no Classic/Mists companion. \
-         Widget templates exposed by C_UIWidgetManager.GetAllWidgetsBySetID \
-         are a Mainline-era addition (Battle for Azeroth onwards) and \
-         the Classic flavors don't render dynamic widgets through this \
-         system"
+        "Blizzard_UIWidgets ships the active retail contract in one bare TOC"
     );
 }
 
 #[test]
-fn toc_is_eager_with_two_dependencies() {
+fn toc_is_eager_with_four_dependencies() {
     let toc = TocFile::from_file(&ui_widgets_toc()).expect("TOC parses");
 
     assert!(
@@ -228,14 +228,7 @@ fn toc_is_eager_with_two_dependencies() {
     let deps = toc.dependencies();
     assert_eq!(
         deps, TOC_DEPENDENCIES,
-        "TOC must declare exactly Blizzard_Minimap and Blizzard_Colors \
-         as hard deps. Blizzard_Minimap is needed because \
-         UIWidgetBelowMinimapContainerFrame anchors itself relative to \
-         the Minimap (the BelowMinimap widget set is the lowest-strata \
-         minimap-adjacent overlay). Blizzard_Colors supplies the named \
-         color globals (HIGHLIGHT_FONT_COLOR, NORMAL_FONT_COLOR, \
-         RED_FONT_COLOR, plus widget-specific colors used by the \
-         StatusBar / TextWithState / ZoneControl mixins). Got: {deps:?}"
+        "TOC must declare the current Minimap, Colors, LFGUtil, and ManagedFrameSystem dependencies. Got: {deps:?}"
     );
 
     assert!(toc.optional_deps().is_empty());
@@ -265,13 +258,12 @@ fn allow_load_game_restricts_to_in_world() {
 }
 
 #[test]
-fn allow_load_game_type_mainline_is_not_restricted() {
+fn toc_omits_game_type_restriction() {
     let toc = TocFile::from_file(&ui_widgets_toc()).expect("TOC parses");
 
     assert!(
         !toc.is_game_type_restricted(),
-        "`## AllowLoadGameType: mainline` hits the non-restricting \
-         branch at toc.rs:294-302 (standard|mainline accepted)"
+        "The current bare TOC has no `## AllowLoadGameType` directive, so it must remain unrestricted"
     );
 }
 
@@ -281,11 +273,8 @@ fn toc_raw_bytes_pin_directives_and_representative_body_files() {
 
     let expected_directives = [
         "## Title: Blizzard_UIWidgets",
-        "## Author: Blizzard Entertainment",
-        "## DefaultState: enabled",
-        "## Dependencies: Blizzard_Minimap, Blizzard_Colors",
+        "## Dependencies: Blizzard_Minimap, Blizzard_Colors, Blizzard_LFGUtil, Blizzard_ManagedFrameSystem",
         "## AllowLoad: game",
-        "## AllowLoadGameType: mainline",
     ];
 
     for line in expected_directives {
@@ -354,9 +343,8 @@ fn dep_directories_exist_on_disk() {
     }
 }
 
-#[test]
-fn full_game_load_publishes_manager_and_container_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_publishes_manager_and_container_mixins(env: &WowLuaEnv) {
 
     for mixin in MANAGER_AND_CONTAINER_MIXINS {
         let kind: String = env
@@ -378,10 +366,10 @@ fn full_game_load_publishes_manager_and_container_mixins() {
         );
     }
 }
+}
 
-#[test]
-fn full_game_load_publishes_base_and_helper_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_publishes_base_and_helper_mixins(env: &WowLuaEnv) {
 
     for mixin in BASE_AND_HELPER_MIXINS {
         let kind: String = env
@@ -401,10 +389,10 @@ fn full_game_load_publishes_base_and_helper_mixins() {
         );
     }
 }
+}
 
-#[test]
-fn full_game_load_publishes_template_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_publishes_template_mixins(env: &WowLuaEnv) {
 
     for mixin in TEMPLATE_MIXINS {
         let kind: String = env
@@ -432,10 +420,10 @@ fn full_game_load_publishes_template_mixins() {
         );
     }
 }
+}
 
-#[test]
-fn full_game_load_publishes_flipbook_and_nested_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_publishes_flipbook_and_nested_mixins(env: &WowLuaEnv) {
 
     for mixin in FLIPBOOK_AND_NESTED_MIXINS {
         let kind: String = env
@@ -457,10 +445,10 @@ fn full_game_load_publishes_flipbook_and_nested_mixins() {
         );
     }
 }
+}
 
-#[test]
-fn full_game_load_publishes_widget_util() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_publishes_widget_util(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(WidgetUtil)")
@@ -484,10 +472,10 @@ fn full_game_load_publishes_widget_util() {
         );
     }
 }
+}
 
-#[test]
-fn full_game_load_registers_representative_virtual_templates() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_registers_representative_virtual_templates(env: &WowLuaEnv) {
     let _ = env;
 
     for template in REPRESENTATIVE_VIRTUAL_TEMPLATES {
@@ -518,10 +506,10 @@ fn full_game_load_registers_representative_virtual_templates() {
         );
     }
 }
+}
 
-#[test]
-fn full_game_load_publishes_named_top_level_frames() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_publishes_named_top_level_frames(env: &WowLuaEnv) {
 
     for name in NAMED_TOP_LEVEL_FRAMES {
         let frame_kind: String = env
@@ -547,10 +535,10 @@ fn full_game_load_publishes_named_top_level_frames() {
         );
     }
 }
+}
 
-#[test]
-fn full_game_load_emits_no_addon_specific_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_emits_no_addon_specific_errors(env: &WowLuaEnv) {
 
     let errors: Vec<String> = env.state().borrow().lua_errors.clone();
     let addon_specific: Vec<&String> = errors
@@ -569,4 +557,5 @@ fn full_game_load_emits_no_addon_specific_errors() {
          into every widget-type Template extending \
          UIWidgetBaseTemplateMixin. Found: {addon_specific:?}"
     );
+}
 }

@@ -156,8 +156,6 @@ fn toc_raw_bytes_pin_load_saved_variables_first_for_pre_lua_sv_loading() {
         .expect("Blizzard_SettingsDefinitions_Shared TOC reads utf-8");
 
     assert!(raw.contains("## Title: Blizzard_SettingsDefinitions_Shared"));
-    assert!(raw.contains("## Author: Blizzard Entertainment"));
-    assert!(raw.contains("## DefaultState: enabled"));
     assert!(raw.contains("## AllowLoad: Both"));
     assert!(raw.contains("## SavedVariablesPerCharacter: NewSettingsSeen"));
 
@@ -321,9 +319,8 @@ fn root_directory_holds_eight_top_level_lua_xml_files_plus_mainline_subdir() {
     }
 }
 
-#[test]
-fn loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -347,10 +344,10 @@ fn loads_without_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn is_addon_loaded_after_eager_sweep() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn is_addon_loaded_after_eager_sweep(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_SettingsDefinitions_Shared')")
@@ -361,10 +358,10 @@ fn is_addon_loaded_after_eager_sweep() {
          return true after the eager Game-screen sweep"
     );
 }
+}
 
-#[test]
-fn publishes_fifteen_global_mixin_tables_for_settings_widgets() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn publishes_fifteen_global_mixin_tables_for_settings_widgets(env: &WowLuaEnv) {
 
     for mixin in PUBLIC_GLOBAL_MIXINS {
         let kind: String = env
@@ -390,10 +387,10 @@ fn publishes_fifteen_global_mixin_tables_for_settings_widgets() {
         );
     }
 }
+}
 
-#[test]
-fn debug_setting_group_global_published_only_when_gm_client() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn debug_setting_group_global_published_only_when_gm_client(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(_G.SETTING_GROUP_DEBUG)")
@@ -408,10 +405,10 @@ fn debug_setting_group_global_published_only_when_gm_client() {
          the player is connected as a GM"
     );
 }
+}
 
-#[test]
-fn add_text_option_with_preview_helpers_publish_from_mainline_text_lua() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn add_text_option_with_preview_helpers_publish_from_mainline_text_lua(env: &WowLuaEnv) {
 
     for fn_name in ["AddTextOptionWithPreview", "AddTextOptionsWithPreview"] {
         let kind: String = env
@@ -428,10 +425,10 @@ fn add_text_option_with_preview_helpers_publish_from_mainline_text_lua() {
         );
     }
 }
+}
 
-#[test]
-fn new_settings_seen_saved_var_publishes_as_table_after_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn new_settings_seen_saved_var_publishes_as_table_after_load(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(_G.NewSettingsSeen)")
@@ -446,4 +443,5 @@ fn new_settings_seen_saved_var_publishes_as_table_after_load() {
          global; the `## LoadSavedVariablesFirst: 1` annotation says to do \
          this before Lua body runs. Got: {kind}"
     );
+}
 }

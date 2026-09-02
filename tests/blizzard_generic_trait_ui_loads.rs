@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, find_toc_file, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
-use wow_ui_sim::startup::fire_startup_events_for_screen;
 use wow_ui_sim::toc::TocFile;
 
 fn blizzard_ui_dir() -> PathBuf {
@@ -29,37 +28,11 @@ fn spell_search_toc() -> PathBuf {
     blizzard_ui_dir().join("Blizzard_SpellSearch/Blizzard_SpellSearch.toc")
 }
 
-fn load_full_game_ui() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-
-    wow_ui_sim::xml::register_intrinsic_templates();
-
-    let ui = blizzard_ui_dir();
-    let addons = discover_blizzard_addons_for_screen(&ui, ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    env.apply_post_load_workarounds();
-    fire_startup_events_for_screen(&env, ScreenKind::Game);
-    env
-}
-
-fn load_full_game_ui_with_trait_lod_chain() -> WowLuaEnv {
-    let env = load_full_game_ui();
+fn load_generic_trait_ui_with_dependency(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &spell_search_toc())
         .expect("Blizzard_SpellSearch (LoD dep of Blizzard_SharedTalentUI) should load");
     load_addon(&env.loader_env(), &generic_trait_ui_toc())
         .expect("Blizzard_GenericTraitUI should load via Rust loader");
-    env
 }
 
 #[test]
@@ -181,9 +154,8 @@ fn blizzard_generic_trait_ui_excluded_from_game_auto_discovery_due_to_lod() {
     );
 }
 
-#[test]
-fn blizzard_generic_trait_ui_loads_explicitly_via_load_addon_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_generic_trait_ui_loads_explicitly_via_load_addon_without_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -211,10 +183,10 @@ fn blizzard_generic_trait_ui_loads_explicitly_via_load_addon_without_errors() {
         trait_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_generic_trait_ui_is_addon_loaded_returns_true_after_explicit_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_generic_trait_ui_is_addon_loaded_returns_true_after_explicit_load(env: &WowLuaEnv) {
 
     let before: bool = env
         .eval("return C_AddOns and C_AddOns.IsAddOnLoaded('Blizzard_GenericTraitUI') or false")
@@ -239,9 +211,10 @@ fn blizzard_generic_trait_ui_is_addon_loaded_returns_true_after_explicit_load() 
          that backs IsAddOnLoaded)"
     );
 }
+}
 
-#[test]
-fn blizzard_shared_talent_ui_is_non_lod_dep_loaded_by_game_auto_discovery() {
+prefork_full_ui_case! {
+fn blizzard_shared_talent_ui_is_non_lod_dep_loaded_by_game_auto_discovery(env: &WowLuaEnv) {
     let toc =
         TocFile::from_file(&shared_talent_ui_toc()).expect("Blizzard_SharedTalentUI TOC parse");
     assert!(
@@ -251,7 +224,6 @@ fn blizzard_shared_talent_ui_is_non_lod_dep_loaded_by_game_auto_discovery() {
          already present at the moment LoadAddOn(\"Blizzard_GenericTraitUI\") fires"
     );
 
-    let env = load_full_game_ui();
     let shared_loaded: bool = env
         .eval("return C_AddOns and C_AddOns.IsAddOnLoaded('Blizzard_SharedTalentUI') or false")
         .expect("IsAddOnLoaded probe should succeed");
@@ -263,10 +235,11 @@ fn blizzard_shared_talent_ui_is_non_lod_dep_loaded_by_game_auto_discovery() {
          eagerly)"
     );
 }
+}
 
-#[test]
-fn blizzard_generic_trait_ui_publishes_util_namespace_with_layout_accessors() {
-    let env = load_full_game_ui_with_trait_lod_chain();
+prefork_full_ui_case! {
+fn blizzard_generic_trait_ui_publishes_util_namespace_with_layout_accessors(env: &WowLuaEnv) {
+    load_generic_trait_ui_with_dependency(env);
 
     let util: (String, bool, bool, bool, bool, bool) = env
         .eval(
@@ -292,10 +265,11 @@ fn blizzard_generic_trait_ui_publishes_util_namespace_with_layout_accessors() {
          tutorial keyed by treeID)"
     );
 }
+}
 
-#[test]
-fn blizzard_generic_trait_ui_layout_accessor_returns_default_metatabled_struct() {
-    let env = load_full_game_ui_with_trait_lod_chain();
+prefork_full_ui_case! {
+fn blizzard_generic_trait_ui_layout_accessor_returns_default_metatabled_struct(env: &WowLuaEnv) {
+    load_generic_trait_ui_with_dependency(env);
 
     let layout: (bool, String, String, bool) = env
         .eval(
@@ -333,10 +307,11 @@ fn blizzard_generic_trait_ui_layout_accessor_returns_default_metatabled_struct()
          fields aren't accidentally treated as missing"
     );
 }
+}
 
-#[test]
-fn blizzard_generic_trait_ui_publishes_frame_mixin_with_full_lifecycle() {
-    let env = load_full_game_ui_with_trait_lod_chain();
+prefork_full_ui_case! {
+fn blizzard_generic_trait_ui_publishes_frame_mixin_with_full_lifecycle(env: &WowLuaEnv) {
+    load_generic_trait_ui_with_dependency(env);
 
     let mixin: (bool, bool, bool, bool, bool, bool, bool, bool) = env
         .eval(
@@ -367,43 +342,38 @@ fn blizzard_generic_trait_ui_publishes_frame_mixin_with_full_lifecycle() {
          GenericTraitFrame.SetSystemID with the resolved configID"
     );
 }
+}
 
-#[test]
-fn blizzard_generic_trait_ui_frame_mixin_publishes_purchase_and_selection_methods() {
-    let env = load_full_game_ui_with_trait_lod_chain();
+prefork_full_ui_case! {
+fn blizzard_generic_trait_ui_purchase_and_selection_methods_have_current_owners(env: &WowLuaEnv) {
+    load_generic_trait_ui_with_dependency(env);
 
     let methods: (bool, bool, bool, bool, bool, bool, bool, bool) = env
         .eval(
-            "return type(GenericTraitFrameMixin.PurchaseRank) == 'function', \
-                    type(GenericTraitFrameMixin.PurchaseRankCallback) == 'function', \
-                    type(GenericTraitFrameMixin.SetSelection) == 'function', \
-                    type(GenericTraitFrameMixin.SetSelectionCallback) == 'function', \
-                    type(GenericTraitFrameMixin.AttemptConfigOperation) == 'function', \
-                    type(GenericTraitFrameMixin.CheckAndReportCommitOperation) == 'function', \
-                    type(GenericTraitFrameMixin.GetConfigCommitErrorString) == 'function', \
+            "return type(AutoCommitTraitFrameMixin.PurchaseRank) == 'function', \
+                    type(AutoCommitTraitFrameMixin.PurchaseRankCallback) == 'function', \
+                    type(AutoCommitTraitFrameMixin.SetSelection) == 'function', \
+                    type(AutoCommitTraitFrameMixin.SetSelectionCallback) == 'function', \
+                    type(AutoCommitTraitFrameMixin.AttemptConfigOperation) == 'function', \
+                    type(AutoCommitTraitFrameMixin.CheckAndReportCommitOperation) == 'function', \
+                    type(TalentFrameBaseMixin.GetConfigCommitErrorString) == 'function', \
                     type(GenericTraitFrameMixin.UpdateTreeCurrencyInfo) == 'function'",
         )
-        .expect("Purchase/selection method probe should succeed");
+        .expect("Purchase/selection method-owner probe should succeed");
     assert_eq!(
         methods,
         (true, true, true, true, true, true, true, true),
-        "GenericTraitFrameMixin must expose the trait commit/purchase surface: PurchaseRank \
-         + PurchaseRankCallback (the StaticPopup confirmation flow that wraps \
-         C_Traits.PurchaseRank with a GenerateClosure callback), SetSelection + \
-         SetSelectionCallback (the choice-node selection flow that wraps \
-         C_Traits.SetSelection), AttemptConfigOperation (the generic wrapper that routes \
-         every commit through CheckAndReportCommitOperation), \
-         CheckAndReportCommitOperation (returns false + UIErrorsFrame:AddMessage when \
-         C_Traits.IsReadyForCommit reports a problem), GetConfigCommitErrorString \
-         (translates the C_Traits commit-error code to a localized string), \
-         UpdateTreeCurrencyInfo (refreshes the GenericTraitFrameCurrencyFrame badge based \
-         on C_Traits.GetTreeCurrencyInfo)"
+        "AutoCommitTraitFrameMixin owns the purchase, selection, and auto-commit methods \
+         inherited by GenericTraitFrame through AutoCommitTraitFrameTemplate. \
+         TalentFrameBaseMixin owns the overridable commit-error string method, while \
+         GenericTraitFrameMixin directly owns its currency-display refresh override"
     );
 }
+}
 
-#[test]
-fn blizzard_generic_trait_ui_publishes_currency_frame_mixin() {
-    let env = load_full_game_ui_with_trait_lod_chain();
+prefork_full_ui_case! {
+fn blizzard_generic_trait_ui_publishes_currency_frame_mixin(env: &WowLuaEnv) {
+    load_generic_trait_ui_with_dependency(env);
 
     let currency: (bool, bool, bool, bool) = env
         .eval(
@@ -425,10 +395,11 @@ fn blizzard_generic_trait_ui_publishes_currency_frame_mixin() {
          show the per-tree currency tooltip"
     );
 }
+}
 
-#[test]
-fn blizzard_generic_trait_ui_registers_uipanelwindows_metadata() {
-    let env = load_full_game_ui_with_trait_lod_chain();
+prefork_full_ui_case! {
+fn blizzard_generic_trait_ui_registers_uipanelwindows_metadata(env: &WowLuaEnv) {
+    load_generic_trait_ui_with_dependency(env);
 
     let panel: (String, f64, String) = env
         .eval(
@@ -458,10 +429,11 @@ fn blizzard_generic_trait_ui_registers_uipanelwindows_metadata() {
         panel.2
     );
 }
+}
 
-#[test]
-fn blizzard_generic_trait_ui_publishes_toplevel_named_frame_via_xml() {
-    let env = load_full_game_ui_with_trait_lod_chain();
+prefork_full_ui_case! {
+fn blizzard_generic_trait_ui_publishes_toplevel_named_frame_via_xml(env: &WowLuaEnv) {
+    load_generic_trait_ui_with_dependency(env);
 
     let frame: (bool, bool, bool) = env
         .eval(
@@ -481,10 +453,11 @@ fn blizzard_generic_trait_ui_publishes_toplevel_named_frame_via_xml() {
          (mixin=GenericTraitFrameCurrencyFrameMixin) as a sibling field"
     );
 }
+}
 
-#[test]
-fn blizzard_generic_trait_ui_does_not_leak_layout_options_table_as_global() {
-    let env = load_full_game_ui_with_trait_lod_chain();
+prefork_full_ui_case! {
+fn blizzard_generic_trait_ui_does_not_leak_layout_options_table_as_global(env: &WowLuaEnv) {
+    load_generic_trait_ui_with_dependency(env);
 
     let leaks: (bool, bool, bool, bool) = env
         .eval(
@@ -505,10 +478,11 @@ fn blizzard_generic_trait_ui_does_not_leak_layout_options_table_as_global() {
          new layouts via AddFrameLayoutInfo is the only supported path"
     );
 }
+}
 
-#[test]
-fn blizzard_generic_trait_ui_add_frame_layout_info_round_trip() {
-    let env = load_full_game_ui_with_trait_lod_chain();
+prefork_full_ui_case! {
+fn blizzard_generic_trait_ui_add_frame_layout_info_round_trip(env: &WowLuaEnv) {
+    load_generic_trait_ui_with_dependency(env);
 
     let round_trip: (String, String, bool) = env
         .eval(
@@ -539,4 +513,5 @@ fn blizzard_generic_trait_ui_add_frame_layout_info_round_trip() {
          registered after-the-fact via AddFrameLayoutInfo, so unset fields still inherit \
          from GenericTraitFrameLayoutOptions.Default"
     );
+}
 }

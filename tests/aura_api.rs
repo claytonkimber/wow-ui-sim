@@ -1,6 +1,6 @@
 //! Tests for aura/buff API functions (aura_api.rs, system_api.rs C_UnitAuras).
 
-use wow_ui_sim::lua_api::WowLuaEnv;
+use wow_ui_sim::lua_api::{WowLuaEnv, state::AuraInfo};
 
 fn env() -> WowLuaEnv {
     WowLuaEnv::new().expect("Failed to create Lua environment")
@@ -282,6 +282,58 @@ fn test_c_unit_auras_get_unit_auras_returns_iterable_table() {
     assert!(result.0, "GetUnitAuras should return a table");
     assert!(result.1, "HELPFUL table should contain aura data");
     assert!(result.2, "empty filters should return an empty table, not nil");
+}
+
+#[cfg(feature = "retail-12-1-0")]
+#[test]
+fn test_c_unit_auras_filters_aura_instances_by_polarity_and_player_source() {
+    let env = env();
+    env.state().borrow_mut().player.buffs = vec![
+        AuraInfo {
+            name: "Player Helpful Aura".into(),
+            spell_id: 1001,
+            icon: 1,
+            duration: 30.0,
+            expiration_time: 30.0,
+            applications: 1,
+            source_unit: "player".into(),
+            is_helpful: true,
+            is_stealable: false,
+            can_apply_aura: true,
+            is_from_player_or_player_pet: true,
+            dispel_type: None,
+            aura_instance_id: 101,
+        },
+        AuraInfo {
+            name: "Party Helpful Aura".into(),
+            spell_id: 1002,
+            icon: 2,
+            duration: 30.0,
+            expiration_time: 30.0,
+            applications: 1,
+            source_unit: "party1".into(),
+            is_helpful: true,
+            is_stealable: false,
+            can_apply_aura: true,
+            is_from_player_or_player_pet: false,
+            dispel_type: None,
+            aura_instance_id: 102,
+        },
+    ];
+
+    let result: (bool, bool, bool, bool, bool) = env
+        .eval(
+            r#"
+            return C_UnitAuras.IsAuraFilteredOutByInstanceID("player", 101, "HELPFUL"),
+                C_UnitAuras.IsAuraFilteredOutByInstanceID("player", 101, "HARMFUL"),
+                C_UnitAuras.IsAuraFilteredOutByInstanceID("player", 101, "HELPFUL|PLAYER"),
+                C_UnitAuras.IsAuraFilteredOutByInstanceID("player", 102, "HELPFUL|PLAYER"),
+                C_UnitAuras.IsAuraFilteredOutByInstanceID("player", 999, "HELPFUL")
+            "#,
+        )
+        .unwrap();
+
+    assert_eq!(result, (false, true, false, true, true));
 }
 
 #[test]

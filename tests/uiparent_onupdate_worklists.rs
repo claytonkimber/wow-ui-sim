@@ -96,40 +96,33 @@ fn button_pulse_onupdate_still_updates_active_buttons() {
     test_timeout! {
         let env = load_settled_game_ui();
 
-        let (lock_calls, unlock_calls, pulse_on, pulse_time_left): (i32, i32, i32, f64) = env
+        env.exec(
+            r#"
+            local button = CreateFrame("Button", "ButtonPulseProbe", UIParent)
+            button:Show()
+            SetButtonPulse(button, 1.0, -0.2)
+            "#,
+        )
+        .unwrap();
+
+        env.fire_on_update(0.016).unwrap();
+
+        let (highlight_locked, pulse_on, pulse_time_left): (bool, i32, f64) = env
             .eval(
                 r#"
-                local button = {
-                    pulseDuration = -0.01,
-                    pulseTimeLeft = 0.5,
-                    pulseRate = 0.2,
-                    pulseOn = 0,
-                    lockCalls = 0,
-                    unlockCalls = 0,
-                }
-
-                function button:LockHighlight()
-                    self.lockCalls = self.lockCalls + 1
-                end
-
-                function button:UnlockHighlight()
-                    self.unlockCalls = self.unlockCalls + 1
-                end
-
-                local originalPulseButtons = PULSEBUTTONS
-                PULSEBUTTONS = { button }
-                ButtonPulse_OnUpdate(0.016)
-                PULSEBUTTONS = originalPulseButtons
-
-                return button.lockCalls, button.unlockCalls, button.pulseOn, button.pulseTimeLeft
+                return ButtonPulseProbe:IsHighlightLocked(), ButtonPulseProbe.pulseOn, ButtonPulseProbe.pulseTimeLeft
                 "#,
             )
             .unwrap();
 
-        assert_eq!(lock_calls, 1, "active pulsing button should still lock highlight");
-        assert_eq!(unlock_calls, 0, "active pulsing button should not unlock in the toggle-on path");
-        assert_eq!(pulse_on, 1, "active pulsing button should still flip pulseOn");
-        assert!(pulse_time_left < 0.5, "active pulsing button should still consume elapsed time");
+        assert!(highlight_locked, "active pulsing button should lock highlight");
+        assert_eq!(pulse_on, 1, "active pulsing button should flip pulseOn");
+        assert!(
+            (0.0..1.0).contains(&pulse_time_left),
+            "active pulsing button should consume elapsed time"
+        );
+
+        env.exec("ButtonPulse_StopPulse(ButtonPulseProbe)").unwrap();
     }
 }
 

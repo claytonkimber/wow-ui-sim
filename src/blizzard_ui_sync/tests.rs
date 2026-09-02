@@ -1,4 +1,7 @@
-use super::{manifest_entries, manifest_entry_fdid, manifest_entry_is_allowed_unmapped};
+use super::{
+    CacheProvenance, invalidate_cache_if_provenance_mismatched, manifest_entries,
+    manifest_entry_fdid, manifest_entry_is_allowed_unmapped,
+};
 use std::cell::RefCell;
 use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -90,20 +93,138 @@ fn fdid_extraction_uses_cdn_after_local_casc_miss() {
     );
 }
 
-#[test]
-fn complete_marker_writes_profile_provenance() {
-    let root = unique_temp_dir("provenance");
+fn test_provenance(build_key: &str) -> CacheProvenance {
+    CacheProvenance::new(
+        crate::client_profile::ACTIVE.cache_subdir(),
+        "wow",
+        "12.1.0.69497",
+        build_key,
+        "install-key",
+        "manifest-hash",
+    )
+}
 
-    super::write_complete_marker(&root).expect("write complete marker");
+#[test]
+#[cfg(feature = "casc")]
+fn build_identity_allows_an_active_product_without_install_key() {
+    let build_info = "\
+Branch!STRING:0|Active!DEC:1|Build Key!HEX:16|Install Key!HEX:16|Version!STRING:0|Product!STRING:0
+us|1|0123456789abcdef0123456789abcdef||12.1.0.69497|wow";
+
+    let identity = super::parse_active_build_identity(build_info, "wow")
+        .expect("active build identity without install key");
+
+    assert_eq!(identity.version, "12.1.0.69497");
+    assert_eq!(identity.build_key, "0123456789abcdef0123456789abcdef");
+    assert!(identity.install_key.is_empty());
+}
+
+#[test]
+#[cfg(feature = "casc")]
+fn build_identity_selects_the_requested_active_product() {
+    let build_info = "\
+Branch!STRING:0|Active!DEC:1|Build Key!HEX:16|Install Key!HEX:16|Version!STRING:0|Product!STRING:0
+us|1|11111111111111111111111111111111|22222222222222222222222222222222|12.1.0.69497|wow
+us|1|33333333333333333333333333333333|44444444444444444444444444444444|12.1.0.69587|wowt";
+
+    let retail = super::parse_active_build_identity(build_info, "wow")
+        .expect("retail active build identity");
+    let ptr =
+        super::parse_active_build_identity(build_info, "wowt").expect("PTR active build identity");
+
+    assert_eq!(retail.version, "12.1.0.69497");
+    assert_eq!(retail.build_key, "11111111111111111111111111111111");
+    assert_eq!(retail.install_key, "22222222222222222222222222222222");
+    assert_eq!(ptr.version, "12.1.0.69587");
+    assert_eq!(ptr.build_key, "33333333333333333333333333333333");
+    assert_eq!(ptr.install_key, "44444444444444444444444444444444");
+}
+
+#[test]
+fn mismatched_provenance_removes_stale_profile_cache_before_sync() {
+    let root = unique_temp_dir("mismatched-provenance");
+    let stale_file = root.join("Blizzard_InspectUI/InspectPaperDollFrame.lua");
+    std::fs::create_dir_all(stale_file.parent().expect("stale file parent"))
+        .expect("create stale cache");
+    std::fs::write(&stale_file, "legacy global").expect("write stale cache file");
+    std::fs::write(
+        root.join(super::PROVENANCE_FILE),
+        test_provenance("old-build").contents(),
+    )
+    .expect("write stale provenance");
+
+    let refreshed = invalidate_cache_if_provenance_mismatched(&root, &test_provenance("new-build"))
+        .expect("invalidate stale cache");
+
+    assert!(
+        refreshed,
+        "changed build identity must invalidate the cache"
+    );
+    assert!(
+        !root.exists(),
+        "invalidated cache must remove stale files before re-extraction"
+    );
+}
+
+#[test]
+fn legacy_provenance_removes_stale_profile_cache_before_sync() {
+    let root = unique_temp_dir("legacy-provenance");
+    let stale_file = root.join("Blizzard_TransmogShared/Blizzard_TransmogShared.lua");
+    std::fs::create_dir_all(stale_file.parent().expect("stale file parent"))
+        .expect("create stale cache");
+    std::fs::write(&stale_file, "legacy global").expect("write stale cache file");
+    std::fs::write(
+        root.join(super::PROVENANCE_FILE),
+        "profile=retail\nsource=casc-local-or-cdn\nfallback=none\n",
+    )
+    .expect("write legacy provenance");
+
+    let refreshed = invalidate_cache_if_provenance_mismatched(&root, &test_provenance("build-key"))
+        .expect("invalidate legacy cache");
+
+    assert!(refreshed, "legacy provenance must invalidate the cache");
+    assert!(
+        !root.exists(),
+        "legacy cache must remove stale files before re-extraction"
+    );
+}
+
+#[test]
+fn matching_provenance_preserves_existing_profile_cache() {
+    let root = unique_temp_dir("matching-provenance");
+    let existing_file = root.join("Blizzard_InspectUI/InspectPaperDollFrame.lua");
+    std::fs::create_dir_all(existing_file.parent().expect("existing file parent"))
+        .expect("create cache");
+    std::fs::write(&existing_file, "current source").expect("write cache file");
+    let expected = test_provenance("current-build");
+    std::fs::write(root.join(super::PROVENANCE_FILE), expected.contents())
+        .expect("write matching provenance");
+
+    let refreshed = invalidate_cache_if_provenance_mismatched(&root, &expected)
+        .expect("preserve matching cache");
+
+    assert!(
+        !refreshed,
+        "matching cache identity must remain incremental"
+    );
+    assert_eq!(
+        std::fs::read_to_string(existing_file).expect("read preserved cache file"),
+        "current source"
+    );
+    std::fs::remove_dir_all(root).expect("remove cache root");
+}
+
+#[test]
+fn complete_marker_writes_supplied_provenance_identity() {
+    let root = unique_temp_dir("provenance");
+    let expected = test_provenance("build-key");
+
+    super::write_complete_marker(&root, &expected).expect("write complete marker");
 
     let provenance =
         std::fs::read_to_string(root.join(super::PROVENANCE_FILE)).expect("read provenance");
-    assert!(provenance.contains(&format!(
-        "profile={}",
-        crate::client_profile::ACTIVE.cache_subdir()
-    )));
-    assert!(provenance.contains("source=casc-local-or-cdn"));
-    assert!(provenance.contains("fallback=none"));
+    assert_eq!(provenance, expected.contents());
+    assert!(root.join(super::COMPLETE_MARKER).is_file());
     std::fs::remove_dir_all(root).expect("remove cache root");
 }
 
@@ -124,37 +245,24 @@ fn ptr_manifest_includes_ptr_only_aura_container() {
 }
 
 #[test]
-#[cfg(feature = "client-retail")]
-fn retail_manifest_excludes_ptr_only_aura_container() {
+#[cfg(feature = "profile-retail")]
+fn retail_manifest_includes_current_aura_container() {
     let manifest: Vec<_> = manifest_entries().collect();
 
-    assert!(!manifest.contains(&"Blizzard_AuraContainer/Blizzard_AuraContainer.toc"));
+    assert!(manifest.contains(&"Blizzard_AuraContainer/Blizzard_AuraContainer.toc"));
 }
 
 #[test]
-#[cfg(feature = "client-retail")]
-fn retail_manifest_excludes_legacy_profile_sources() {
-    const LEGACY_PROFILE_MARKERS: [&str; 11] = [
-        "/Classic/",
-        "/Mists/",
-        "/Wrath/",
-        "/Cata/",
-        "/TBC/",
-        "_Classic.toc",
-        "_Mists.toc",
-        "_Wrath.toc",
-        "_Cata.toc",
-        "_TBC.toc",
-        "_Vanilla.toc",
-    ];
+#[cfg(feature = "profile-retail")]
+fn retail_manifest_preserves_accessibility_family_sources_from_live_tree() {
+    let manifest: Vec<_> = manifest_entries().collect();
 
-    let legacy_entry = manifest_entries().find(|entry| {
-        LEGACY_PROFILE_MARKERS
-            .iter()
-            .any(|marker| entry.contains(marker))
-    });
-
-    assert_eq!(legacy_entry, None);
+    assert!(
+        manifest.contains(&"Blizzard_AccessibilityTemplates/Classic/AccessibilityTemplates.lua")
+    );
+    assert!(
+        manifest.contains(&"Blizzard_AccessibilityTemplates/Mainline/AccessibilityTemplates.lua")
+    );
 }
 
 #[test]

@@ -194,26 +194,39 @@ fn exec_maybe_secure_false_matches_exec() {
 
 #[test]
 fn shared_table_mutation_propagates_both_ways() {
-    // The one legitimate cross-env write: mutating a table that both
-    // envs already reference. Since shallow copy shares table refs,
-    // this assignment should be visible from _G as well.
     let env = env();
 
-    // `math` exists when secureenv is created, so the shallow copy shares
-    // the same table reference with _G.
-    env.exec_rilua_secure(
-        r#"
-            math.secureenvSharedContainer = "from-secure"
-        "#,
-    )
-    .unwrap();
+    let (shared_key, from_g): (String, String) = env
+        .eval(
+            r#"
+            local sharedKey
+            for key, value in pairs(__secureenv) do
+                if type(key) == "string"
+                   and key ~= "_G"
+                   and type(value) == "table"
+                   and rawget(_G, key) == value then
+                    sharedKey = key
+                    break
+                end
+            end
+            if not sharedKey then
+                return "", "missing"
+            end
 
-    let from_g: String = env
-        .eval(r#"return tostring(rawget(_G, "math").secureenvSharedContainer)"#)
+            local mutate = function()
+                rawget(_G, sharedKey).secureenvSharedContainer = "from-secure"
+            end
+            debug.setfenv(mutate, __secureenv)
+            mutate()
+            return sharedKey, tostring(rawget(_G, sharedKey).secureenvSharedContainer)
+            "#,
+        )
         .unwrap();
+
+    assert!(!shared_key.is_empty(), "expected one table shared by the shallow copy");
     assert_eq!(
         from_g, "from-secure",
-        "mutations to a table copied at secureenv creation should be visible from _G"
+        "mutations to a table still shared after initialization should be visible from _G"
     );
 }
 
@@ -360,22 +373,18 @@ fn global_copied_at_creation_is_frozen_against_later_g_rebind() {
 }
 
 #[test]
-fn secureenv_does_not_read_late_soundkit_from_global_env() {
+fn secureenv_does_not_read_late_table_from_global_env() {
     let env = env();
 
-    env.exec(
-        r#"
-            SOUNDKIT = { UI_IG_STORE_WINDOW_OPEN_BUTTON = 39512 }
-        "#,
-    )
-    .unwrap();
+    env.exec(r#"lateSecureTableProbe = { value = 39512 }"#)
+        .unwrap();
 
-    let sound_type: String = env
+    let table_type: String = env
         .eval(
             r#"
             local result
             local probe = function()
-                result = SOUNDKIT
+                result = lateSecureTableProbe
             end
             debug.setfenv(probe, __secureenv)
             probe()
@@ -384,5 +393,5 @@ fn secureenv_does_not_read_late_soundkit_from_global_env() {
         )
         .unwrap();
 
-    assert_eq!(sound_type, "nil");
+    assert_eq!(table_type, "nil");
 }

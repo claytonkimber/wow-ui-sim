@@ -14,6 +14,16 @@ const DELVE_DESCRIPTION: &str = "The Fungal Folly winds deeper with every tier."
 const DELVE_ENTRANCE_MAP_ID: i32 = 2339;
 const LOCKED_TIER_REASON: &str = "Complete Tier 4 to unlock this delve tier.";
 const UNKNOWN_TIER_REASON: &str = "Unknown tier";
+#[cfg(feature = "retail-12-1-0")]
+const DELVE_ITEM_REWARD_ID: i32 = 228361;
+#[cfg(feature = "retail-12-1-0")]
+const DELVE_CURRENCY_REWARD_ID: i32 = 2815;
+#[cfg(feature = "retail-12-1-0")]
+const TIER_REWARD_ITEM: i32 = 0;
+#[cfg(feature = "retail-12-1-0")]
+const TIER_REWARD_CURRENCY: i32 = 1;
+#[cfg(feature = "retail-12-1-0")]
+const DEFAULT_ITEM_CREATION_CONTEXT: i32 = 0;
 
 const COMPANION_ID: f64 = 4401.0;
 const COMPANION_PDE_ID: f64 = 9101.0;
@@ -302,6 +312,31 @@ fn select_delve_entrance_tier(state: &mut LuaState) -> LuaResult<u32> {
     Ok(0)
 }
 
+#[cfg(feature = "retail-12-1-0")]
+#[derive(Clone, Copy)]
+struct TierRewardRow {
+    id: i32,
+    quantity: i32,
+    reward_type: i32,
+    context: i32,
+}
+
+#[cfg(feature = "retail-12-1-0")]
+const TIER_REWARDS: [TierRewardRow; 2] = [
+    TierRewardRow {
+        id: DELVE_ITEM_REWARD_ID,
+        quantity: 1,
+        reward_type: TIER_REWARD_ITEM,
+        context: DEFAULT_ITEM_CREATION_CONTEXT,
+    },
+    TierRewardRow {
+        id: DELVE_CURRENCY_REWARD_ID,
+        quantity: 25,
+        reward_type: TIER_REWARD_CURRENCY,
+        context: DEFAULT_ITEM_CREATION_CONTEXT,
+    },
+];
+
 #[derive(Clone, Copy)]
 struct TierInfoRow {
     tier: i32,
@@ -406,8 +441,40 @@ fn build_tier_info(state: &mut LuaState, row: TierInfoRow) -> Val {
 
 #[cfg(feature = "retail-12-1-0")]
 fn set_patch_12_1_tier_info_fields(state: &mut LuaState, entry: Val) {
+    let rewards = build_tier_rewards(state);
+    table_set(state, entry, "rewards", rewards);
     table_set(state, entry, "overrideTooltipSpellID", Val::Nil);
     table_set(state, entry, "isLFG", Val::Bool(false));
+}
+
+#[cfg(feature = "retail-12-1-0")]
+fn build_tier_rewards(state: &mut LuaState) -> Val {
+    let rewards = create_table(state);
+    for (index, reward) in TIER_REWARDS.iter().enumerate() {
+        let reward = build_tier_reward(state, *reward);
+        set_table_array(state, rewards, index as i64 + 1, reward);
+    }
+    rewards
+}
+
+#[cfg(feature = "retail-12-1-0")]
+fn build_tier_reward(state: &mut LuaState, reward: TierRewardRow) -> Val {
+    let entry = create_table(state);
+    table_set(state, entry, "id", Val::Num(f64::from(reward.id)));
+    table_set(
+        state,
+        entry,
+        "quantity",
+        Val::Num(f64::from(reward.quantity)),
+    );
+    table_set(
+        state,
+        entry,
+        "rewardType",
+        Val::Num(f64::from(reward.reward_type)),
+    );
+    table_set(state, entry, "context", Val::Num(f64::from(reward.context)));
+    entry
 }
 
 #[cfg(not(feature = "retail-12-1-0"))]

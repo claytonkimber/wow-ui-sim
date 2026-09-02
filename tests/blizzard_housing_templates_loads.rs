@@ -240,9 +240,8 @@ fn blizzard_housing_templates_appears_in_game_screen_auto_discovery() {
     );
 }
 
-#[test]
-fn blizzard_housing_templates_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_housing_templates_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let lua_errors: Vec<String> = env.state().borrow().lua_errors.clone();
     let related: Vec<&String> = lua_errors
@@ -262,10 +261,10 @@ fn blizzard_housing_templates_loads_without_addon_specific_lua_errors() {
         related
     );
 }
+}
 
-#[test]
-fn blizzard_housing_templates_is_addon_loaded_via_game_screen_pass() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_housing_templates_is_addon_loaded_via_game_screen_pass(env: &WowLuaEnv) {
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_HousingTemplates')")
         .expect("IsAddOnLoaded query should succeed");
@@ -276,10 +275,10 @@ fn blizzard_housing_templates_is_addon_loaded_via_game_screen_pass() {
          any explicit LoD call"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_templates_paged_content_dependency_loads_via_auto_discovery() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_housing_templates_paged_content_dependency_loads_via_auto_discovery(env: &WowLuaEnv) {
     let paged_loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_PagedContent')")
         .expect("PagedContent IsAddOnLoaded query should succeed");
@@ -291,10 +290,10 @@ fn blizzard_housing_templates_paged_content_dependency_loads_via_auto_discovery(
          screen"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_templates_publishes_all_nineteen_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_housing_templates_publishes_all_nineteen_mixins(env: &WowLuaEnv) {
     for mixin in ALL_MIXINS {
         let mixin_type: String = env
             .eval(&format!("return type(_G['{mixin}'])"))
@@ -308,10 +307,10 @@ fn blizzard_housing_templates_publishes_all_nineteen_mixins() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_templates_decor_entry_mixin_inherits_base_via_create_from_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_housing_templates_decor_entry_mixin_inherits_base_via_create_from_mixins(env: &WowLuaEnv) {
     let inherited: bool = env
         .eval(
             "return type(HousingCatalogDecorEntryMixin.OnLoad) == 'function' and \
@@ -325,10 +324,10 @@ fn blizzard_housing_templates_decor_entry_mixin_inherits_base_via_create_from_mi
          CreateFromMixins copy-on-init behavior runs at file load time"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_templates_paged_catalog_mixin_inherits_base_via_create_from_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_housing_templates_paged_catalog_mixin_inherits_base_via_create_from_mixins(env: &WowLuaEnv) {
     for derived in ["PagedHousingCatalogMixin", "ScrollingHousingCatalogMixin"] {
         let inherits_base: bool = env
             .eval(&format!(
@@ -344,10 +343,10 @@ fn blizzard_housing_templates_paged_catalog_mixin_inherits_base_via_create_from_
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_templates_publishes_catalog_util_namespace() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_housing_templates_publishes_catalog_util_namespace(env: &WowLuaEnv) {
     let namespace_type: String = env
         .eval("return type(Blizzard_HousingCatalogUtil)")
         .expect("Blizzard_HousingCatalogUtil type query should succeed");
@@ -369,10 +368,10 @@ fn blizzard_housing_templates_publishes_catalog_util_namespace() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_templates_publishes_nine_enum_to_string_lookup_tables() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_housing_templates_publishes_nine_enum_to_string_lookup_tables(env: &WowLuaEnv) {
     for table in ENUM_STRING_TABLES {
         let table_type: String = env
             .eval(&format!("return type(_G['{table}'])"))
@@ -387,10 +386,10 @@ fn blizzard_housing_templates_publishes_nine_enum_to_string_lookup_tables() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_templates_all_virtual_templates_stay_nil_in_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_housing_templates_all_virtual_templates_stay_nil_in_globals(env: &WowLuaEnv) {
     for template in ALL_VIRTUAL_TEMPLATES {
         let value_type: String = env
             .eval(&format!("return type(_G['{template}'])"))
@@ -404,10 +403,10 @@ fn blizzard_housing_templates_all_virtual_templates_stay_nil_in_globals() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_templates_publishes_top_banner_frame_global() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_housing_templates_publishes_top_banner_frame_global(env: &WowLuaEnv) {
     let frame_type: String = env
         .eval("return type(HousingTopBannerFrame)")
         .expect("HousingTopBannerFrame type query should succeed");
@@ -423,10 +422,10 @@ fn blizzard_housing_templates_publishes_top_banner_frame_global() {
         .expect("HousingTopBannerFrame:GetName query should succeed");
     assert_eq!(frame_name, "HousingTopBannerFrame");
 }
+}
 
-#[test]
-fn blizzard_housing_templates_top_banner_frame_starts_hidden() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_housing_templates_top_banner_frame_starts_hidden(env: &WowLuaEnv) {
     let is_shown: bool = env
         .eval("return HousingTopBannerFrame:IsShown()")
         .expect("HousingTopBannerFrame:IsShown query should succeed");
@@ -437,10 +436,10 @@ fn blizzard_housing_templates_top_banner_frame_starts_hidden() {
          event-driven banner message arrives"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_templates_top_banner_mixin_exposes_lifecycle_and_play_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_housing_templates_top_banner_mixin_exposes_lifecycle_and_play_methods(env: &WowLuaEnv) {
     for method in [
         "OnLoad",
         "OnEvent",
@@ -465,4 +464,5 @@ fn blizzard_housing_templates_top_banner_mixin_exposes_lifecycle_and_play_method
              animation chain), StopBanner (cancel any in-flight animation)"
         );
     }
+}
 }

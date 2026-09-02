@@ -144,6 +144,7 @@ fn update_listed_auctionable_tokens_is_a_silent_no_op() {
         .unwrap();
 }
 
+#[cfg(feature = "client-mists")]
 #[test]
 fn get_num_listed_auctionable_tokens_reflects_state() {
     let env = WowLuaEnv::new().unwrap();
@@ -163,6 +164,7 @@ fn get_num_listed_auctionable_tokens_reflects_state() {
     assert_eq!(count, 1);
 }
 
+#[cfg(feature = "client-mists")]
 #[test]
 fn get_listed_auctionable_token_info_returns_row_values() {
     let env = WowLuaEnv::new().unwrap();

@@ -174,9 +174,8 @@ fn blizzard_game_tooltip_auto_loads_on_game_and_skips_login() {
     );
 }
 
-#[test]
-fn blizzard_game_tooltip_loads_via_full_game_ui_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_game_tooltip_loads_via_full_game_ui_without_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -200,10 +199,10 @@ fn blizzard_game_tooltip_loads_via_full_game_ui_without_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_game_tooltip_is_addon_loaded_returns_true_after_full_game_ui_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_game_tooltip_is_addon_loaded_returns_true_after_full_game_ui_load(env: &WowLuaEnv) {
 
     let post_load: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_GameTooltip') and true or false")
@@ -215,10 +214,10 @@ fn blizzard_game_tooltip_is_addon_loaded_returns_true_after_full_game_ui_load() 
          successful full-game-UI load"
     );
 }
+}
 
-#[test]
-fn blizzard_game_tooltip_publishes_top_level_uiparent_frames() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_game_tooltip_publishes_top_level_uiparent_frames(env: &WowLuaEnv) {
 
     let frames: (bool, bool, bool, bool, bool, bool, bool) = env
         .eval(
@@ -249,10 +248,10 @@ fn blizzard_game_tooltip_publishes_top_level_uiparent_frames() {
          system uses to position GameTooltip in the HUD layout"
     );
 }
+}
 
-#[test]
-fn blizzard_game_tooltip_virtual_templates_are_applied_via_inheritance() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_game_tooltip_virtual_templates_are_applied_via_inheritance(env: &WowLuaEnv) {
 
     let templates_dont_leak: (bool, bool, bool, bool, bool) = env
         .eval(
@@ -292,10 +291,10 @@ fn blizzard_game_tooltip_virtual_templates_are_applied_via_inheritance() {
          only exist if the template registry resolved the inherits=... attribute"
     );
 }
+}
 
-#[test]
-fn blizzard_game_tooltip_publishes_three_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_game_tooltip_publishes_three_mixins(env: &WowLuaEnv) {
 
     let mixins: (bool, bool, bool) = env
         .eval(
@@ -319,10 +318,10 @@ fn blizzard_game_tooltip_publishes_three_mixins() {
          UpdateUnitHealth that read from the secure unit cache instead of UnitHealth())"
     );
 }
+}
 
-#[test]
-fn blizzard_game_tooltip_data_mixin_extends_tooltip_data_handler() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_game_tooltip_data_mixin_extends_tooltip_data_handler(env: &WowLuaEnv) {
 
     let methods: (bool, bool, bool, bool, bool) = env
         .eval(
@@ -351,10 +350,10 @@ fn blizzard_game_tooltip_data_mixin_extends_tooltip_data_handler() {
          from leaking into ProcessInfo)"
     );
 }
+}
 
-#[test]
-fn blizzard_game_tooltip_health_bar_global_publishes_value_changed_handler() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_game_tooltip_health_bar_global_publishes_value_changed_handler(env: &WowLuaEnv) {
 
     let handler: bool = env
         .eval("return type(HealthBar_OnValueChanged) == 'function'")
@@ -371,10 +370,10 @@ fn blizzard_game_tooltip_health_bar_global_publishes_value_changed_handler() {
          per-line `[Family]` marker), proving it loads on every game type"
     );
 }
+}
 
-#[test]
-fn blizzard_game_tooltip_publishes_quest_reward_styles() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_game_tooltip_publishes_quest_reward_styles(env: &WowLuaEnv) {
 
     let style_count: f64 = env
         .eval(
@@ -429,10 +428,10 @@ fn blizzard_game_tooltip_publishes_quest_reward_styles() {
          postHeaderBlankLineCount=0, wrapHeaderText=true, fullItemDescription=true"
     );
 }
+}
 
-#[test]
-fn blizzard_game_tooltip_publishes_backdrop_styles() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_game_tooltip_publishes_backdrop_styles(env: &WowLuaEnv) {
 
     let backdrop_styles: (bool, bool, bool, bool, bool, bool) = env
         .eval(
@@ -476,10 +475,10 @@ fn blizzard_game_tooltip_publishes_backdrop_styles() {
          decorative gold lattice atop the tooltip at 0.75 scale, padding {{6,6,6,6}}"
     );
 }
+}
 
-#[test]
-fn blizzard_game_tooltip_publishes_helper_functions() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_game_tooltip_publishes_helper_functions(env: &WowLuaEnv) {
 
     let helpers: (bool, bool, bool, bool, bool, bool) = env
         .eval(
@@ -503,10 +502,10 @@ fn blizzard_game_tooltip_publishes_helper_functions() {
          `if tooltip then tooltip:Hide() end`)"
     );
 }
+}
 
-#[test]
-fn blizzard_game_tooltip_publishes_status_and_progress_bar_helpers() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_game_tooltip_publishes_status_and_progress_bar_helpers(env: &WowLuaEnv) {
 
     let bar_helpers: (bool, bool, bool, bool, bool, bool, bool) = env
         .eval(
@@ -531,10 +530,10 @@ fn blizzard_game_tooltip_publishes_status_and_progress_bar_helpers() {
          GameTooltip_ClearAllStatusBars (line 502 — combined clear)"
     );
 }
+}
 
-#[test]
-fn blizzard_game_tooltip_publishes_embedded_item_tooltip_api() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_game_tooltip_publishes_embedded_item_tooltip_api(env: &WowLuaEnv) {
 
     let api: (bool, bool, bool, bool, bool, bool, bool, bool) = env
         .eval(
@@ -560,10 +559,10 @@ fn blizzard_game_tooltip_publishes_embedded_item_tooltip_api() {
          the rewardType enum"
     );
 }
+}
 
-#[test]
-fn blizzard_game_tooltip_constants_table_publishes() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_game_tooltip_constants_table_publishes(env: &WowLuaEnv) {
 
     let wrap: (String, bool) = env
         .eval(
@@ -580,10 +579,10 @@ fn blizzard_game_tooltip_constants_table_publishes() {
          wrapping in narrow tooltip surfaces"
     );
 }
+}
 
-#[test]
-fn blizzard_game_tooltip_main_tooltip_uses_uiparent_with_tooltip_strata() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_game_tooltip_main_tooltip_uses_uiparent_with_tooltip_strata(env: &WowLuaEnv) {
 
     let strata: (String, String) = env
         .eval(
@@ -614,4 +613,5 @@ fn blizzard_game_tooltip_main_tooltip_uses_uiparent_with_tooltip_strata() {
          alongside GameTooltip and clamp into the visible viewport when the source \
          tooltip is near a screen edge"
     );
+}
 }

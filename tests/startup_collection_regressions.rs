@@ -183,7 +183,7 @@ fn startup_wardrobe_head_appearances_are_displayable() {
 fn startup_wardrobe_filter_dropdown_click_toggles_not_collected() {
     test_timeout! {
         let env = load_and_startup_env();
-        let result: String = env
+        let setup_result: String = env
             .eval(
                 r#"
                 ToggleCollectionsJournal(5)
@@ -207,11 +207,34 @@ fn startup_wardrobe_filter_dropdown_click_toggles_not_collected() {
                 if not filterButton:IsEnabled() then
                     return "filter_disabled"
                 end
-                local onMouseDown = filterButton:GetScript("OnMouseDown")
-                if type(onMouseDown) ~= "function" then
-                    return "missing_on_mouse_down"
-                end
-                onMouseDown(filterButton, "LeftButton")
+                return "ready"
+                "#,
+            )
+            .expect("wardrobe filter dropdown probe should run");
+
+        assert_eq!(setup_result, "ready");
+
+        let state = env.state();
+        let filter_button_id = {
+            let sim = state.borrow();
+            let wardrobe_id = sim
+                .widgets
+                .get_id_by_name("WardrobeCollectionFrame")
+                .expect("WardrobeCollectionFrame should exist");
+            sim.widgets
+                .get(wardrobe_id)
+                .and_then(|frame| frame.children_keys.get("FilterButton"))
+                .copied()
+                .expect("WardrobeCollectionFrame FilterButton should exist")
+        };
+        let left_button = env.lua_string("LeftButton");
+        env.fire_script_handler(filter_button_id, "OnMouseDown", vec![left_button])
+            .expect("wardrobe filter OnMouseDown should dispatch");
+
+        let result: String = env
+            .eval(
+                r#"
+                local filterButton = WardrobeCollectionFrame.FilterButton
                 if not filterButton:IsMenuOpen() then
                     return "menu_not_open"
                 end

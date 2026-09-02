@@ -264,12 +264,9 @@ pub fn set_scale(state: &Rc<RefCell<SimState>>, frame_id: u64, scale: f32) {
     s.widgets.mark_rect_dirty(frame_id);
 }
 
-/// Set toplevel directly.
+/// Set top-level show ordering directly.
 pub fn set_toplevel(state: &Rc<RefCell<SimState>>, frame_id: u64, toplevel: bool) {
-    let mut s = state.borrow_mut();
-    if let Some(frame) = s.widgets.get_mut(frame_id) {
-        frame.toplevel = toplevel;
-    }
+    state.borrow_mut().set_frame_toplevel(frame_id, toplevel);
 }
 
 /// Set enableMouse directly.

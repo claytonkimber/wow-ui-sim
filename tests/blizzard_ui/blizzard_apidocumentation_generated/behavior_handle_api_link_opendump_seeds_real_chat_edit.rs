@@ -10,7 +10,7 @@ const ROOT: &str = "Blizzard_APIDocumentationGenerated";
 const DUMP_TEXT: &str = "/dump GetTime()";
 
 #[test]
-fn opendump_link_records_generated_get_time_chat_edit_state() {
+fn opendump_link_seeds_generated_get_time_in_real_chat_editbox() {
     let env = load_generated_api_documentation();
 
     let generated_link_uses_get_time_payload: bool = env
@@ -30,29 +30,49 @@ fn opendump_link_records_generated_get_time_chat_edit_state() {
         )
         .expect("generated APIDocumentation open-dump link probe must run cleanly");
 
-    let state = env.state();
-    let sim = state.borrow();
-    let chat_edit_state = sim
-        .chat_edit_open_state
-        .as_ref()
-        .expect("OpenDump link must seed chat edit state");
+    let editbox_is_shown: bool = env
+        .eval(
+            r#"
+            local editBox = ChatFrameUtil.GetActiveWindow()
+            return editBox ~= nil and editBox:IsShown()
+            "#,
+        )
+        .expect("active chat editbox visibility probe must run cleanly");
+    let editbox_has_focus: bool = env
+        .eval(
+            r#"
+            local editBox = ChatFrameUtil.GetActiveWindow()
+            return editBox ~= nil and editBox:HasFocus()
+            "#,
+        )
+        .expect("active chat editbox focus probe must run cleanly");
+    let editbox_text: String = env
+        .eval("return ChatFrameUtil.GetActiveWindow().text")
+        .expect("active chat editbox text probe must run cleanly");
+    let desired_cursor_position: i64 = env
+        .eval("return ChatFrameUtil.GetActiveWindow().desiredCursorPosition")
+        .expect("active chat editbox cursor probe must run cleanly");
 
     assert!(
         generated_link_uses_get_time_payload,
         "generated API links must include the real GetTime SystemTime payload"
     );
-    assert_eq!(
-        DUMP_TEXT, chat_edit_state.text,
-        "OpenDump link must include the generated target function call"
+    assert!(
+        editbox_is_shown,
+        "OpenDump link must show the active real ChatFrameUtil editbox"
     );
     assert!(
-        chat_edit_state.chat_type.is_none(),
-        "HandleOpenDump passes nil chat type to ChatFrameUtil.OpenChat"
+        editbox_has_focus,
+        "OpenDump link must focus the active real ChatFrameUtil editbox"
     );
     assert_eq!(
-        Some((DUMP_TEXT.len() - 1) as i64),
-        chat_edit_state.cursor_position,
-        "HandleOpenDump parks the cursor just before the closing parenthesis"
+        DUMP_TEXT, editbox_text,
+        "OpenDump link must include the generated target function call"
+    );
+    assert_eq!(
+        (DUMP_TEXT.len() - 1) as i64,
+        desired_cursor_position,
+        "OpenDump parks the cursor just before the closing parenthesis"
     );
 }
 

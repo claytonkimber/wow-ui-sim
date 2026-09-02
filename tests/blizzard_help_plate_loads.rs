@@ -192,9 +192,8 @@ fn blizzard_help_plate_appears_on_all_four_screens() {
     }
 }
 
-#[test]
-fn blizzard_help_plate_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_help_plate_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let lua_errors: Vec<String> = env.state().borrow().lua_errors.clone();
     let related: Vec<&String> = lua_errors
@@ -220,10 +219,10 @@ fn blizzard_help_plate_loads_without_addon_specific_lua_errors() {
             .join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_help_plate_is_addon_loaded_returns_true_after_game_screen_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_help_plate_is_addon_loaded_returns_true_after_game_screen_load(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_HelpPlate')")
@@ -236,10 +235,10 @@ fn blizzard_help_plate_is_addon_loaded_returns_true_after_game_screen_load() {
          CharacterSelect / CharacterCreate"
     );
 }
+}
 
-#[test]
-fn blizzard_help_plate_publishes_help_plate_global_table_with_seven_functions() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_help_plate_publishes_help_plate_global_table_with_seven_functions(env: &WowLuaEnv) {
 
     let table_exists: bool = env
         .eval("return type(HelpPlate) == 'table'")
@@ -277,10 +276,10 @@ fn blizzard_help_plate_publishes_help_plate_global_table_with_seven_functions() 
         );
     }
 }
+}
 
-#[test]
-fn blizzard_help_plate_publishes_five_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_help_plate_publishes_five_mixins(env: &WowLuaEnv) {
 
     for mixin in [
         "MainHelpPlateButtonMixin",
@@ -307,10 +306,10 @@ fn blizzard_help_plate_publishes_five_mixins() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_help_plate_main_help_plate_button_mixin_publishes_six_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_help_plate_main_help_plate_button_mixin_publishes_six_methods(env: &WowLuaEnv) {
 
     for method in [
         "OnEnter",
@@ -337,10 +336,10 @@ fn blizzard_help_plate_main_help_plate_button_mixin_publishes_six_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_help_plate_button_mixin_publishes_eight_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_help_plate_button_mixin_publishes_eight_methods(env: &WowLuaEnv) {
 
     for method in [
         "OnLoad",
@@ -370,10 +369,10 @@ fn blizzard_help_plate_button_mixin_publishes_eight_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_help_plate_tooltip_mixin_publishes_five_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_help_plate_tooltip_mixin_publishes_five_methods(env: &WowLuaEnv) {
 
     for method in [
         "OnLoad",
@@ -401,10 +400,10 @@ fn blizzard_help_plate_tooltip_mixin_publishes_five_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_help_plate_tile_and_box_mixin_methods_publish() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_help_plate_tile_and_box_mixin_methods_publish(env: &WowLuaEnv) {
 
     for method in ["OnEnter", "OnLeave", "Reset"] {
         let exists: bool = env
@@ -432,10 +431,10 @@ fn blizzard_help_plate_tile_and_box_mixin_methods_publish() {
          gold quest highlight"
     );
 }
+}
 
-#[test]
-fn blizzard_help_plate_publishes_named_non_virtual_frames_as_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_help_plate_publishes_named_non_virtual_frames_as_globals(env: &WowLuaEnv) {
 
     for frame_name in ["HelpPlateTooltip", "HelpPlateCanvas"] {
         let exists: bool = env
@@ -458,10 +457,10 @@ fn blizzard_help_plate_publishes_named_non_virtual_frames_as_globals() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_help_plate_virtual_templates_do_not_publish_as_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_help_plate_virtual_templates_do_not_publish_as_globals(env: &WowLuaEnv) {
 
     for template_name in [
         "GlowBoxArrowTemplate",
@@ -482,4 +481,5 @@ fn blizzard_help_plate_virtual_templates_do_not_publish_as_globals() {
              materialize as globals"
         );
     }
+}
 }

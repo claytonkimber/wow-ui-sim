@@ -67,9 +67,8 @@ fn blizzard_combat_text_is_not_in_game_auto_discovery() {
     );
 }
 
-#[test]
-fn blizzard_combat_text_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_combat_text_loads_without_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -88,10 +87,10 @@ fn blizzard_combat_text_loads_without_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_combat_text_constants_are_populated() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_combat_text_constants_are_populated(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &combat_text_toc()).expect("Blizzard_CombatText should load");
 
     let constants_present: bool = env
@@ -115,10 +114,10 @@ fn blizzard_combat_text_constants_are_populated() {
         "CombatTextConstants should expose its 11 documented numeric fields after load"
     );
 }
+}
 
-#[test]
-fn blizzard_combat_text_type_info_is_populated_with_mainline_overrides() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_combat_text_type_info_is_populated_with_mainline_overrides(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &combat_text_toc()).expect("Blizzard_CombatText should load");
 
     let type_info_present: bool = env
@@ -150,10 +149,10 @@ fn blizzard_combat_text_type_info_is_populated_with_mainline_overrides() {
          CombatTextConstantsOverrides.lua"
     );
 }
+}
 
-#[test]
-fn blizzard_combat_text_lookup_tables_are_populated() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_combat_text_lookup_tables_are_populated(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &combat_text_toc()).expect("Blizzard_CombatText should load");
 
     let lookups_present: bool = env
@@ -179,10 +178,10 @@ fn blizzard_combat_text_lookup_tables_are_populated() {
          should all be populated after load"
     );
 }
+}
 
-#[test]
-fn blizzard_combat_text_util_helpers_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_combat_text_util_helpers_are_defined(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &combat_text_toc()).expect("Blizzard_CombatText should load");
 
     let util_present: bool = env
@@ -207,10 +206,10 @@ fn blizzard_combat_text_util_helpers_are_defined() {
          GetRunePowerUpdateMessage) should be defined after load"
     );
 }
+}
 
-#[test]
-fn blizzard_combat_text_get_power_enum_resolves_known_strings() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_combat_text_get_power_enum_resolves_known_strings(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &combat_text_toc()).expect("Blizzard_CombatText should load");
 
     let resolves_correctly: bool = env
@@ -229,10 +228,10 @@ fn blizzard_combat_text_get_power_enum_resolves_known_strings() {
          Enum.PowerType.NumPowerTypes for unknown inputs"
     );
 }
+}
 
-#[test]
-fn blizzard_combat_text_mixin_methods_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_combat_text_mixin_methods_are_defined(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &combat_text_toc()).expect("Blizzard_CombatText should load");
 
     let mixin_present: bool = env
@@ -257,10 +256,10 @@ fn blizzard_combat_text_mixin_methods_are_defined() {
          ClearAnimationList/UpdateDisplayedMessages) should be defined after load"
     );
 }
+}
 
-#[test]
-fn blizzard_combat_text_toplevel_frame_is_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_combat_text_toplevel_frame_is_defined(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &combat_text_toc()).expect("Blizzard_CombatText should load");
 
     let frame_present: bool = env
@@ -274,4 +273,5 @@ fn blizzard_combat_text_toplevel_frame_is_defined() {
         "CombatText (toplevel Frame, mixin=CombatTextMixin, parent=UIParent) should be defined \
          and parented to UIParent after load"
     );
+}
 }

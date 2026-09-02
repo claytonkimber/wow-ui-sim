@@ -108,7 +108,10 @@ const BLIZZARD_ADDONS: &[(&str, &str)] = &[
     ("Blizzard_SharedXMLBase", "Blizzard_SharedXMLBase.toc"),
     ("Blizzard_Colors", "Blizzard_Colors_Mainline.toc"),
     ("Blizzard_SharedXML", "Blizzard_SharedXML_Mainline.toc"),
-    ("Blizzard_SharedXMLGame", "Blizzard_SharedXMLGame_Mainline.toc"),
+    (
+        "Blizzard_SharedXMLGame",
+        "Blizzard_SharedXMLGame_Mainline.toc",
+    ),
     (
         "Blizzard_UIPanelTemplates",
         "Blizzard_UIPanelTemplates_Mainline.toc",
@@ -178,6 +181,21 @@ const BLIZZARD_ADDONS: &[(&str, &str)] = &[
     ("Blizzard_AddOnList", "Blizzard_AddOnList.toc"),
     ("Blizzard_TimerunningUtil", "Blizzard_TimerunningUtil.toc"),
     ("Blizzard_MawBuffs", "Blizzard_MawBuffs.toc"),
+    ("Blizzard_AutoComplete", "Blizzard_AutoComplete.toc"),
+    (
+        "Blizzard_ChatFrameBase",
+        "Blizzard_ChatFrameBase_Mainline.toc",
+    ),
+    (
+        "Blizzard_VoiceToggleButton",
+        "Blizzard_VoiceToggleButton.toc",
+    ),
+    ("Blizzard_ChatFrame", "Blizzard_ChatFrame_Mainline.toc"),
+    ("Blizzard_GuildControlUI", "Blizzard_GuildControlUI.toc"),
+    (
+        "Blizzard_CommunitiesSecure",
+        "Blizzard_CommunitiesSecure.toc",
+    ),
     ("Blizzard_Communities", "Blizzard_Communities_Mainline.toc"),
     ("Blizzard_UnitFrame", "Blizzard_UnitFrame_Mainline.toc"),
     ("Blizzard_ObjectiveTracker", "Blizzard_ObjectiveTracker.toc"),
@@ -195,6 +213,7 @@ fn load_all_blizzard_addons(env: &WowLuaEnv) {
             eprintln!("[load {name}] FAILED: {e}");
         } else {
             env.apply_runtime_addon_load_workarounds(name);
+            common::fire_addon_loaded(env, name);
         }
     }
     env.apply_post_load_workarounds();

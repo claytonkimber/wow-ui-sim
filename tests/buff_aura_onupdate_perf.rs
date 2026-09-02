@@ -207,8 +207,7 @@ fn max_duration(samples: &[Duration]) -> Duration {
 
 #[test]
 fn buff_aura_onupdate_steady_state_stays_under_half_millisecond() {
-    test_timeout! {
-        common::with_perf_lock(|| {
+    perf_test_timeout! {
             let env = load_aura_perf_env();
             let samples = sample_aura_onupdate_cost(&env, PER_SAMPLE_TICKS);
             let max_elapsed = max_duration(&samples);
@@ -225,6 +224,5 @@ fn buff_aura_onupdate_steady_state_stays_under_half_millisecond() {
                 max_elapsed,
                 AURA_ONUPDATE_MAX_BUDGET
             );
-        });
     }
 }

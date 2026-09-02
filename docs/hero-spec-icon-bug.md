@@ -163,7 +163,7 @@ That rules out a whole class of false leads:
 
 ### The historical bottom-right point is just marble background in the current render
 
-`tests/hero_talents_render.rs::historical_bottom_right_artifact_point_is_only_background_marble_in_current_render`
+The current batch inspection
 checks the exact old screenshot coordinate from this investigation, `(1000, 610)`, against the
 current `1600x1200` screenshot-path batch. In the current build, that point intersects exactly one
 textured request:

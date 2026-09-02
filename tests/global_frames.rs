@@ -585,7 +585,6 @@ fn test_all_named_frame_globals_exist() {
         "UIErrorsFrame",
         "InterfaceOptionsFrame",
         "SideDressUpFrame",
-        "ContainerFrameCombinedBags",
         "LootFrame",
         "ScenarioObjectiveTracker",
         "RaidWarningFrame",

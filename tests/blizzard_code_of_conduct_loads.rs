@@ -51,9 +51,8 @@ fn blizzard_code_of_conduct_appears_in_game_discovery() {
     );
 }
 
-#[test]
-fn blizzard_code_of_conduct_registers_player_entering_world_callback() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_code_of_conduct_registers_player_entering_world_callback(env: &WowLuaEnv) {
 
     let registered: bool = env
         .eval(
@@ -77,10 +76,10 @@ fn blizzard_code_of_conduct_registers_player_entering_world_callback() {
          on EventRegistry (Function-table, callbackTables[2])"
     );
 }
+}
 
-#[test]
-fn blizzard_code_of_conduct_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_code_of_conduct_loads_without_errors(env: &WowLuaEnv) {
 
     let cof_addon_errors: Vec<String> = env
         .state()
@@ -95,4 +94,5 @@ fn blizzard_code_of_conduct_loads_without_errors() {
         "Blizzard_CodeOfConduct emitted Lua errors during load:\n  {}",
         cof_addon_errors.join("\n  ")
     );
+}
 }

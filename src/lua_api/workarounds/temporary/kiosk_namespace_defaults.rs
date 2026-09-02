@@ -1,7 +1,7 @@
 //! Temporary `Kiosk` namespace defaults.
 //!
-//! Kiosk mode is not modeled. These defaults keep startup probes inert while
-//! making the unsupported surface explicit in the temporary workaround layer.
+//! Kiosk sessions and credential injection are not modeled. These defaults keep
+//! glue startup inert until simulator-backed kiosk state replaces this workaround.
 
 const KIOSK_NAMESPACE_DEFAULTS_LUA: &str = r#"
 if type(Kiosk) ~= "table" then
@@ -17,6 +17,12 @@ end
 if Kiosk.IsCompetitiveModeEnabled == nil then
     function Kiosk.IsCompetitiveModeEnabled()
         return false
+    end
+end
+
+if Kiosk.GetKioskLoginInfo == nil then
+    function Kiosk.GetKioskLoginInfo()
+        return nil, nil, nil
     end
 end
 "#;
@@ -46,6 +52,13 @@ mod tests {
                 if Kiosk.IsCompetitiveModeEnabled() ~= false then
                     return "competitive"
                 end
+                if type(Kiosk.GetKioskLoginInfo) ~= "function" then
+                    return "missing_login_info"
+                end
+                local accountName, password, realmAddress = Kiosk.GetKioskLoginInfo()
+                if accountName ~= nil or password ~= nil or realmAddress ~= nil then
+                    return "unexpected_login_info"
+                end
                 return "ok"
                 "#,
             )
@@ -61,6 +74,7 @@ mod tests {
             r#"
             Kiosk = {
                 IsEnabled = function() return true end,
+                GetKioskLoginInfo = function() return "account", "password", 123 end,
                 ExistingMember = 42,
             }
             "#,
@@ -80,6 +94,10 @@ mod tests {
                 end
                 if Kiosk.ExistingMember ~= 42 then
                     return "lost_member"
+                end
+                local accountName, password, realmAddress = Kiosk.GetKioskLoginInfo()
+                if accountName ~= "account" or password ~= "password" or realmAddress ~= 123 then
+                    return "overwrote_login_info"
                 end
                 if Kiosk.IsCompetitiveModeEnabled() ~= false then
                     return "missing_default"

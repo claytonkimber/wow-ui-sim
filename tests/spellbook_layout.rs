@@ -478,7 +478,7 @@ fn spellbook_layout_stays_locked() {
                 local pageTextRect, pageTextErr = rect(pageText, "paging_text")
                 if not pageTextRect then return pageTextErr end
 
-                if pagingRect.w < 160 or pagingRect.h < 24 then
+                if not approx(pagingRect.w, 148, 1.0) or not approx(pagingRect.h, 32, 1.0) then
                     return "paging_size=" .. tostring(pagingRect.w) .. "x" .. tostring(pagingRect.h)
                 end
                 if pagingRect.r > pagedRect.r + 2 then return "paging_right_outside=" .. tostring(pagingRect.r) end

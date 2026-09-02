@@ -204,6 +204,23 @@ fn build_callback_entry(
     entry_ref
 }
 
+pub(crate) fn register_frame_event_callback(
+    state: &mut LuaState,
+    frame_id: u64,
+    event: &str,
+    func: Val,
+) -> LuaResult<()> {
+    let owner = frame_ref(state, frame_id)?;
+    if let Some(event_table) = callback_event_table(state, frame_id, event, true)? {
+        let entries = dedup_entries_by_owner(state, event_table, owner);
+        let entry_ref = build_callback_entry(state, owner, func, None);
+        let mut new_entries = entries;
+        new_entries.push(Val::Table(entry_ref));
+        rewrite_callback_entries(state, event_table, &new_entries);
+    }
+    Ok(())
+}
+
 pub(super) fn register_unit_callback(
     state: &mut LuaState,
     frame_id: u64,

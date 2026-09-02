@@ -108,9 +108,11 @@ fn fix_chat_scrollbar_anchors(env: &WowLuaEnv) {
 
 const SHOW_CHAT_FRAME_LUA: &str = r#"
     local function __wow_prepare_default_chat_frame()
-        if ChatFrame1 and ChatFrame1EditBox then
+        if ChatFrame1 then
             DEFAULT_CHAT_FRAME = ChatFrame1
-            ChatFrame1.editBox = ChatFrame1EditBox
+            if ChatFrame1EditBox then
+                ChatFrame1.editBox = ChatFrame1EditBox
+            end
         elseif DEFAULT_CHAT_FRAME and ChatFrame1EditBox and DEFAULT_CHAT_FRAME.editBox == nil then
             DEFAULT_CHAT_FRAME.editBox = ChatFrame1EditBox
         end

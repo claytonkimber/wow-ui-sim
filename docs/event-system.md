@@ -55,8 +55,9 @@ The `events` module defines constants for common WoW events:
 | `ADDON_LOADED` | An addon finished loading (arg: addon name) |
 | `VARIABLES_LOADED` | SavedVariables loaded |
 | `UPDATE_BINDINGS` | Key bindings changed |
-| `DISPLAY_SIZE_CHANGED` | Window resized |
-| `UI_SCALE_CHANGED` | UI scale changed |
+| `CVAR_UPDATE` | A CVar was successfully stored (args: CVar name, value) |
+| `DISPLAY_SIZE_CHANGED` | Display/UI dimensions changed |
+| `UI_SCALE_CHANGED` | Effective UI scale changed |
 | `PLAYER_TARGET_CHANGED` | Target changed |
 | `UNIT_HEALTH` | Unit health updated |
 | `UNIT_POWER_UPDATE` | Unit power (mana/energy) updated |
@@ -215,7 +216,7 @@ Frames must explicitly register for game events to receive them via OnEvent.
 
 ### RegisterEvent / UnregisterEvent
 
-Adds/removes event names from `frame.registered_events` (`HashSet<String>` on the Rust `Frame` struct, line 126 of `src/widget/frame.rs`).
+Adds/removes registerable event names from `frame.registered_events` (`HashSet<String>` on the Rust `Frame` struct, line 126 of `src/widget/frame.rs`). Retail/PTR validate names against generated and epoch-specific strict tables; `EXTERNAL_EVENT_LAUNCH_URL_FAILED` is registerable at retail 12.1 for current `Blizzard_GameMenu` loading. Classic profiles accept any non-empty name. Registration does not model an event producer, payload, or `C_ExternalEventURL` behavior.
 
 ### RegisterAllEvents
 
@@ -391,37 +392,13 @@ Fired at the end of frame creation from XML or template application. The handler
 
 Both are wrapped in `pcall()` to match WoW behavior.
 
-### OnShow
+### OnShow / OnHide
 
-**File:** `src/lua_api/frame/methods/methods_core.rs:264-289` and `src/loader/xml_frame.rs:610-631`
+**File:** `src/lua_api/frame/methods/core_state/visibility.rs`
 
-Fired when a frame transitions from hidden to visible. The `Show()` method checks `was_hidden` before firing:
+Visibility dispatch is reentrant and child-first for currently visible children. `Show()` or `Hide()` changes the frame state immediately, so a handler observes its own mutation. A `Hide()` called from `OnShow` defers `OnHide` until `OnShow` returns, then dispatches `OnHide` and leaves the frame hidden; cleanup only resets dispatch-depth bookkeeping and does not restore the outer request.
 
-```rust
-methods.add_method("Show", |lua, this, ()| {
-    let was_hidden = /* check frame.visible == false */;
-    /* set frame.visible = true */
-    if was_hidden {
-        fire_on_show_recursive(lua, &this.state, this.id)?;
-    }
-    Ok(())
-});
-```
-
-### fire_on_show_recursive
-
-**File:** `src/lua_api/frame/methods/methods_core.rs:223-262`
-
-Fires OnShow on a frame, then recursively on all visible children. This ensures child frames that were already visible get their OnShow handlers called when a parent becomes visible.
-
-1. Look up `__scripts["{id}_OnShow"]`
-2. Call with `(self)` if found
-3. Collect visible children IDs
-4. Recurse on each child
-
-### OnHide
-
-Currently fires only the `Hide()` method which sets `frame.visible = false`. The OnHide handler dispatch is simpler than OnShow -- no recursive propagation to children.
+Mutual `OnShow`/`OnHide` changes are drained iteratively for at most 12 handler invocations. Nested cross-frame dispatch is capped at depth 40. These limits prevent recursion overflow while preserving the final state selected by the handlers.
 
 ## OnUpdate Tick Mechanism
 
@@ -480,8 +457,8 @@ After all addons are loaded, the simulator fires startup events in this order:
 5. `TIME_PLAYED_MSG` -- via `RequestTimePlayed()` global
 6. `PLAYER_ENTERING_WORLD` with args `(true, false)` for initial login
 7. `UPDATE_BINDINGS` -- key bindings ready
-8. `DISPLAY_SIZE_CHANGED` -- screen dimensions set
-9. `UI_SCALE_CHANGED` -- UI scale applied
+
+Display/scale recalculation emits `DISPLAY_SIZE_CHANGED` then `UI_SCALE_CHANGED`; at those handlers, modeled `uiScale`/`useUiScale` changes expose the new effective scale while `GetCVar()` still returns the old value. The successful CVar write and `CVAR_UPDATE` follow afterward. Startup emits the display/scale pair before `PLAYER_LOGIN` as described in the scale-event investigation.
 
 Individual addons also receive per-addon `ADDON_LOADED` events during the loading phase, fired by `fire_addon_loaded()` in `src/lua_api/globals/addon_api.rs:550-558`.
 

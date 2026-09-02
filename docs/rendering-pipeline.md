@@ -4,7 +4,7 @@
 
 Two-tier rendering architecture:
 - **Quad-based GPU rendering** via WGPU shaders (primary path)
-- **Headless software rendering** for screenshots without GUI
+- **Headless GPU rendering** for screenshots without GUI
 
 The pipeline traverses the frame hierarchy, collects rendering commands into a `QuadBatch`, uploads to GPU, and renders via custom WGSL shaders with tiered texture atlases.
 
@@ -22,12 +22,15 @@ pub struct QuadVertex {
     pub position: [f32; 2],      // Screen pixels, top-left origin
     pub tex_coords: [f32; 2],    // 0.0-1.0 UV space
     pub color: [f32; 4],         // RGBA, premultiplied alpha
-    pub tex_index: i32,          // Texture tier (0-3) or -1 (solid) or -2 (pending)
-    pub flags: u32,              // Blend mode bits
+    pub tex_index: i32,          // RGBA tier 0-4, glyph 5, BC1 6, BC3 7, -1 solid, -2 pending
+    pub flags: u32,              // Blend mode and effect bits
+    pub local_uv: [f32; 2],      // Quad-local UV, preserved across atlas remapping
+    pub mask_tex_index: i32,     // Mask binding: -1 none, -2 pending, or atlas binding
+    pub mask_tex_coords: [f32; 2], // Mask UVs, remapped during prepare
 }
 ```
 
-36 bytes per vertex.
+60 bytes per vertex.
 
 ### BlendMode (lines 5-14)
 
@@ -38,9 +41,10 @@ pub struct QuadVertex {
 
 ```rust
 pub struct QuadBatch {
-    pub vertices: Vec<QuadVertex>,           // 4 per quad
-    pub indices: Vec<u32>,                   // 6 per quad (2 triangles)
+    pub vertices: Vec<QuadVertex>,             // 4 per quad
+    pub indices: Vec<u32>,                     // 6 per quad (2 triangles)
     pub texture_requests: Vec<TextureRequest>, // Deferred texture loading
+    pub mask_texture_requests: Vec<TextureRequest>, // Deferred mask resolution
 }
 ```
 
@@ -91,10 +95,13 @@ all colors, and additive quads zero their output alpha so the fixed premultiplie
 produces `src + dst`.
 
 **Texture Sampling** (lines 80-103):
-- tex_index 0-3: tiered atlas (64/128/256/512 cells)
-- tex_index 4: glyph atlas
+- tex_index 0-4: tiered RGBA atlas (64/128/256/512/2048 cells)
+- tex_index 5: glyph atlas
+- tex_index 6-7: BC1 and BC3 compressed atlases
 - Sampling: `textureSampleLevel(..., uv, 0.0)` (no mipmapping)
 - UV clamping: `clamp(tex_coords, 0.0, 0.9999)` to avoid edge bleeding
+
+Mask requests use the same deferred resolution path: RGBA entries are checked first, then BC1/BC3 entries. The resolved binding and UV rectangle are written to `mask_tex_index` and `mask_tex_coords`; unresolved pending masks become `-1` and are skipped.
 
 ### WowUiPipeline
 **File:** `src/render/shader/pipeline.rs`
@@ -170,18 +177,19 @@ pub fn build_quad_batch_for_registry(registry, screen_size, ...) -> QuadBatch {
 
 ---
 
-## Software Rendering (Screenshots)
+## Headless GPU Rendering (Screenshots)
 
-**File:** `src/render/software.rs`
+**File:** `src/render/headless.rs`
 
-Headless GPU rendering without window/swapchain:
+Headless rendering uses the same WGPU pipeline without a window or swapchain:
 
-1. Create headless wgpu device + queue
-2. Create render target texture (`Rgba8UnormSrgb`, RENDER_ATTACHMENT | COPY_SRC)
-3. Create WowUiPipeline (same as GUI)
-4. Prepare: upload textures, resolve indices
-5. Render to texture with `LoadOp::Clear`
-6. Read back pixels via `copy_texture_to_buffer()` + `buffer_slice.map_async()` + `poll()`
+1. Create a headless wgpu device + queue.
+2. Create an `Rgba8UnormSrgb` render target (`RENDER_ATTACHMENT | COPY_SRC`).
+3. Create `WowUiPipeline` (the same pipeline used by the GUI).
+4. Prepare batches: upload textures and resolve atlas indices.
+5. Clear, render, and read back pixels via `copy_texture_to_buffer()` and `map_async()`.
+
+`render_to_image()` renders one batch with a fresh headless context. Related before/after images should use `render_batches_to_images(&[&QuadBatch], ...)`: it preloads the union of primary, mask, and glyph textures, then renders every batch through one device, pipeline, render target, and GPU atlas. This models the live renderer's persistent atlas. Separate one-image calls can repack atlas slots independently; bilinear sampling and remapped UVs then produce packing-dependent edge differences outside the geometry change being tested.
 
 ---
 
@@ -250,16 +258,17 @@ Supported fonts include FRIZQT__.TTF (default), ARIALN.TTF, FRIZQT___CYR.TTF, an
 | 1 | 128x128 | 32x32 | 1,024 |
 | 2 | 256x256 | 16x16 | 256 |
 | 3 | 512x512 | 8x8 | 64 |
+| 4 | 2048x2048 | 2x2 | 4 |
 
-All tiers use 4096x4096 backing textures.
+All RGBA tiers use 4096x4096 backing textures. Optional BC1 and BC3 compressed atlases are separate bindings used when compressed uploads are available; masks can resolve through those atlases too.
 
 **Tier Selection** (lines 209-220): Find smallest tier that fits. If larger or all tiers full, try largest tier with scaling.
 
 **Upload** (lines 223-250): Check cache, select tier, allocate grid slot, copy to GPU, compute UV rectangle.
 
-**Glyph Atlas**: Separate 2048x2048 texture at binding 5.
+**Glyph Atlas**: Separate 2048x2048 texture at binding 6.
 
-**Bind Group**: tier_64 (0), tier_128 (1), tier_256 (2), tier_512 (3), sampler (4), glyph_atlas (5).
+**Bind Group**: tier_64 (0), tier_128 (1), tier_256 (2), tier_512 (3), tier_2048 (4), sampler (5), glyph_atlas (6), BC1 atlas (7), BC3 atlas (8), glyph sampler (9).
 
 ---
 
@@ -279,12 +288,32 @@ The simulator ignores the `BLIZZARD` input token; it does not participate as a d
 BACKGROUND < BORDER < ARTWORK < OVERLAY < HIGHLIGHT
 ```
 
-### Sorting Logic (render.rs:398-415)
+### Sorting Logic (`src/lua_api/state_render.rs`)
 
-1. Primary: frame strata
-2. Secondary: frame level (within strata)
-3. Tertiary: draw layer for regions (frames render before regions)
-4. Tie-breaker: widget ID
+The simulator builds one bucket per frame strata. Ordinary frames and regions retain
+raw frame-level ordering; `raise_order` is only a tie-breaker between siblings with
+the same raw frame level, and `Raise()`/`Lower()` cannot move a frame across a
+higher- or lower-level sibling.
+
+`toplevel="true"` uses a separate monotonic active show-order sequence. Showing a
+top-level frame assigns the next sequence value; hiding removes it, and showing it
+again assigns a newer value. This is intentionally separate from `raise_order`.
+After normal per-strata emission, IDs belonging to an active top-level frame are
+grouped by their nearest active top-level ancestor while walking through any
+intermediate strata. Each group is emitted contiguously in show order, with its
+owning frame anchored first. Thus a panel and its cross-strata descendants cannot
+be split around an independently rooted frame merely because their raw levels differ.
+Top-level visibility changes rebuild the affected bucket grouping; ordinary shows
+may use the incremental repair path. `UIParent` and `WorldFrame` remain strata-root
+boundaries.
+
+Within ordinary content, the effective order remains:
+
+1. Frame strata
+2. Raw frame level
+3. `raise_order` for same-raw-level ties
+4. Draw layer for regions (frames render before regions)
+5. Widget ID
 
 ---
 
@@ -343,7 +372,7 @@ App::hit_test(pos) -> frame_id
 build_quad_batch_for_registry()
     | [Traverse frame tree]
 collect_ancestor_visible_ids() -> HashMap<id, alpha>
-collect_sorted_frames() -> sorted by strata/level/draw-layer
+SimState::get_strata_buckets() -> per-strata frame/region order
     | [Emit quads per type]
 emit_frame_quads() -> match widget_type { ... }
     | [Collect texture requests]
@@ -380,4 +409,4 @@ Framebuffer (presented by iced)
 | Hit Testing | `src/iced_app/view.rs` | Strata sorting, containment tests |
 | Glyphs | `src/render/glyph.rs` | GlyphAtlas, text emission |
 | Fonts | `src/render/font.rs` | cosmic-text integration |
-| Software Render | `src/render/software.rs` | Headless screenshot pipeline |
+| Headless Render | `src/render/headless.rs` | Single-image and shared-atlas screenshot pipeline |

@@ -234,9 +234,8 @@ fn blizzard_print_handler_appears_in_full_addon_inventory() {
     );
 }
 
-#[test]
-fn blizzard_print_handler_is_addon_loaded_after_game_screen_boot() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_print_handler_is_addon_loaded_after_game_screen_boot(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_PrintHandler')")
@@ -247,10 +246,10 @@ fn blizzard_print_handler_is_addon_loaded_after_game_screen_boot() {
          Game-screen sweep"
     );
 }
+}
 
-#[test]
-fn blizzard_print_handler_publishes_three_global_functions() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_print_handler_publishes_three_global_functions(env: &WowLuaEnv) {
 
     for name in PUBLIC_GLOBAL_FUNCTIONS {
         let kind: String = env
@@ -271,10 +270,10 @@ fn blizzard_print_handler_publishes_three_global_functions() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_print_handler_overrides_global_print_function() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_print_handler_overrides_global_print_function(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(_G.print)")
@@ -288,10 +287,10 @@ fn blizzard_print_handler_overrides_global_print_function() {
          deliberately overwriting the read-only `print` global"
     );
 }
+}
 
-#[test]
-fn blizzard_print_handler_default_handler_routes_through_get_handler() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_print_handler_default_handler_routes_through_get_handler(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(getprinthandler())")
@@ -305,10 +304,10 @@ fn blizzard_print_handler_default_handler_routes_through_get_handler() {
          handler is replaceable via setprinthandler(func)"
     );
 }
+}
 
-#[test]
-fn blizzard_print_handler_set_print_handler_validates_function_argument() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_print_handler_set_print_handler_validates_function_argument(env: &WowLuaEnv) {
 
     let valid: bool = env
         .eval(
@@ -334,10 +333,10 @@ fn blizzard_print_handler_set_print_handler_validates_function_argument() {
          the explicit type-check at line 75-77 raises before the swap"
     );
 }
+}
 
-#[test]
-fn blizzard_print_handler_tostringall_handles_zero_to_three_arguments() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_print_handler_tostringall_handles_zero_to_three_arguments(env: &WowLuaEnv) {
 
     let no_args: i64 = env
         .eval("return select('#', tostringall())")
@@ -366,10 +365,10 @@ fn blizzard_print_handler_tostringall_handles_zero_to_three_arguments() {
          line 37-39 calls tostring(a), tostring(b), tostring(c) directly"
     );
 }
+}
 
-#[test]
-fn blizzard_print_handler_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_print_handler_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -390,4 +389,5 @@ fn blizzard_print_handler_loads_without_addon_specific_lua_errors() {
         "Blizzard_PrintHandler emitted addon-specific Lua errors during load:\n  {}",
         load_errors.join("\n  ")
     );
+}
 }

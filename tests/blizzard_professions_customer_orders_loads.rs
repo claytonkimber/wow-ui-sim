@@ -357,9 +357,8 @@ fn blizzard_professions_customer_orders_appears_in_full_addon_inventory() {
     );
 }
 
-#[test]
-fn blizzard_professions_customer_orders_loads_explicitly_after_dependencies() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_professions_customer_orders_loads_explicitly_after_dependencies(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -390,10 +389,10 @@ fn blizzard_professions_customer_orders_loads_explicitly_after_dependencies() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_professions_customer_orders_publishes_eleven_mixin_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_professions_customer_orders_publishes_eleven_mixin_globals(env: &WowLuaEnv) {
     load_customer_orders_with_deps(&env);
 
     for name in PUBLIC_MIXIN_GLOBALS {
@@ -419,10 +418,10 @@ fn blizzard_professions_customer_orders_publishes_eleven_mixin_globals() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_professions_customer_orders_publishes_mode_enum_global() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_professions_customer_orders_publishes_mode_enum_global(env: &WowLuaEnv) {
     load_customer_orders_with_deps(&env);
 
     let mode_kind: String = env
@@ -447,10 +446,10 @@ fn blizzard_professions_customer_orders_publishes_mode_enum_global() {
         "EnumUtil.MakeEnum must assign distinct integer values to Browse and Orders"
     );
 }
+}
 
-#[test]
-fn blizzard_professions_customer_orders_named_top_level_frame_is_in_global_env() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_professions_customer_orders_named_top_level_frame_is_in_global_env(env: &WowLuaEnv) {
     load_customer_orders_with_deps(&env);
 
     for frame in NAMED_NON_VIRTUAL_TOP_LEVEL_FRAMES {
@@ -471,10 +470,10 @@ fn blizzard_professions_customer_orders_named_top_level_frame_is_in_global_env()
         );
     }
 }
+}
 
-#[test]
-fn blizzard_professions_customer_orders_virtual_templates_not_in_global_env() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_professions_customer_orders_virtual_templates_not_in_global_env(env: &WowLuaEnv) {
     load_customer_orders_with_deps(&env);
 
     for template in VIRTUAL_TEMPLATES_NOT_IN_GLOBALS {
@@ -495,10 +494,10 @@ fn blizzard_professions_customer_orders_virtual_templates_not_in_global_env() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_professions_customer_orders_registers_one_ui_panel_with_uiparent() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_professions_customer_orders_registers_one_ui_panel_with_uiparent(env: &WowLuaEnv) {
     load_customer_orders_with_deps(&env);
 
     let registration_present: bool = env
@@ -517,4 +516,5 @@ fn blizzard_professions_customer_orders_registers_one_ui_panel_with_uiparent() {
          area used for AH-style panels (note the AuctionHouseFrame dependency); \
          `pushable=0` prevents the frame from being pushed aside by other UI panels"
     );
+}
 }

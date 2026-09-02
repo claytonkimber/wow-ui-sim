@@ -232,9 +232,8 @@ fn blizzard_mirror_timer_edit_mode_dep_appears_in_game_discovery() {
     );
 }
 
-#[test]
-fn blizzard_mirror_timer_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_mirror_timer_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -255,10 +254,10 @@ fn blizzard_mirror_timer_loads_without_addon_specific_lua_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_mirror_timer_is_addon_loaded_after_auto_discovery() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_mirror_timer_is_addon_loaded_after_auto_discovery(env: &WowLuaEnv) {
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_MirrorTimer')")
         .expect("IsAddOnLoaded probe succeeds");
@@ -269,10 +268,10 @@ fn blizzard_mirror_timer_is_addon_loaded_after_auto_discovery() {
          during the standard Game-screen boot pipeline"
     );
 }
+}
 
-#[test]
-fn blizzard_mirror_timer_publishes_atlas_table_with_four_canonical_keys() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_mirror_timer_publishes_atlas_table_with_four_canonical_keys(env: &WowLuaEnv) {
     let kind: String = env
         .eval("return type(_G.MirrorTimerAtlas)")
         .expect("MirrorTimerAtlas probe");
@@ -297,10 +296,10 @@ fn blizzard_mirror_timer_publishes_atlas_table_with_four_canonical_keys() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_mirror_timer_publishes_container_mixin_with_ten_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_mirror_timer_publishes_container_mixin_with_ten_methods(env: &WowLuaEnv) {
     let kind: String = env
         .eval("return type(_G.MirrorTimerContainerMixin)")
         .expect("MirrorTimerContainerMixin probe");
@@ -324,10 +323,10 @@ fn blizzard_mirror_timer_publishes_container_mixin_with_ten_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_mirror_timer_publishes_timer_mixin_with_twelve_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_mirror_timer_publishes_timer_mixin_with_twelve_methods(env: &WowLuaEnv) {
     let kind: String = env
         .eval("return type(_G.MirrorTimerMixin)")
         .expect("MirrorTimerMixin probe");
@@ -351,10 +350,10 @@ fn blizzard_mirror_timer_publishes_timer_mixin_with_twelve_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_mirror_timer_container_frame_publishes_with_correct_parent_and_mixin_table() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_mirror_timer_container_frame_publishes_with_correct_parent_and_mixin_table(env: &WowLuaEnv) {
     let probe = "\
         return type(_G.MirrorTimerContainer) == 'table' \
             and MirrorTimerContainer:GetParent() == UIParent \
@@ -375,10 +374,10 @@ fn blizzard_mirror_timer_container_frame_publishes_with_correct_parent_and_mixin
          FEIGNDEATH reuses an Exhaustion slot — Blizzard never bumped the count past 3)"
     );
 }
+}
 
-#[test]
-fn blizzard_mirror_timer_template_does_not_leak_as_global() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_mirror_timer_template_does_not_leak_as_global(env: &WowLuaEnv) {
     let kind: String = env
         .eval("return type(_G.MirrorTimerTemplate)")
         .expect("MirrorTimerTemplate global probe succeeds");
@@ -389,4 +388,5 @@ fn blizzard_mirror_timer_template_does_not_leak_as_global() {
          are inheritance shells consumed via `inherits=\"MirrorTimerTemplate\"` at template \
          instantiation time; they're not directly addressable from Lua code"
     );
+}
 }

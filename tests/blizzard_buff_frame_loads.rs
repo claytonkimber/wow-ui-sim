@@ -40,9 +40,8 @@ fn load_full_game_ui() -> WowLuaEnv {
     env
 }
 
-#[test]
-fn blizzard_buff_frame_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_buff_frame_loads_without_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -79,10 +78,10 @@ fn blizzard_buff_frame_loads_without_errors() {
         "BuffFrame, DebuffFrame, DeadlyDebuffFrame and aura mixins should be defined after load"
     );
 }
+}
 
-#[test]
-fn buff_frame_update_runs_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn buff_frame_update_runs_without_errors(env: &WowLuaEnv) {
 
     load_addon(&env.loader_env(), &buff_frame_toc()).expect("Blizzard_BuffFrame should load");
 
@@ -102,4 +101,5 @@ fn buff_frame_update_runs_without_errors() {
         "BuffFrame/DebuffFrame Update emitted Lua errors:\n  {}",
         errors.join("\n  ")
     );
+}
 }

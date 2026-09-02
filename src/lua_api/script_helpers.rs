@@ -33,7 +33,6 @@ pub(super) const ON_POST_UPDATE_SCRIPTS_KEY: &str = "__on_post_update_scripts";
 const ERROR_HANDLER_KEY: &str = "__error_handler";
 const PROTECTED_LUA_PCALL_WRAPPER_FACTORY_KEY: &str = "__protected_lua_pcall_wrapper_factory";
 const LUA_MULTRET: i32 = -1;
-const DIRECT_CALL_FALLBACK_ERROR: &str = "expected Lua closure in execute";
 const SCRIPT_HANDLER_TABLE_HASH_SLOTS: usize = 16;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -635,10 +634,8 @@ fn recover_call_state(
 
 /// Call a function through Lua's protected `xpcall` path.
 ///
-/// Some handlers created from Blizzard XML work when called by Lua but trip
-/// rilua's direct Rust-side call path with "expected Lua closure in execute".
-/// A cached bridge keeps dispatch on the VM's normal path and captures
-/// `debug.traceback` before the failing Lua stack unwinds.
+/// A cached bridge captures `debug.traceback` before the failing Lua stack
+/// unwinds.
 pub fn protected_lua_pcall_state(
     state: &mut LuaState,
     func: Val,
@@ -668,21 +665,14 @@ pub fn protected_lua_pcall_state(
     }
 }
 
-pub fn call_void_function_with_fallback_state(
+pub fn call_void_function_state(
     state: &mut LuaState,
     func: Val,
     args: &[Val],
 ) -> Result<(), String> {
-    match call_function_state(state, func, args) {
-        Ok(_) => Ok(()),
-        Err(error) => {
-            let message = error.to_string();
-            if !message.contains(DIRECT_CALL_FALLBACK_ERROR) {
-                return Err(message);
-            }
-            protected_lua_pcall_state(state, func, args).map(|_| ())
-        }
-    }
+    call_function_state(state, func, args)
+        .map(|_| ())
+        .map_err(|error| error.to_string())
 }
 
 fn ensure_protected_lua_pcall_wrapper_factory(

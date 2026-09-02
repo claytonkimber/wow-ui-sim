@@ -12,9 +12,9 @@ pub fn generate_animation_group_code(
     emit_anim_group_header(&mut code, anim_group, frame_ref);
     emit_anim_group_references(&mut code, anim_group, frame_ref);
     emit_anim_group_props(&mut code, anim_group);
+    emit_anim_group_mixin(&mut code, anim_group);
     emit_inherited_anim_group_children(&mut code, anim_group, frame_ref);
     emit_anim_group_children(&mut code, anim_group, frame_ref);
-    emit_anim_group_mixin(&mut code, anim_group);
     emit_anim_group_on_load(&mut code);
     code.push_str("\n        end\n        ");
 

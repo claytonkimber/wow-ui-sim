@@ -70,9 +70,9 @@ fn faction_icon_probe(env: &WowLuaEnv) -> FactionIconProbe {
     let coords: (f64, f64, f64, f64, f64, f64, f64, f64) = env
         .eval(
             r#"
-            local tabLeft, tabRight, tabTop, tabBottom =
+            local tabLeft, tabTop, _, tabBottom, tabRight =
                 ArchaeologyFrame.tab1.factionIcon:GetTexCoord()
-            local frameLeft, frameRight, frameTop, frameBottom =
+            local frameLeft, frameTop, _, frameBottom, frameRight =
                 ArchaeologyFrame.factionIcon:GetTexCoord()
 
             return tabLeft, tabRight, tabTop, tabBottom,

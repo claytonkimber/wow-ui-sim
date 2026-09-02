@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, find_toc_file, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
-use wow_ui_sim::startup::fire_startup_events_for_screen;
 use wow_ui_sim::toc::TocFile;
 
 fn blizzard_ui_dir() -> PathBuf {
@@ -21,32 +20,9 @@ fn housing_cornerstone_toc() -> PathBuf {
     housing_cornerstone_dir().join("Blizzard_HousingCornerstone.toc")
 }
 
-fn load_full_game_ui_with_housing_cornerstone_lod() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-
-    wow_ui_sim::xml::register_intrinsic_templates();
-
-    let ui = blizzard_ui_dir();
-    let addons = discover_blizzard_addons_for_screen(&ui, ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    env.apply_post_load_workarounds();
-    fire_startup_events_for_screen(&env, ScreenKind::Game);
-
+fn load_housing_cornerstone(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &housing_cornerstone_toc())
         .expect("Blizzard_HousingCornerstone should load via explicit Rust loader call");
-
-    env
 }
 
 fn eval_bool(env: &WowLuaEnv, script: &str, context: &str) -> bool {
@@ -170,9 +146,9 @@ fn blizzard_housing_cornerstone_excluded_from_all_screen_auto_discovery_passes()
     }
 }
 
-#[test]
-fn blizzard_housing_cornerstone_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui_with_housing_cornerstone_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_cornerstone_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
+    load_housing_cornerstone(env);
 
     let lua_errors: Vec<String> = env.state().borrow().lua_errors.clone();
     let related: Vec<&String> = lua_errors
@@ -201,10 +177,11 @@ fn blizzard_housing_cornerstone_loads_without_addon_specific_lua_errors() {
             .join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_housing_cornerstone_is_addon_loaded_returns_true_after_explicit_lod_load() {
-    let env = load_full_game_ui_with_housing_cornerstone_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_cornerstone_is_addon_loaded_returns_true_after_explicit_lod_load(env: &WowLuaEnv) {
+    load_housing_cornerstone(env);
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_HousingCornerstone')")
@@ -215,10 +192,11 @@ fn blizzard_housing_cornerstone_is_addon_loaded_returns_true_after_explicit_lod_
          true"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_cornerstone_dependencies_load_via_game_screen_pass() {
-    let env = load_full_game_ui_with_housing_cornerstone_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_cornerstone_dependencies_load_via_game_screen_pass(env: &WowLuaEnv) {
+    load_housing_cornerstone(env);
 
     let templates_loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_HousingTemplates')")
@@ -237,10 +215,11 @@ fn blizzard_housing_cornerstone_dependencies_load_via_game_screen_pass() {
          SmallMoneyFrameTemplate children + 1 MoneyFrameTemplate child"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_cornerstone_publishes_seven_named_frames_globally() {
-    let env = load_full_game_ui_with_housing_cornerstone_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_cornerstone_publishes_seven_named_frames_globally(env: &WowLuaEnv) {
+    load_housing_cornerstone(env);
 
     for frame_name in [
         "HousingCornerstoneFrame",
@@ -264,10 +243,11 @@ fn blizzard_housing_cornerstone_publishes_seven_named_frames_globally() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_cornerstone_does_not_publish_visitor_template_global() {
-    let env = load_full_game_ui_with_housing_cornerstone_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_cornerstone_does_not_publish_visitor_template_global(env: &WowLuaEnv) {
+    load_housing_cornerstone(env);
 
     let published: bool = env
         .eval("return _G['HousingCornerstoneVisitorTemplate'] ~= nil")
@@ -278,10 +258,11 @@ fn blizzard_housing_cornerstone_does_not_publish_visitor_template_global() {
          not instantiated as global frames; only inheriting frames materialize"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_cornerstone_frame_mixin_publishes_seven_methods() {
-    let env = load_full_game_ui_with_housing_cornerstone_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_cornerstone_frame_mixin_publishes_seven_methods(env: &WowLuaEnv) {
+    load_housing_cornerstone(env);
 
     for method in [
         "OnLoad",
@@ -304,10 +285,11 @@ fn blizzard_housing_cornerstone_frame_mixin_publishes_seven_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_cornerstone_purchase_frame_mixin_publishes_twelve_methods() {
-    let env = load_full_game_ui_with_housing_cornerstone_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_cornerstone_purchase_frame_mixin_publishes_twelve_methods(env: &WowLuaEnv) {
+    load_housing_cornerstone(env);
 
     for method in [
         "OnLoad",
@@ -336,10 +318,11 @@ fn blizzard_housing_cornerstone_purchase_frame_mixin_publishes_twelve_methods() 
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_cornerstone_visitor_shared_mixin_publishes_two_methods() {
-    let env = load_full_game_ui_with_housing_cornerstone_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_cornerstone_visitor_shared_mixin_publishes_two_methods(env: &WowLuaEnv) {
+    load_housing_cornerstone(env);
 
     for method in ["OnLoad", "OnReportClicked"] {
         let exists: bool = env
@@ -357,10 +340,11 @@ fn blizzard_housing_cornerstone_visitor_shared_mixin_publishes_two_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_cornerstone_visitor_frame_mixin_inherits_shared_and_overrides_three_methods() {
-    let env = load_full_game_ui_with_housing_cornerstone_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_cornerstone_visitor_frame_mixin_inherits_shared_and_overrides_three_methods(env: &WowLuaEnv) {
+    load_housing_cornerstone(env);
 
     let shared_inherited: bool = env
         .eval(
@@ -386,11 +370,11 @@ fn blizzard_housing_cornerstone_visitor_frame_mixin_inherits_shared_and_override
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_cornerstone_house_info_frame_mixin_inherits_shared_and_overrides_four_methods()
-{
-    let env = load_full_game_ui_with_housing_cornerstone_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_cornerstone_house_info_frame_mixin_inherits_shared_and_overrides_four_methods(env: &WowLuaEnv) {
+    load_housing_cornerstone(env);
 
     let shared_inherited: bool = env
         .eval(
@@ -416,10 +400,11 @@ fn blizzard_housing_cornerstone_house_info_frame_mixin_inherits_shared_and_overr
         );
     }
 }
+}
 
-#[test]
-fn blizzard_buy_house_confirmation_dialog_mixin_publishes_three_methods() {
-    let env = load_full_game_ui_with_housing_cornerstone_lod();
+prefork_full_ui_case! {
+fn blizzard_buy_house_confirmation_dialog_mixin_publishes_three_methods(env: &WowLuaEnv) {
+    load_housing_cornerstone(env);
 
     for method in ["OnLoad", "OnShow", "OnHide"] {
         let exists: bool = env
@@ -434,10 +419,11 @@ fn blizzard_buy_house_confirmation_dialog_mixin_publishes_three_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_move_house_confirmation_dialog_mixin_publishes_three_methods() {
-    let env = load_full_game_ui_with_housing_cornerstone_lod();
+prefork_full_ui_case! {
+fn blizzard_move_house_confirmation_dialog_mixin_publishes_three_methods(env: &WowLuaEnv) {
+    load_housing_cornerstone(env);
 
     for method in ["OnLoad", "OnShow", "OnHide"] {
         let exists: bool = env
@@ -453,10 +439,11 @@ fn blizzard_move_house_confirmation_dialog_mixin_publishes_three_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_import_house_confirmation_dialog_mixin_publishes_three_methods() {
-    let env = load_full_game_ui_with_housing_cornerstone_lod();
+prefork_full_ui_case! {
+fn blizzard_import_house_confirmation_dialog_mixin_publishes_three_methods(env: &WowLuaEnv) {
+    load_housing_cornerstone(env);
 
     for method in ["OnLoad", "OnShow", "OnHide"] {
         let exists: bool = env
@@ -471,10 +458,11 @@ fn blizzard_import_house_confirmation_dialog_mixin_publishes_three_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_cornerstone_purchase_frame_publishes_money_widgets_via_parent_keys() {
-    let env = load_full_game_ui_with_housing_cornerstone_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_cornerstone_purchase_frame_publishes_money_widgets_via_parent_keys(env: &WowLuaEnv) {
+    load_housing_cornerstone(env);
 
     let cost_text_frame = eval_bool(
         &env,
@@ -530,10 +518,11 @@ fn blizzard_housing_cornerstone_purchase_frame_publishes_money_widgets_via_paren
          EventRegistry callback so confirmation dialogs can clear the mask on dismiss"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_cornerstone_frame_publishes_tab_system_subframes() {
-    let env = load_full_game_ui_with_housing_cornerstone_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_cornerstone_frame_publishes_tab_system_subframes(env: &WowLuaEnv) {
+    load_housing_cornerstone(env);
 
     for parent_key in ["TabSystem", "InfoFrame", "DropboxFrame", "CloseButton"] {
         let exists: bool = env
@@ -548,10 +537,11 @@ fn blizzard_housing_cornerstone_frame_publishes_tab_system_subframes() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_cornerstone_visitor_frame_inherits_template_children() {
-    let env = load_full_game_ui_with_housing_cornerstone_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_cornerstone_visitor_frame_inherits_template_children(env: &WowLuaEnv) {
+    load_housing_cornerstone(env);
 
     for parent_key in [
         "Border",
@@ -579,10 +569,11 @@ fn blizzard_housing_cornerstone_visitor_frame_inherits_template_children() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_cornerstone_house_info_frame_adds_loading_spinner() {
-    let env = load_full_game_ui_with_housing_cornerstone_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_cornerstone_house_info_frame_adds_loading_spinner(env: &WowLuaEnv) {
+    load_housing_cornerstone(env);
 
     let exists: bool = env
         .eval(
@@ -595,10 +586,11 @@ fn blizzard_housing_cornerstone_house_info_frame_adds_loading_spinner() {
          shown while C_Housing.GetCurrentHouseInfo returns incomplete data per HasData helper"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_cornerstone_move_dialog_publishes_strikethrough_overlay() {
-    let env = load_full_game_ui_with_housing_cornerstone_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_cornerstone_move_dialog_publishes_strikethrough_overlay(env: &WowLuaEnv) {
+    load_housing_cornerstone(env);
 
     for parent_key in [
         "PriceMoneyFrameOriginal",
@@ -623,10 +615,11 @@ fn blizzard_housing_cornerstone_move_dialog_publishes_strikethrough_overlay() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_cornerstone_registers_four_named_panels_via_register_ui_panel() {
-    let env = load_full_game_ui_with_housing_cornerstone_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_cornerstone_registers_four_named_panels_via_register_ui_panel(env: &WowLuaEnv) {
+    load_housing_cornerstone(env);
 
     for frame_name in [
         "HousingCornerstoneFrame",
@@ -646,10 +639,11 @@ fn blizzard_housing_cornerstone_registers_four_named_panels_via_register_ui_pane
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_cornerstone_registration_uses_center_area_with_no_pushable() {
-    let env = load_full_game_ui_with_housing_cornerstone_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_cornerstone_registration_uses_center_area_with_no_pushable(env: &WowLuaEnv) {
+    load_housing_cornerstone(env);
 
     let area: String = env
         .eval("return UIPanelWindows['HousingCornerstoneFrame'].area")
@@ -677,4 +671,5 @@ fn blizzard_housing_cornerstone_registration_uses_center_area_with_no_pushable()
         "Registration.lua attributes.allowOtherPanels = 1 — coexists with side-anchored \
          HouseEditor and HousingControls strip"
     );
+}
 }

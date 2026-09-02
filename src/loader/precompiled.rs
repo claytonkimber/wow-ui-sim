@@ -11,10 +11,11 @@ const REPORT_SCRIPT_ERROR_KEY: &str = "__report_script_error";
 const FIRE_ONLOAD_SOURCE: &str = r#"
     local __report, frame = ...
     if not frame then return end
-    local oldSelf = self
-    self = frame
-    if type(frame.OnLoad_Intrinsic) == "function" then
-        local ok, err = pcall(frame.OnLoad_Intrinsic, frame)
+    local oldSelf = rawget(_G, "self")
+    rawset(_G, "self", frame)
+    local intrinsic = __wow_bind_xml_method(frame, "OnLoad_Intrinsic")
+    if type(intrinsic) == "function" then
+        local ok, err = pcall(intrinsic, frame)
         if not ok then
             __report("[OnLoad_Intrinsic] " .. tostring(err))
         end
@@ -30,14 +31,14 @@ const FIRE_ONLOAD_SOURCE: &str = r#"
             end
         end
     end
-    self = oldSelf
+    rawset(_G, "self", oldSelf)
 "#;
 
 const FIRE_ONSHOW_SOURCE: &str = r#"
     local __report, frame = ...
     if not frame or not frame:IsVisible() then return end
-    local oldSelf = self
-    self = frame
+    local oldSelf = rawget(_G, "self")
+    rawset(_G, "self", frame)
     for _, bindingType in ipairs({0, 1, 2}) do
         local handler = frame:GetScript("OnShow", bindingType)
         if handler then
@@ -54,7 +55,7 @@ const FIRE_ONSHOW_SOURCE: &str = r#"
             __report("[OnShow_Intrinsic] " .. tostring(err))
         end
     end
-    self = oldSelf
+    rawset(_G, "self", oldSelf)
 "#;
 
 pub fn init(lua: &mut rilua::Lua) -> crate::Result<()> {

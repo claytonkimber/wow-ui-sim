@@ -80,7 +80,27 @@ if GetChatWindowInfo == nil then
     if chat and chat.docked ~= nil then
       docked = chat.docked == true
     end
-    return "Chat " .. tostring(realId), 12, 0, 0, 0, 0.25, shown, false, docked, false
+    local name = "Chat " .. tostring(realId)
+    if chat and chat.name ~= nil then
+      name = chat.name
+    end
+    return name, 12, 0, 0, 0, 0.25, shown, false, docked, false
+  end
+end
+
+if SetChatWindowName == nil then
+  function SetChatWindowName(id, name)
+    local chat = __wow_chat_window_state[id] or {}
+    chat.name = name
+    __wow_chat_window_state[id] = chat
+  end
+end
+
+if SetChatWindowDocked == nil then
+  function SetChatWindowDocked(id, dockIndex)
+    local chat = __wow_chat_window_state[id] or {}
+    chat.docked = dockIndex ~= nil
+    __wow_chat_window_state[id] = chat
   end
 end
 

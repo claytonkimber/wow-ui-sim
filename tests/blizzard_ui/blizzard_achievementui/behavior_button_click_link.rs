@@ -154,16 +154,13 @@ fn achievement_button_on_click_is_absent_but_mixin_process_click_and_link_api_wo
         );
 
         assert_eq!(
-            chat_frame_util_insert_link_type, "nil",
-            "Expected `ChatFrameUtil.InsertLink` to be nil in the smoke-shape harness — the \
-             Rust-side registration at `src/lua_api/globals/chat_frame_util.rs:158-164` only \
-             publishes `AddSystemMessage` and `OpenChat`; the real `InsertLink` body lives in \
-             `Blizzard_ChatFrameBase/Mainline/ChatFrameUtilOverrides.lua:1`, which is NOT in the \
-             Blizzard_AchievementUI dependency closure. Got \
-             `{chat_frame_util_insert_link_type}`. A non-nil reading means \
-             Blizzard_ChatFrameBase entered the closure or was registered Rust-side; if so, the \
-             absence half here can be replaced by a click drive-through that asserts the \
-             insertion was actually called."
+            chat_frame_util_insert_link_type, "function",
+            "Expected `ChatFrameUtil.InsertLink` to be a function — the panel fixture now \
+             source-correctly loads Blizzard_ChatFrameBase before Blizzard_MicroMenu, and \
+             `Blizzard_ChatFrameBase/Mainline/ChatFrameUtilOverrides.lua:14` publishes the \
+             Mainline insertion API. Got `{chat_frame_util_insert_link_type}`. The deprecated \
+             `ChatEdit_InsertLink` alias remains absent because Blizzard_DeprecatedChatInfo is \
+             not part of this fixture."
         );
 
         assert_eq!(

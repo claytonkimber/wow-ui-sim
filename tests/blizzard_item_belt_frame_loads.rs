@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, find_toc_file, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
-use wow_ui_sim::startup::fire_startup_events_for_screen;
 use wow_ui_sim::toc::TocFile;
 
 fn blizzard_ui_dir() -> PathBuf {
@@ -44,34 +43,11 @@ const ITEM_BELT_FRAME_KEY_VALUES: &[(&str, &str)] = &[
     ("commandPrefix", "WOWLABS_ITEM"),
 ];
 
-fn load_full_game_ui_with_item_belt_explicit() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-
-    wow_ui_sim::xml::register_intrinsic_templates();
-
-    let ui = blizzard_ui_dir();
-    let addons = discover_blizzard_addons_for_screen(&ui, ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    env.apply_post_load_workarounds();
-    fire_startup_events_for_screen(&env, ScreenKind::Game);
-
+fn load_item_belt_frame_with_dependency(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &hud_inventory_toc())
         .expect("Blizzard_HUDInventoryTemplates should load via explicit Rust loader call");
     load_addon(&env.loader_env(), &item_belt_toc())
         .expect("Blizzard_ItemBeltFrame should load via explicit Rust loader call");
-
-    env
 }
 
 #[test]
@@ -208,9 +184,9 @@ fn blizzard_item_belt_excluded_from_every_screen_auto_discovery() {
     }
 }
 
-#[test]
-fn blizzard_item_belt_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui_with_item_belt_explicit();
+prefork_full_ui_case! {
+fn blizzard_item_belt_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
+    load_item_belt_frame_with_dependency(env);
 
     let load_errors: Vec<String> = env
         .state()
@@ -231,10 +207,11 @@ fn blizzard_item_belt_loads_without_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_item_belt_is_addon_loaded_via_explicit_load() {
-    let env = load_full_game_ui_with_item_belt_explicit();
+prefork_full_ui_case! {
+fn blizzard_item_belt_is_addon_loaded_via_explicit_load(env: &WowLuaEnv) {
+    load_item_belt_frame_with_dependency(env);
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_ItemBeltFrame')")
@@ -246,10 +223,11 @@ fn blizzard_item_belt_is_addon_loaded_via_explicit_load() {
          though the auto-discovery sweep skipped it"
     );
 }
+}
 
-#[test]
-fn blizzard_item_belt_publishes_two_mixin_tables() {
-    let env = load_full_game_ui_with_item_belt_explicit();
+prefork_full_ui_case! {
+fn blizzard_item_belt_publishes_two_mixin_tables(env: &WowLuaEnv) {
+    load_item_belt_frame_with_dependency(env);
 
     for mixin in ["ItemBeltButtonMixin", "ItemBeltFrameMixin"] {
         let kind: String = env
@@ -263,10 +241,11 @@ fn blizzard_item_belt_publishes_two_mixin_tables() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_item_belt_button_mixin_carries_two_spectate_methods() {
-    let env = load_full_game_ui_with_item_belt_explicit();
+prefork_full_ui_case! {
+fn blizzard_item_belt_button_mixin_carries_two_spectate_methods(env: &WowLuaEnv) {
+    load_item_belt_frame_with_dependency(env);
 
     for method in ITEM_BELT_BUTTON_METHODS {
         let kind: String = env
@@ -281,10 +260,11 @@ fn blizzard_item_belt_button_mixin_carries_two_spectate_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_item_belt_frame_mixin_carries_four_lifecycle_methods() {
-    let env = load_full_game_ui_with_item_belt_explicit();
+prefork_full_ui_case! {
+fn blizzard_item_belt_frame_mixin_carries_four_lifecycle_methods(env: &WowLuaEnv) {
+    load_item_belt_frame_with_dependency(env);
 
     for method in ITEM_BELT_FRAME_METHODS {
         let kind: String = env
@@ -303,10 +283,11 @@ fn blizzard_item_belt_frame_mixin_carries_four_lifecycle_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_item_belt_named_frame_publishes_with_inherits_and_mixin_chain() {
-    let env = load_full_game_ui_with_item_belt_explicit();
+prefork_full_ui_case! {
+fn blizzard_item_belt_named_frame_publishes_with_inherits_and_mixin_chain(env: &WowLuaEnv) {
+    load_item_belt_frame_with_dependency(env);
 
     let kind: String = env
         .eval("return type(ItemBeltFrame)")
@@ -334,10 +315,11 @@ fn blizzard_item_belt_named_frame_publishes_with_inherits_and_mixin_chain() {
          occlude tooltips / dialogs)"
     );
 }
+}
 
-#[test]
-fn blizzard_item_belt_button_template_stays_nil_at_global_scope() {
-    let env = load_full_game_ui_with_item_belt_explicit();
+prefork_full_ui_case! {
+fn blizzard_item_belt_button_template_stays_nil_at_global_scope(env: &WowLuaEnv) {
+    load_item_belt_frame_with_dependency(env);
 
     let kind: String = env
         .eval("return type(_G['ItemBeltButtonTemplate'])")
@@ -350,10 +332,11 @@ fn blizzard_item_belt_button_template_stays_nil_at_global_scope() {
          through the global scope"
     );
 }
+}
 
-#[test]
-fn blizzard_item_belt_frame_carries_three_string_and_number_key_values() {
-    let env = load_full_game_ui_with_item_belt_explicit();
+prefork_full_ui_case! {
+fn blizzard_item_belt_frame_carries_three_string_and_number_key_values(env: &WowLuaEnv) {
+    load_item_belt_frame_with_dependency(env);
 
     for (key, expected) in ITEM_BELT_FRAME_KEY_VALUES {
         let actual: String = env
@@ -378,4 +361,5 @@ fn blizzard_item_belt_frame_carries_three_string_and_number_key_values() {
          HUDInventoryMixin:OnLoad spawns 2 buttons by default before \
          WOW_LABS_BACKPACK_SIZE_CHANGED fires the live size update"
     );
+}
 }

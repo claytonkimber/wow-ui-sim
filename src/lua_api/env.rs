@@ -95,11 +95,18 @@ impl WowLuaEnv {
         })?;
 
         let env = Self { lua, state };
-        timed_startup_phase("final app_data lua handle installed", || {
-            install_app_data_lua_handle(&env.lua, &env.lua)
-        });
+        env.install_final_runtime_globals();
         crate::logging::eprintln_elapsed("[Startup] WowLuaEnv::new complete");
         Ok(env)
+    }
+
+    fn install_final_runtime_globals(&self) {
+        timed_startup_phase("final app_data lua handle installed", || {
+            install_app_data_lua_handle(&self.lua, &self.lua)
+        });
+        timed_startup_phase("initial screen globals installed", || {
+            self.install_initial_screen_size_globals()
+        });
     }
 
     fn new_rilua(state: Rc<RefCell<SimState>>) -> rilua::Lua {

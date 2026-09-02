@@ -102,9 +102,8 @@ fn blizzard_deprecated_item_script_appears_in_game_discovery_only() {
     );
 }
 
-#[test]
-fn blizzard_deprecated_item_script_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_item_script_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -122,10 +121,10 @@ fn blizzard_deprecated_item_script_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_item_script_installs_all_47_function_shims() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_item_script_installs_all_47_function_shims(env: &WowLuaEnv) {
 
     let installed: bool = env
         .eval(
@@ -181,11 +180,12 @@ fn blizzard_deprecated_item_script_installs_all_47_function_shims() {
     assert!(
         installed,
         "Deprecated_ItemScript.lua line 9-55 should publish 47 forwarding global functions. \
-         The 26 explicitly registered C_Item methods (src/c_api/item_spell/c_item.rs — \
+         The 29 explicitly registered C_Item methods (src/c_api/item_spell/c_item.rs — \
          GetItemInfoInstant, GetItemIcon (registered as GetItemIconByID under that name), \
-         GetItemInfo, GetItemCount, GetItemCooldown, etc.) bind directly. The remaining ~21 \
-         unstubbed methods (IsArtifactPowerItem, IsConsumableItem, GetItemQualityColor, \
-         BindEnchant, etc.) resolve via the `__wow_namespace_mt.__index` metamethod \
+         GetItemInfo, GetItemCount, GetItemCooldown, IsConsumableItem, IsEquippableItem, \
+         IsItemInRange, etc.) bind directly. The remaining ~18 unstubbed methods \
+         (IsArtifactPowerItem, GetItemQualityColor, BindEnchant, etc.) resolve via the \
+         `__wow_namespace_mt.__index` metamethod \
          (runtime_surface_bootstrap.lua:2019-2028) which lazily materializes a no-op \
          `function() return nil end` on first read and caches it via `rawset`. \
          __wow_seed_namespace_names() at line 11929 attaches this metatable to all C_* \
@@ -193,10 +193,10 @@ fn blizzard_deprecated_item_script_installs_all_47_function_shims() {
          every alias is a callable function, not nil"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_item_script_get_item_icon_aliases_get_item_icon_by_id() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_item_script_get_item_icon_aliases_get_item_icon_by_id(env: &WowLuaEnv) {
 
     let aliased: bool = env
         .eval("return GetItemIcon == C_Item.GetItemIconByID")
@@ -210,10 +210,10 @@ fn blizzard_deprecated_item_script_get_item_icon_aliases_get_item_icon_by_id() {
          sides. Identity equality confirms the rename"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_item_script_globals_alias_c_item_methods_by_identity() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_item_script_globals_alias_c_item_methods_by_identity(env: &WowLuaEnv) {
 
     let aliases_match: bool = env
         .eval(
@@ -223,6 +223,7 @@ fn blizzard_deprecated_item_script_globals_alias_c_item_methods_by_identity() {
                 and IsArtifactPowerItem == C_Item.IsArtifactPowerItem \
                 and IsEquippableItem == C_Item.IsEquippableItem \
                 and IsConsumableItem == C_Item.IsConsumableItem \
+                and IsItemInRange == C_Item.IsItemInRange \
                 and GetItemSpell == C_Item.GetItemSpell \
                 and BindEnchant == C_Item.BindEnchant \
                 and PickupItem == C_Item.PickupItem \
@@ -231,22 +232,33 @@ fn blizzard_deprecated_item_script_globals_alias_c_item_methods_by_identity() {
                 and GetItemInfo == C_Item.GetItemInfo \
                 and GetItemCount == C_Item.GetItemCount",
         )
-        .expect("identity-equality query for 13 representative aliases should succeed");
+        .expect("identity-equality query for 14 representative aliases should succeed");
     assert!(
         aliases_match,
         "Each deprecated global must reference identity-equal values to its backing C_Item \
          method. For unstubbed methods (e.g. IsArtifactPowerItem), the namespace __index \
          caches the no-op closure via `rawset(t, key, fn)` so subsequent reads return the \
          SAME function — making both sides identity-equal. For registered methods (e.g. \
-         GetItemInfoInstant), both sides see the same Rust-bound function value. Identity \
-         equality is the strongest verifiable invariant — confirms both sides see the same \
-         value object"
+         GetItemInfoInstant), both sides see the same Rust-bound function value"
+    );
+
+    let modeled_results: bool = env
+        .eval(
+            "return C_Item.IsEquippableItem(0) == false \
+                and C_Item.IsConsumableItem(0) == false \
+                and C_Item.IsItemInRange(0, 'player') == true",
+        )
+        .expect("modeled C_Item query results should succeed");
+    assert!(
+        modeled_results,
+        "The three registered C_Item methods must retain the existing legacy-global \
+         SimState behavior; namespace fallback closures return nil instead"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_item_script_load_deprecation_fallbacks_cvar_is_default_on() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_item_script_load_deprecation_fallbacks_cvar_is_default_on(env: &WowLuaEnv) {
 
     let cvar_on: bool = env
         .eval("return GetCVarBool('loadDeprecationFallbacks')")
@@ -259,6 +271,7 @@ fn blizzard_deprecated_item_script_load_deprecation_fallbacks_cvar_is_default_on
          legacy item / inventory / equipment addons calling GetItemInfo / IsEquippableItem / \
          IsArtifactPowerItem / etc. blow up with `attempt to call a nil value`"
     );
+}
 }
 
 #[test]

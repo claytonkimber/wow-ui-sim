@@ -193,9 +193,8 @@ fn absent_from_glue_screens_eager_discovery() {
     }
 }
 
-#[test]
-fn full_game_load_publishes_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_publishes_mixins(env: &WowLuaEnv) {
 
     for mixin in MIXINS {
         let kind: String = env
@@ -213,10 +212,10 @@ fn full_game_load_publishes_mixins() {
         );
     }
 }
+}
 
-#[test]
-fn ui_frame_manager_mixin_methods_published() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn ui_frame_manager_mixin_methods_published(env: &WowLuaEnv) {
 
     for method in UI_FRAME_MANAGER_MIXIN_METHODS {
         let kind: String = env
@@ -238,10 +237,10 @@ fn ui_frame_manager_mixin_methods_published() {
         );
     }
 }
+}
 
-#[test]
-fn managed_frame_mixin_methods_published() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn managed_frame_mixin_methods_published(env: &WowLuaEnv) {
 
     for method in MANAGED_FRAME_MIXIN_METHODS {
         let kind: String = env
@@ -265,10 +264,10 @@ fn managed_frame_mixin_methods_published() {
         );
     }
 }
+}
 
-#[test]
-fn ui_frame_manager_singleton_frame_exists() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn ui_frame_manager_singleton_frame_exists(env: &WowLuaEnv) {
 
     let exists: bool = env
         .eval("return UIFrameManager ~= nil")
@@ -296,10 +295,11 @@ fn ui_frame_manager_singleton_frame_exists() {
          the frame instance"
     );
 }
+}
 
-#[test]
-fn managed_frame_template_registered() {
-    let _env = load_full_game_ui();
+prefork_full_ui_case! {
+fn managed_frame_template_registered(env: &WowLuaEnv) {
+    let _env = env;
 
     let template = wow_ui_sim::xml::get_template("UIFrameManager_ManagedFrame");
     assert!(
@@ -317,6 +317,7 @@ fn managed_frame_template_registered() {
          inheritance via TutorialMainFrameTemplate AND mixin \
          inheritance via UIFrameManager_ManagedFrameMixin)"
     );
+}
 }
 
 #[test]
@@ -340,9 +341,8 @@ fn dependent_addons_exist_on_disk() {
     }
 }
 
-#[test]
-fn full_game_load_emits_no_addon_specific_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_emits_no_addon_specific_errors(env: &WowLuaEnv) {
 
     let errors: Vec<String> = env.state().borrow().lua_errors.clone();
     let addon_specific: Vec<&String> = errors
@@ -358,4 +358,5 @@ fn full_game_load_emits_no_addon_specific_errors() {
          the dispatch tables and register FRAME_MANAGER_UPDATE_* events \
          without raising. Found: {addon_specific:?}"
     );
+}
 }

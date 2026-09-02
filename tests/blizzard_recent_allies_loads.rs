@@ -202,9 +202,8 @@ fn blizzard_recent_allies_appears_in_eager_game_discovery() {
     );
 }
 
-#[test]
-fn blizzard_recent_allies_loads_without_errors_during_full_game_startup() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_recent_allies_loads_without_errors_during_full_game_startup(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -225,10 +224,10 @@ fn blizzard_recent_allies_loads_without_errors_during_full_game_startup() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_recent_allies_is_addon_loaded_returns_true_after_full_game_ui_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_recent_allies_is_addon_loaded_returns_true_after_full_game_ui_load(env: &WowLuaEnv) {
 
     let post_load: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_RecentAllies') and true or false")
@@ -240,10 +239,10 @@ fn blizzard_recent_allies_is_addon_loaded_returns_true_after_full_game_ui_load()
          `mark_addon_loaded` registers it"
     );
 }
+}
 
-#[test]
-fn blizzard_recent_allies_publishes_five_mixin_tables() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_recent_allies_publishes_five_mixin_tables(env: &WowLuaEnv) {
 
     for mixin in MIXIN_TABLES {
         let exists: bool = env
@@ -262,10 +261,10 @@ fn blizzard_recent_allies_publishes_five_mixin_tables() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_recent_allies_util_publishes_two_module_functions() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_recent_allies_util_publishes_two_module_functions(env: &WowLuaEnv) {
 
     let methods: (bool, bool) = env
         .eval(
@@ -285,10 +284,10 @@ fn blizzard_recent_allies_util_publishes_two_module_functions() {
          get different parenthetical context formats"
     );
 }
+}
 
-#[test]
-fn blizzard_recent_allies_virtual_templates_not_in_global_env() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_recent_allies_virtual_templates_not_in_global_env(env: &WowLuaEnv) {
 
     for tmpl in VIRTUAL_TEMPLATES {
         let leaked: bool = env
@@ -302,6 +301,7 @@ fn blizzard_recent_allies_virtual_templates_not_in_global_env() {
              name and should never leak into _G"
         );
     }
+}
 }
 
 #[test]
@@ -339,9 +339,8 @@ fn blizzard_recent_allies_has_no_named_non_virtual_frames() {
     );
 }
 
-#[test]
-fn blizzard_recent_allies_list_mixin_event_registration_is_lazy() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_recent_allies_list_mixin_event_registration_is_lazy(env: &WowLuaEnv) {
 
     let lifecycle: (bool, bool, bool, bool) = env
         .eval(
@@ -364,6 +363,7 @@ fn blizzard_recent_allies_list_mixin_event_registration_is_lazy() {
          opening the tab triggers a server fetch even if the cached event hasn't fired"
     );
 }
+}
 
 #[test]
 fn blizzard_recent_allies_xml_loaded_via_explicit_toc_listing_not_script_directive() {
@@ -381,9 +381,8 @@ fn blizzard_recent_allies_xml_loaded_via_explicit_toc_listing_not_script_directi
     );
 }
 
-#[test]
-fn blizzard_recent_allies_publishes_pin_display_helper_on_mixin() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_recent_allies_publishes_pin_display_helper_on_mixin(env: &WowLuaEnv) {
 
     let methods: (bool, bool) = env
         .eval(
@@ -404,10 +403,10 @@ fn blizzard_recent_allies_publishes_pin_display_helper_on_mixin() {
          only OnEnter/OnLeave scripts wired in XML"
     );
 }
+}
 
-#[test]
-fn blizzard_recent_allies_entry_mixin_exposes_tooltip_pipeline_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_recent_allies_entry_mixin_exposes_tooltip_pipeline_methods(env: &WowLuaEnv) {
 
     let pipeline: (bool, bool, bool, bool) = env
         .eval(
@@ -428,4 +427,5 @@ fn blizzard_recent_allies_entry_mixin_exposes_tooltip_pipeline_methods() {
          independently — and AddInteractionDataToTooltip can return early if there are \
          no recorded interactions yet"
     );
+}
 }

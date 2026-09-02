@@ -293,13 +293,13 @@ fn mainline_toc_body_count_breakdown_matches_filesystem_layout() {
 
     assert_eq!(
         lua_count + xml_count,
-        218,
-        "TOC body must list exactly 218 file entries. Got lua={lua_count} \
+        219,
+        "TOC body must list exactly 219 file entries. Got lua={lua_count} \
          xml={xml_count}"
     );
     assert_eq!(
-        lua_count, 146,
-        "TOC body must list exactly 146 .lua entries — most utility \
+        lua_count, 147,
+        "TOC body must list exactly 147 .lua entries — most utility \
          modules + per-mixin .lua files. Got: {lua_count}"
     );
     assert_eq!(
@@ -349,12 +349,9 @@ fn mainline_subdir_holds_retail_only_overrides() {
     assert!(mainline_dir.is_dir());
 
     assert!(
-        mainline_dir.join("ClassColors.lua").is_file(),
-        "Mainline/ClassColors.lua must exist — populates RAID_CLASS_COLORS \
-         with the 13 retail classes (DEATHKNIGHT, DEMONHUNTER, EVOKER, etc.) \
-         + 2 special entries (ADVENTURER, TRAVELER for Plunderstorm). The \
-         Mists variant uses a different ClassColors.lua keyed off a smaller \
-         class set"
+        shared_xml_dir().join("ClassColors.lua").is_file(),
+        "ClassColors.lua lives at the Blizzard_SharedXML root and populates \
+         RAID_CLASS_COLORS for the retail classes plus Plunderstorm entries"
     );
     assert!(
         mainline_dir
@@ -395,202 +392,202 @@ fn eager_discovery_includes_addon_on_all_four_screens() {
     }
 }
 
-#[test]
-fn full_game_load_emits_no_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+    fn full_game_load_emits_no_addon_specific_lua_errors(env: &WowLuaEnv) {
 
-    let errors: Vec<String> = env.state().borrow().lua_errors.clone();
-    let relevant: Vec<&String> = errors
-        .iter()
-        .filter(|e| {
-            e.contains("Blizzard_SharedXML")
-                || e.contains("ProjectConstants")
-                || e.contains("LayoutFrame.lua")
-                || e.contains("NineSlice.lua")
-                || e.contains("Backdrop.lua")
-                || e.contains("HelpTip.lua")
-                || e.contains("ColorUtil.lua")
-        })
-        .collect();
-    assert!(
-        relevant.is_empty(),
-        "Eager load via full Game UI discovery must emit zero \
-         SharedXML-specific Lua errors. Got:\n  {}",
-        relevant
+        let errors: Vec<String> = env.state().borrow().lua_errors.clone();
+        let relevant: Vec<&String> = errors
             .iter()
-            .map(|s| s.as_str())
-            .collect::<Vec<_>>()
-            .join("\n  ")
-    );
-}
-
-#[test]
-fn is_addon_loaded_returns_true_after_full_game_discovery() {
-    let env = load_full_game_ui();
-
-    let loaded: bool = env
-        .eval("return C_AddOns.IsAddOnLoaded('Blizzard_SharedXML')")
-        .expect("IsAddOnLoaded probe");
-    assert!(
-        loaded,
-        "C_AddOns.IsAddOnLoaded('Blizzard_SharedXML') must be true after \
-         eager discovery — DefaultState=enabled + non-LoD eager addon"
-    );
-
-    for dep in HARD_DEPS {
-        let dep_loaded: bool = env
-            .eval(&format!("return C_AddOns.IsAddOnLoaded('{dep}')"))
-            .unwrap_or_else(|_| panic!("{dep} IsAddOnLoaded probe failed"));
+            .filter(|e| {
+                e.contains("Blizzard_SharedXML")
+                    || e.contains("ProjectConstants")
+                    || e.contains("LayoutFrame.lua")
+                    || e.contains("NineSlice.lua")
+                    || e.contains("Backdrop.lua")
+                    || e.contains("HelpTip.lua")
+                    || e.contains("ColorUtil.lua")
+            })
+            .collect();
         assert!(
-            dep_loaded,
-            "Hard dep {dep} must be loaded — declared in `## Dependencies` \
-             so the loader pulls it in before SharedXML"
+            relevant.is_empty(),
+            "Eager load via full Game UI discovery must emit zero \
+             SharedXML-specific Lua errors. Got:\n  {}",
+            relevant
+                .iter()
+                .map(|s| s.as_str())
+                .collect::<Vec<_>>()
+                .join("\n  ")
         );
     }
 }
 
-#[test]
-fn project_constants_published_with_mainline_id() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+    fn is_addon_loaded_returns_true_after_full_game_discovery(env: &WowLuaEnv) {
 
-    let mainline_id_kind: String = env
-        .eval("return type(WOW_PROJECT_MAINLINE)")
-        .expect("WOW_PROJECT_MAINLINE probe");
-    assert_eq!(
-        mainline_id_kind, "number",
-        "_G.WOW_PROJECT_MAINLINE must be a number — published by \
-         ProjectConstants.lua, the canonical numeric id used in flavor \
-         checks: `if WOW_PROJECT_ID == WOW_PROJECT_MAINLINE then`"
-    );
-
-    let project_id_kind: String = env
-        .eval("return type(WOW_PROJECT_ID)")
-        .expect("WOW_PROJECT_ID probe");
-    assert_eq!(
-        project_id_kind, "number",
-        "_G.WOW_PROJECT_ID must be a number — set by the C client to \
-         identify the running flavor; ProjectConstants.lua declares the \
-         comparison constants"
-    );
-}
-
-#[test]
-fn raid_class_colors_populated_for_all_thirteen_retail_classes() {
-    let env = load_full_game_ui();
-
-    let kind: String = env
-        .eval("return type(RAID_CLASS_COLORS)")
-        .expect("RAID_CLASS_COLORS probe");
-    assert_eq!(
-        kind, "table",
-        "_G.RAID_CLASS_COLORS must be a table — Mainline/ClassColors.lua \
-         line 1 declares `RAID_CLASS_COLORS = {{}}` then populates it via \
-         `C_ClassColor.GetClassColor(className)` for each class. The table \
-         is the canonical class color lookup used by 30+ downstream UI \
-         components"
-    );
-
-    for class_key in POPULATED_CLASS_KEYS {
-        let entry_kind: String = env
-            .eval(&format!("return type(RAID_CLASS_COLORS.{class_key})"))
-            .unwrap_or_else(|_| panic!("RAID_CLASS_COLORS.{class_key} probe failed"));
-        assert_eq!(
-            entry_kind, "table",
-            "RAID_CLASS_COLORS.{class_key} must be a table (ColorMixin \
-             instance with r/g/b/a fields and GenerateHexColor method). \
-             Missing any one means the corresponding class portrait / \
-             nameplate / chat-color rendering would fall back to a default \
-             gray"
+        let loaded: bool = env
+            .eval("return C_AddOns.IsAddOnLoaded('Blizzard_SharedXML')")
+            .expect("IsAddOnLoaded probe");
+        assert!(
+            loaded,
+            "C_AddOns.IsAddOnLoaded('Blizzard_SharedXML') must be true after \
+             eager discovery — DefaultState=enabled + non-LoD eager addon"
         );
 
-        let has_color_str: String = env
-            .eval(&format!(
-                "return type(RAID_CLASS_COLORS.{class_key}.colorStr)"
-            ))
-            .unwrap_or_else(|_| panic!("colorStr probe for {class_key} failed"));
+        for dep in HARD_DEPS {
+            let dep_loaded: bool = env
+                .eval(&format!("return C_AddOns.IsAddOnLoaded('{dep}')"))
+                .unwrap_or_else(|_| panic!("{dep} IsAddOnLoaded probe failed"));
+            assert!(
+                dep_loaded,
+                "Hard dep {dep} must be loaded — declared in `## Dependencies` \
+                 so the loader pulls it in before SharedXML"
+            );
+        }
+    }
+}
+
+prefork_full_ui_case! {
+    fn project_constants_published_with_mainline_id(env: &WowLuaEnv) {
+
+        let mainline_id_kind: String = env
+            .eval("return type(WOW_PROJECT_MAINLINE)")
+            .expect("WOW_PROJECT_MAINLINE probe");
         assert_eq!(
-            has_color_str, "string",
-            "RAID_CLASS_COLORS.{class_key}.colorStr must be a string — \
-             ClassColors.lua line 27-29 iterates the populated table and \
-             calls v:GenerateHexColor() to set the colorStr cache. Used by \
-             chat hyperlink coloring without recomputing the hex per call"
+            mainline_id_kind, "number",
+            "_G.WOW_PROJECT_MAINLINE must be a number — published by \
+             ProjectConstants.lua, the canonical numeric id used in flavor \
+             checks: `if WOW_PROJECT_ID == WOW_PROJECT_MAINLINE then`"
+        );
+
+        let project_id_kind: String = env
+            .eval("return type(WOW_PROJECT_ID)")
+            .expect("WOW_PROJECT_ID probe");
+        assert_eq!(
+            project_id_kind, "number",
+            "_G.WOW_PROJECT_ID must be a number — set by the C client to \
+             identify the running flavor; ProjectConstants.lua declares the \
+             comparison constants"
         );
     }
 }
 
-#[test]
-fn publishes_eighteen_cornerstone_mixin_tables() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+    fn raid_class_colors_populated_for_all_thirteen_retail_classes(env: &WowLuaEnv) {
 
-    for mixin in CORNERSTONE_MIXINS {
         let kind: String = env
-            .eval(&format!("return type({mixin})"))
-            .unwrap_or_else(|_| panic!("{mixin} probe failed"));
+            .eval("return type(RAID_CLASS_COLORS)")
+            .expect("RAID_CLASS_COLORS probe");
         assert_eq!(
             kind, "table",
-            "_G.{mixin} must be a table — every downstream addon that \
-             composes via CreateFromMixins({mixin}) relies on this being \
-             present. Missing any one means the corresponding widget family \
-             fails to instantiate"
+            "_G.RAID_CLASS_COLORS must be a table — Mainline/ClassColors.lua \
+             line 1 declares `RAID_CLASS_COLORS = {{}}` then populates it via \
+             `C_ClassColor.GetClassColor(className)` for each class. The table \
+             is the canonical class color lookup used by 30+ downstream UI \
+             components"
+        );
+
+        for class_key in POPULATED_CLASS_KEYS {
+            let entry_kind: String = env
+                .eval(&format!("return type(RAID_CLASS_COLORS.{class_key})"))
+                .unwrap_or_else(|_| panic!("RAID_CLASS_COLORS.{class_key} probe failed"));
+            assert_eq!(
+                entry_kind, "table",
+                "RAID_CLASS_COLORS.{class_key} must be a table (ColorMixin \
+                 instance with r/g/b/a fields and GenerateHexColor method). \
+                 Missing any one means the corresponding class portrait / \
+                 nameplate / chat-color rendering would fall back to a default \
+                 gray"
+            );
+
+            let has_color_str: String = env
+                .eval(&format!(
+                    "return type(RAID_CLASS_COLORS.{class_key}.colorStr)"
+                ))
+                .unwrap_or_else(|_| panic!("colorStr probe for {class_key} failed"));
+            assert_eq!(
+                has_color_str, "string",
+                "RAID_CLASS_COLORS.{class_key}.colorStr must be a string — \
+                 ClassColors.lua line 27-29 iterates the populated table and \
+                 calls v:GenerateHexColor() to set the colorStr cache. Used by \
+                 chat hyperlink coloring without recomputing the hex per call"
+            );
+        }
+    }
+}
+
+prefork_full_ui_case! {
+    fn publishes_eighteen_cornerstone_mixin_tables(env: &WowLuaEnv) {
+
+        for mixin in CORNERSTONE_MIXINS {
+            let kind: String = env
+                .eval(&format!("return type({mixin})"))
+                .unwrap_or_else(|_| panic!("{mixin} probe failed"));
+            assert_eq!(
+                kind, "table",
+                "_G.{mixin} must be a table — every downstream addon that \
+                 composes via CreateFromMixins({mixin}) relies on this being \
+                 present. Missing any one means the corresponding widget family \
+                 fails to instantiate"
+            );
+        }
+    }
+}
+
+prefork_full_ui_case! {
+    fn publishes_nineteen_cornerstone_util_namespace_tables(env: &WowLuaEnv) {
+
+        for util in CORNERSTONE_UTIL_TABLES {
+            let kind: String = env
+                .eval(&format!("return type({util})"))
+                .unwrap_or_else(|_| panic!("{util} probe failed"));
+            assert_eq!(
+                kind, "table",
+                "_G.{util} must be a table — used by 50+ downstream call sites \
+                 across Blizzard_FrameXML and addons (e.g., EventUtil.\
+                 ContinueOnAddOnLoaded for deferred init, FormattingUtil for \
+                 number-formatting, GridLayoutUtil for grid layouts)"
+            );
+        }
+    }
+}
+
+prefork_full_ui_case! {
+    fn data_provider_mixin_inherits_callback_registry_capability(env: &WowLuaEnv) {
+
+        let inherits: bool = env
+            .eval(
+                "return type(DataProviderMixin) == 'table' and \
+                 type(DataProviderMixin.RegisterCallback) == 'function'",
+            )
+            .expect("DataProviderMixin probe");
+        assert!(
+            inherits,
+            "DataProviderMixin must inherit from CallbackRegistryMixin — \
+             declared as `DataProviderMixin = CreateFromMixins(\
+             CallbackRegistryMixin)`. Without RegisterCallback, ScrollBox / \
+             ScrollView consumers couldn't subscribe to OnInsert / OnRemove / \
+             OnSort events that drive UI re-rendering"
         );
     }
 }
 
-#[test]
-fn publishes_nineteen_cornerstone_util_namespace_tables() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+    fn resize_layout_mixin_inherits_base_layout_capability(env: &WowLuaEnv) {
 
-    for util in CORNERSTONE_UTIL_TABLES {
-        let kind: String = env
-            .eval(&format!("return type({util})"))
-            .unwrap_or_else(|_| panic!("{util} probe failed"));
-        assert_eq!(
-            kind, "table",
-            "_G.{util} must be a table — used by 50+ downstream call sites \
-             across Blizzard_FrameXML and addons (e.g., EventUtil.\
-             ContinueOnAddOnLoaded for deferred init, FormattingUtil for \
-             number-formatting, GridLayoutUtil for grid layouts)"
+        let inherits: bool = env
+            .eval(
+                "return type(ResizeLayoutMixin) == 'table' and \
+                 type(ResizeLayoutMixin.Layout) == 'function'",
+            )
+            .expect("ResizeLayoutMixin probe");
+        assert!(
+            inherits,
+            "ResizeLayoutMixin must inherit from BaseLayoutMixin — declared as \
+             `ResizeLayoutMixin = CreateFromMixins(BaseLayoutMixin)`. Layout() \
+             is the abstract method ResizeLayoutFrame instances call to \
+             compute their final size based on layoutIndex children"
         );
     }
-}
-
-#[test]
-fn data_provider_mixin_inherits_callback_registry_capability() {
-    let env = load_full_game_ui();
-
-    let inherits: bool = env
-        .eval(
-            "return type(DataProviderMixin) == 'table' and \
-             type(DataProviderMixin.RegisterCallback) == 'function'",
-        )
-        .expect("DataProviderMixin probe");
-    assert!(
-        inherits,
-        "DataProviderMixin must inherit from CallbackRegistryMixin — \
-         declared as `DataProviderMixin = CreateFromMixins(\
-         CallbackRegistryMixin)`. Without RegisterCallback, ScrollBox / \
-         ScrollView consumers couldn't subscribe to OnInsert / OnRemove / \
-         OnSort events that drive UI re-rendering"
-    );
-}
-
-#[test]
-fn resize_layout_mixin_inherits_base_layout_capability() {
-    let env = load_full_game_ui();
-
-    let inherits: bool = env
-        .eval(
-            "return type(ResizeLayoutMixin) == 'table' and \
-             type(ResizeLayoutMixin.Layout) == 'function'",
-        )
-        .expect("ResizeLayoutMixin probe");
-    assert!(
-        inherits,
-        "ResizeLayoutMixin must inherit from BaseLayoutMixin — declared as \
-         `ResizeLayoutMixin = CreateFromMixins(BaseLayoutMixin)`. Layout() \
-         is the abstract method ResizeLayoutFrame instances call to \
-         compute their final size based on layoutIndex children"
-    );
 }
 
 #[cfg(feature = "client-ptr")]
@@ -613,110 +610,110 @@ fn ptr_smooth_progress_helper_is_global_not_interpolator_method() {
     assert!((smoothed - 70.0).abs() < f64::EPSILON);
 }
 
-#[test]
-fn pixel_util_provides_screen_resolution_helpers() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+    fn pixel_util_provides_screen_resolution_helpers(env: &WowLuaEnv) {
 
-    for fn_name in [
-        "GetNearestPixelSize",
-        "SetWidth",
-        "SetHeight",
-        "SetSize",
-        "SetPoint",
-    ] {
+        for fn_name in [
+            "GetNearestPixelSize",
+            "SetWidth",
+            "SetHeight",
+            "SetSize",
+            "SetPoint",
+        ] {
+            let kind: String = env
+                .eval(&format!("return type(PixelUtil.{fn_name})"))
+                .unwrap_or_else(|_| panic!("PixelUtil.{fn_name} probe failed"));
+            assert_eq!(
+                kind, "function",
+                "PixelUtil.{fn_name} must be a function — pixel-snapping API \
+                 that 100+ widget templates use to align edges to physical \
+                 pixels. Without it, widget borders drift sub-pixel and \
+                 produce blurry edges at non-integer UI scales"
+            );
+        }
+    }
+}
+
+prefork_full_ui_case! {
+    fn nine_slice_util_helpers_are_callable(env: &WowLuaEnv) {
+
         let kind: String = env
-            .eval(&format!("return type(PixelUtil.{fn_name})"))
-            .unwrap_or_else(|_| panic!("PixelUtil.{fn_name} probe failed"));
+            .eval("return type(NineSliceUtil.ApplyLayout)")
+            .expect("NineSliceUtil.ApplyLayout probe");
         assert_eq!(
             kind, "function",
-            "PixelUtil.{fn_name} must be a function — pixel-snapping API \
-             that 100+ widget templates use to align edges to physical \
-             pixels. Without it, widget borders drift sub-pixel and \
-             produce blurry edges at non-integer UI scales"
+            "NineSliceUtil.ApplyLayout must be a function — applies a \
+             NineSliceLayout table (defined in Mainline/NineSliceLayouts.lua) \
+             to a NineSlicePanelTemplate frame, configuring the 9 corner/edge/\
+             center textures with atlas + offset values per slice"
         );
     }
 }
 
-#[test]
-fn nine_slice_util_helpers_are_callable() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+    fn help_tip_global_published_with_show_method(env: &WowLuaEnv) {
 
-    let kind: String = env
-        .eval("return type(NineSliceUtil.ApplyLayout)")
-        .expect("NineSliceUtil.ApplyLayout probe");
-    assert_eq!(
-        kind, "function",
-        "NineSliceUtil.ApplyLayout must be a function — applies a \
-         NineSliceLayout table (defined in Mainline/NineSliceLayouts.lua) \
-         to a NineSlicePanelTemplate frame, configuring the 9 corner/edge/\
-         center textures with atlas + offset values per slice"
-    );
+        let kind: String = env.eval("return type(HelpTip)").expect("HelpTip probe");
+        assert_eq!(
+            kind, "table",
+            "_G.HelpTip must be a table — the tutorial-tooltip surface used \
+             across glue + game UI. HelpTip.lua declares `HelpTip = {{ }}` and \
+             attaches Show / Hide / HideAllSystem methods. Consumed by the \
+             HelpPlate dep (which is itself a hard Dependency)"
+        );
+
+        let show_kind: String = env
+            .eval("return type(HelpTip.Show)")
+            .expect("HelpTip.Show probe");
+        assert_eq!(
+            show_kind, "function",
+            "HelpTip.Show must be a function — entry point for displaying a \
+             help-tip popup attached to a frame. Used by tutorial systems \
+             across the entire UI"
+        );
+    }
 }
 
-#[test]
-fn help_tip_global_published_with_show_method() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+    fn deprecated_hybrid_scroll_frame_still_loads_for_addon_compat(env: &WowLuaEnv) {
 
-    let kind: String = env.eval("return type(HelpTip)").expect("HelpTip probe");
-    assert_eq!(
-        kind, "table",
-        "_G.HelpTip must be a table — the tutorial-tooltip surface used \
-         across glue + game UI. HelpTip.lua declares `HelpTip = {{ }}` and \
-         attaches Show / Hide / HideAllSystem methods. Consumed by the \
-         HelpPlate dep (which is itself a hard Dependency)"
-    );
-
-    let show_kind: String = env
-        .eval("return type(HelpTip.Show)")
-        .expect("HelpTip.Show probe");
-    assert_eq!(
-        show_kind, "function",
-        "HelpTip.Show must be a function — entry point for displaying a \
-         help-tip popup attached to a frame. Used by tutorial systems \
-         across the entire UI"
-    );
+        let kind: String = env
+            .eval("return type(HybridScrollFrame_CreateButtons)")
+            .expect("HybridScrollFrame_CreateButtons probe");
+        assert_eq!(
+            kind, "function",
+            "HybridScrollFrame_CreateButtons must be a function — the \
+             deprecated HybridScrollFrame.lua/.xml are explicitly retained \
+             under the `## Deprecated. Retained only for addons` comment block \
+             in the TOC body. Removing them would break third-party addons \
+             that haven't migrated to ScrollBox/View. The function is the \
+             primary entry point HybridScrollFrame consumers invoke at OnLoad"
+        );
+    }
 }
 
-#[test]
-fn deprecated_hybrid_scroll_frame_still_loads_for_addon_compat() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+    fn shared_xml_publishes_192_total_top_level_globals_observable_via_publication_count(env: &WowLuaEnv) {
 
-    let kind: String = env
-        .eval("return type(HybridScrollFrame_CreateButtons)")
-        .expect("HybridScrollFrame_CreateButtons probe");
-    assert_eq!(
-        kind, "function",
-        "HybridScrollFrame_CreateButtons must be a function — the \
-         deprecated HybridScrollFrame.lua/.xml are explicitly retained \
-         under the `## Deprecated. Retained only for addons` comment block \
-         in the TOC body. Removing them would break third-party addons \
-         that haven't migrated to ScrollBox/View. The function is the \
-         primary entry point HybridScrollFrame consumers invoke at OnLoad"
-    );
-}
-
-#[test]
-fn shared_xml_publishes_192_total_top_level_globals_observable_via_publication_count() {
-    let env = load_full_game_ui();
-
-    let mixin_count: i64 = env
-        .eval(
-            "local n = 0; \
-             for k, v in pairs(_G) do \
-               if type(k) == 'string' and type(v) == 'table' and \
-                  k:match('Mixin$') then \
-                 n = n + 1 \
-               end \
-             end \
-             return n",
-        )
-        .expect("mixin global count probe");
-    assert!(
-        mixin_count >= 100,
-        "_G must hold at least 100 *Mixin tables after full Game UI load — \
-         SharedXML alone publishes 171 mixins, plus the SharedXMLBase + \
-         downstream addons add more. A drop below 100 means a major \
-         publication failure (e.g., a foundational file failed to execute \
-         and downstream files swallowed the error). Got: {mixin_count}"
-    );
+        let mixin_count: i64 = env
+            .eval(
+                "local n = 0; \
+                 for k, v in pairs(_G) do \
+                   if type(k) == 'string' and type(v) == 'table' and \
+                      k:match('Mixin$') then \
+                     n = n + 1 \
+                   end \
+                 end \
+                 return n",
+            )
+            .expect("mixin global count probe");
+        assert!(
+            mixin_count >= 100,
+            "_G must hold at least 100 *Mixin tables after full Game UI load — \
+             SharedXML alone publishes 171 mixins, plus the SharedXMLBase + \
+             downstream addons add more. A drop below 100 means a major \
+             publication failure (e.g., a foundational file failed to execute \
+             and downstream files swallowed the error). Got: {mixin_count}"
+        );
+    }
 }

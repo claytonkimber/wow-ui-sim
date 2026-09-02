@@ -21,6 +21,7 @@ The simulator reads textures and fonts directly from a live WoW install via the 
 - [ ] A second resolution of the same path returns the cached file without re-extracting from CASC.
 - [ ] Addon-shipped textures under `Interface/AddOns/<Addon>/...` resolve before CASC is consulted.
 - [ ] Listfile lookup is case-insensitive (`UI-Panel-Button-Up.blp` and `ui-panel-button-up.blp` both resolve to the same fileDataID).
+- [ ] The generated bundled subset keeps ordinary community rows normalized lowercase; `data/listfile-overrides.csv` is authoritative for its normalized path and FDID, preserving slash-normalized canonical casing; generated rows sort by normalized path.
 - [ ] When CASC misses (e.g. live archives have been GC'd by a partial patch but the encoding manifest still references the entry), a third-tier fallback resolves the path under `<install-root>/_retail_/BlizzardInterfaceArt/Interface/...` (install root from `asset_resolver::wow_install_path()`) with the same case-insensitive matching as the addon tier. Repeated misses on the same path use the existing `.missing` sentinel to short-circuit CASC fast (~40ms warm path).
 
 ### Font resolution

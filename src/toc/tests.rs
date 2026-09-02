@@ -461,6 +461,9 @@ fn test_is_allowed_game_type() {
     assert!(is_allowed_game_type(
         "File.lua [AllowLoadGameType standard, wowhack]"
     ));
+    assert!(is_allowed_game_type(
+        "File.lua [AllowLoadGameType vanilla tbc mainline]"
+    ));
     assert!(!is_allowed_game_type(
         "File.lua [AllowLoadGameType plunderstorm]"
     ));

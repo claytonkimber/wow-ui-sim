@@ -1,0 +1,8 @@
+## Interface: 120100
+## Title: ForbiddenAspectsProbe
+## Notes: Captures addon-visible 12.1 forbidden-aspect enforcement behavior
+## Author: Alessio
+## Version: 0.1.0
+## SavedVariables: ForbiddenAspectsProbeDB
+
+ForbiddenAspectsProbe.lua

@@ -6,7 +6,7 @@
 use crate::common;
 
 use std::path::PathBuf;
-use wow_ui_sim::loader::load_addon;
+use wow_ui_sim::loader::{find_toc_file, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::paths::default_blizzard_ui_addons_path;
 
@@ -15,91 +15,54 @@ fn blizzard_ui_dir() -> PathBuf {
 }
 
 /// Blizzard addons in dependency order (mirrors BLIZZARD_ADDONS in main.rs).
-const BLIZZARD_ADDONS: &[(&str, &str)] = &[
-    ("Blizzard_SharedXMLBase", "Blizzard_SharedXMLBase.toc"),
-    ("Blizzard_Colors", "Blizzard_Colors_Mainline.toc"),
-    ("Blizzard_SharedXML", "Blizzard_SharedXML_Mainline.toc"),
-    (
-        "Blizzard_SharedXMLGame",
-        "Blizzard_SharedXMLGame_Mainline.toc",
-    ),
-    (
-        "Blizzard_UIPanelTemplates",
-        "Blizzard_UIPanelTemplates_Mainline.toc",
-    ),
-    (
-        "Blizzard_FrameXMLBase",
-        "Blizzard_FrameXMLBase_Mainline.toc",
-    ),
-    ("Blizzard_FrameEffects", "Blizzard_FrameEffects.toc"),
-    ("Blizzard_LoadLocale", "Blizzard_LoadLocale.toc"),
-    ("Blizzard_Fonts_Shared", "Blizzard_Fonts_Shared.toc"),
-    ("Blizzard_HelpPlate", "Blizzard_HelpPlate.toc"),
-    ("Blizzard_Menu", "Blizzard_Menu.toc"),
-    (
-        "Blizzard_AccessibilityTemplates",
-        "Blizzard_AccessibilityTemplates.toc",
-    ),
-    ("Blizzard_ObjectAPI", "Blizzard_ObjectAPI_Mainline.toc"),
-    ("Blizzard_UIParent", "Blizzard_UIParent_Mainline.toc"),
-    ("Blizzard_TextStatusBar", "Blizzard_TextStatusBar.toc"),
-    ("Blizzard_MoneyFrame", "Blizzard_MoneyFrame_Mainline.toc"),
-    ("Blizzard_POIButton", "Blizzard_POIButton.toc"),
-    ("Blizzard_Flyout", "Blizzard_Flyout.toc"),
-    ("Blizzard_StaticPopup", "Blizzard_StaticPopup.toc"),
-    ("Blizzard_StoreUI", "Blizzard_StoreUI_Mainline.toc"),
-    ("Blizzard_MicroMenu", "Blizzard_MicroMenu_Mainline.toc"),
-    ("Blizzard_EditMode", "Blizzard_EditMode.toc"),
-    ("Blizzard_GarrisonBase", "Blizzard_GarrisonBase.toc"),
-    (
-        "Blizzard_HousingEventHandler",
-        "Blizzard_HousingEventHandler.toc",
-    ),
-    ("Blizzard_GameTooltip", "Blizzard_GameTooltip_Mainline.toc"),
-    (
-        "Blizzard_UIParentPanelManager",
-        "Blizzard_UIParentPanelManager_Mainline.toc",
-    ),
-    (
-        "Blizzard_Settings_Shared",
-        "Blizzard_Settings_Shared_Mainline.toc",
-    ),
-    (
-        "Blizzard_SettingsDefinitions_Shared",
-        "Blizzard_SettingsDefinitions_Shared.toc",
-    ),
-    (
-        "Blizzard_SettingsDefinitions_Frame",
-        "Blizzard_SettingsDefinitions_Frame_Mainline.toc",
-    ),
-    (
-        "Blizzard_FrameXMLUtil",
-        "Blizzard_FrameXMLUtil_Mainline.toc",
-    ),
-    ("Blizzard_ItemButton", "Blizzard_ItemButton_Mainline.toc"),
-    ("Blizzard_QuickKeybind", "Blizzard_QuickKeybind.toc"),
-    ("Blizzard_FrameXML", "Blizzard_FrameXML_Mainline.toc"),
-    (
-        "Blizzard_UIPanels_Game",
-        "Blizzard_UIPanels_Game_Mainline.toc",
-    ),
-    (
-        "Blizzard_MapCanvasSecureUtil",
-        "Blizzard_MapCanvasSecureUtil.toc",
-    ),
-    ("Blizzard_MapCanvas", "Blizzard_MapCanvas.toc"),
-    (
-        "Blizzard_SharedMapDataProviders",
-        "Blizzard_SharedMapDataProviders_Mainline.toc",
-    ),
-    ("Blizzard_WorldMap", "Blizzard_WorldMap_Mainline.toc"),
-    ("Blizzard_ActionBar", "Blizzard_ActionBar_Mainline.toc"),
-    ("Blizzard_GameMenu", "Blizzard_GameMenu_Mainline.toc"),
-    ("Blizzard_UIWidgets", "Blizzard_UIWidgets_Mainline.toc"),
-    ("Blizzard_Minimap", "Blizzard_Minimap_Mainline.toc"),
-    ("Blizzard_AddOnList", "Blizzard_AddOnList.toc"),
-    ("Blizzard_TimerunningUtil", "Blizzard_TimerunningUtil.toc"),
-    ("Blizzard_Communities", "Blizzard_Communities_Mainline.toc"),
+const BLIZZARD_ADDONS: &[&str] = &[
+    "Blizzard_SharedXMLBase",
+    "Blizzard_Colors",
+    "Blizzard_SharedXML",
+    "Blizzard_SharedXMLGame",
+    "Blizzard_UIPanelTemplates",
+    "Blizzard_FrameXMLBase",
+    "Blizzard_FrameEffects",
+    "Blizzard_LoadLocale",
+    "Blizzard_Fonts_Shared",
+    "Blizzard_HelpPlate",
+    "Blizzard_Menu",
+    "Blizzard_AccessibilityTemplates",
+    "Blizzard_ObjectAPI",
+    "Blizzard_UIParent",
+    "Blizzard_TextStatusBar",
+    "Blizzard_MoneyFrame",
+    "Blizzard_POIButton",
+    "Blizzard_Flyout",
+    "Blizzard_GameTooltip",
+    "Blizzard_StaticPopup",
+    "Blizzard_GameMenuEsc",
+    "Blizzard_StoreUI",
+    "Blizzard_Communities",
+    "Blizzard_GameMenu",
+    "Blizzard_MicroMenu",
+    "Blizzard_EditMode",
+    "Blizzard_GarrisonBase",
+    "Blizzard_HousingEventHandler",
+    "Blizzard_UIParentPanelManager",
+    "Blizzard_Settings_Shared",
+    "Blizzard_SettingsDefinitions_Shared",
+    "Blizzard_SettingsDefinitions_Frame",
+    "Blizzard_FrameXMLUtil",
+    "Blizzard_ItemButton",
+    "Blizzard_QuickKeybind",
+    "Blizzard_FrameXML",
+    "Blizzard_UIPanels_Game",
+    "Blizzard_TokenUI",
+    "Blizzard_MapCanvasSecureUtil",
+    "Blizzard_MapCanvas",
+    "Blizzard_SharedMapDataProviders",
+    "Blizzard_WorldMap",
+    "Blizzard_ActionBar",
+    "Blizzard_UIWidgets",
+    "Blizzard_Minimap",
+    "Blizzard_AddOnList",
+    "Blizzard_TimerunningUtil",
 ];
 
 /// Create a fully loaded environment with Blizzard addons and startup events.
@@ -115,13 +78,10 @@ fn setup_env() -> WowLuaEnv {
 
     // Load base Blizzard addons
     let ui = blizzard_ui_dir();
-    for (name, toc) in BLIZZARD_ADDONS {
-        let toc_path = ui.join(name).join(toc);
-        assert!(
-            toc_path.exists(),
-            "missing {name} fixture TOC at {}",
-            toc_path.display()
-        );
+    for name in BLIZZARD_ADDONS {
+        let addon_dir = ui.join(name);
+        let toc_path = find_toc_file(&addon_dir)
+            .unwrap_or_else(|| panic!("active retail TOC for {name} must resolve"));
         load_addon(&env.loader_env(), &toc_path)
             .unwrap_or_else(|error| panic!("[load {name}] FAILED: {error}"));
     }
@@ -180,10 +140,10 @@ fn texture_path(env: &WowLuaEnv, texture_expr: &str) -> String {
     let code = format!(
         r#"
         local tex = {texture_expr}
-        if not tex or not tex.GetTexture then
+        if not tex or not tex.GetTextureFilePath then
             return ""
         end
-        return tex:GetTexture() or ""
+        return tex:GetTextureFilePath() or ""
         "#
     );
     env.eval::<String>(&code).unwrap_or_default()
@@ -239,15 +199,16 @@ fn professions_primary_spell_button_nameframe_texture(
         if not primary or not primary.{button_name} then
             return ""
         end
-        local frame_name = primary.{button_name}:GetName()
-        if not frame_name then
-            return ""
+        for _, region in ipairs({{ primary.{button_name}:GetRegions() }}) do
+            if region:GetObjectType() == "Texture" then
+                local draw_layer = region:GetDrawLayer()
+                local width, height = region:GetSize()
+                if draw_layer == "BACKGROUND" and width == 108 and height == 41 then
+                    return region:GetTextureFilePath() or ""
+                end
+            end
         end
-        local name_frame = _G[frame_name .. "NameFrame"]
-        if not name_frame or not name_frame.GetTexture then
-            return ""
-        end
-        return name_frame:GetTexture() or ""
+        return ""
         "#
     );
     env.eval::<String>(&code).unwrap_or_default()

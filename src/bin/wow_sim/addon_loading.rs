@@ -139,7 +139,7 @@ fn record_blizzard_addon_success(
     result: LoadResult,
 ) {
     print_verbose_blizzard_status(name, verbose, &result);
-    print_nil_global_warnings(&result);
+    print_load_diagnostics(&result);
     fire_addon_loaded(env, name);
     timing.accumulate(&result.timing);
 }
@@ -150,11 +150,13 @@ fn print_verbose_blizzard_status(name: &str, verbose: bool, result: &LoadResult)
     }
     let t = &result.timing;
     println!(
-        "{} loaded: {} Lua, {} XML, {} warnings ({:.1?}: xmlproc={:.1?} exec_lua={:.1?} lifecycle={:.1?} layers={:.1?} lua={:.1?} [compile={:.1?} call={:.1?}] frames={})",
+        "{} loaded: {} Lua, {} XML, {} warnings, {} nil observations, {} missing requirements ({:.1?}: xmlproc={:.1?} exec_lua={:.1?} lifecycle={:.1?} layers={:.1?} lua={:.1?} [compile={:.1?} call={:.1?}] frames={})",
         name,
         result.lua_files,
         result.xml_files,
         result.warnings.len(),
+        result.nil_symbol_observations.len(),
+        result.missing_requirements.len(),
         t.total(),
         t.xml_process_time,
         t.frame_exec_lua_time,
@@ -167,12 +169,18 @@ fn print_verbose_blizzard_status(name: &str, verbose: bool, result: &LoadResult)
     );
 }
 
-fn print_nil_global_warnings(result: &LoadResult) {
+fn print_load_diagnostics(result: &LoadResult) {
     if std::env::var("WOW_SIM_DEBUG_NIL_GLOBALS").is_err() {
         return;
     }
     for warning in &result.warnings {
-        println!("  [!] {warning}");
+        println!("  [failure] {warning}");
+    }
+    for observation in &result.nil_symbol_observations {
+        println!("  [nil-observation] {observation}");
+    }
+    for requirement in &result.missing_requirements {
+        println!("  [missing-requirement] {requirement}");
     }
 }
 
@@ -593,7 +601,7 @@ fn record_addon_success(name: &str, r: &LoadResult, stats: &mut LoadStats) {
         name: name.to_string(),
         timing: r.timing.clone(),
     });
-    print_addon_warnings(name, &r.warnings);
+    print_addon_warnings(name, r);
     stats.total_lua += r.lua_files;
     stats.total_xml += r.xml_files;
     stats.total_warnings += r.warnings.len();
@@ -608,12 +616,14 @@ fn print_verbose_addon_status(name: &str, r: &LoadResult) {
     let status = if r.warnings.is_empty() { "✓" } else { "⚠" };
     let t = &r.timing;
     println!(
-        "{} {} loaded: {} Lua, {} XML, {} warnings ({:.1?} total: io={:.1?} xml={:.1?} xmlproc={:.1?} frames⊂xmlproc={:.1?} setup⊂frames={:.1?} finalize⊂frames={:.1?} lua={:.1?} [compile={:.1?} call={:.1?}] sv={:.1?})",
+        "{} {} loaded: {} Lua, {} XML, {} warnings, {} nil observations, {} missing requirements ({:.1?} total: io={:.1?} xml={:.1?} xmlproc={:.1?} frames⊂xmlproc={:.1?} setup⊂frames={:.1?} finalize⊂frames={:.1?} lua={:.1?} [compile={:.1?} call={:.1?}] sv={:.1?})",
         status,
         name,
         r.lua_files,
         r.xml_files,
         r.warnings.len(),
+        r.nil_symbol_observations.len(),
+        r.missing_requirements.len(),
         t.total(),
         t.io_time,
         t.xml_parse_time,

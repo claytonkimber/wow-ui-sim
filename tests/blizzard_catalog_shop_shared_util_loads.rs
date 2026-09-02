@@ -37,9 +37,8 @@ fn load_full_game_ui() -> WowLuaEnv {
     env
 }
 
-#[test]
-fn blizzard_catalog_shop_shared_util_constants_table_is_populated() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_catalog_shop_shared_util_constants_table_is_populated(env: &WowLuaEnv) {
 
     let constants_present: bool = env
         .eval(
@@ -57,10 +56,29 @@ fn blizzard_catalog_shop_shared_util_constants_table_is_populated() {
         "CatalogShopConstants and its nested tables should be populated after load"
     );
 }
+}
 
-#[test]
-fn blizzard_catalog_shop_shared_util_exposes_helper_functions() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_catalog_shop_shared_util_replays_helpers_into_secure_environment(env: &WowLuaEnv) {
+
+    let helpers_replayed: bool = env
+        .eval(
+            "local secureUtil = rawget(__secureenv, 'CatalogShopUtil'); \
+             return type(_G.CatalogShopUtil) == 'table' \
+                and type(secureUtil) == 'table' \
+                and type(secureUtil.GetPlayerActorLabelTag) == 'function' \
+                and type(secureUtil.CreateDefaultProductDisplayData) == 'function'",
+        )
+        .expect("CatalogShopUtil secure replay query should succeed");
+    assert!(
+        helpers_replayed,
+        "Blizzard_CatalogShopSharedUtil should publish CatalogShopUtil helpers in both _G and __secureenv"
+    );
+}
+}
+
+prefork_full_ui_case! {
+fn blizzard_catalog_shop_shared_util_exposes_helper_functions(env: &WowLuaEnv) {
 
     let helpers_present: bool = env
         .eval(
@@ -87,4 +105,5 @@ fn blizzard_catalog_shop_shared_util_exposes_helper_functions() {
         default_display_data_shape_ok,
         "CatalogShopUtil.CreateDefaultProductDisplayData should return a table"
     );
+}
 }

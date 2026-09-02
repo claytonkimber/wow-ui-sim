@@ -6,6 +6,34 @@ fn env() -> WowLuaEnv {
     WowLuaEnv::new().expect("failed to create Lua environment")
 }
 
+#[cfg(any(feature = "profile-retail", feature = "client-ptr"))]
+#[test]
+fn c_loot_history_empty_state_has_retail_shapes() {
+    let env = env();
+    let result: (bool, bool, bool, bool, bool, bool, bool, bool, bool, bool) = env
+        .eval(
+            r#"
+            local all = C_LootHistory.GetAllEncounterInfos()
+            local drops = C_LootHistory.GetSortedDropsForEncounter(1)
+            return type(C_LootHistory.GetAllEncounterInfos) == "function",
+                   type(C_LootHistory.GetInfoForEncounter) == "function",
+                   type(C_LootHistory.GetLootHistoryTime) == "function",
+                   type(C_LootHistory.GetSortedDropsForEncounter) == "function",
+                   type(C_LootHistory.GetSortedInfoForDrop) == "function",
+                   type(all) == "table" and #all == 0,
+                   C_LootHistory.GetInfoForEncounter(1) == nil,
+                   type(drops) == "table" and #drops == 0,
+                   C_LootHistory.GetSortedInfoForDrop(1, 1) == nil,
+                   type(C_LootHistory.GetLootHistoryTime()) == "number"
+                       and C_LootHistory.GetLootHistoryTime() == 0
+            "#,
+        )
+        .expect("C_LootHistory empty-state probe should evaluate");
+
+    assert!(result.0 && result.1 && result.2 && result.3 && result.4);
+    assert!(result.5 && result.6 && result.7 && result.8 && result.9);
+}
+
 fn c_api_temporary_shims_source() -> String {
     fs::read_to_string("src/c_api/temporary_shims/mod.rs").unwrap_or_default()
 }

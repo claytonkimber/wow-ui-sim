@@ -129,9 +129,8 @@ fn blizzard_encounter_journal_two_toc_variants_ship_for_mainline_and_mists() {
     );
 }
 
-#[test]
-fn blizzard_encounter_journal_loads_explicitly_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_encounter_journal_loads_explicitly_without_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -160,10 +159,10 @@ fn blizzard_encounter_journal_loads_explicitly_without_errors() {
         journal_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_encounter_journal_creates_named_toplevel_singleton() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_encounter_journal_creates_named_toplevel_singleton(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &encounter_journal_toc())
         .expect("Blizzard_EncounterJournal should load");
 
@@ -186,10 +185,10 @@ fn blizzard_encounter_journal_creates_named_toplevel_singleton() {
         "EncounterJournal:GetName() must round-trip the XML name attribute"
     );
 }
+}
 
-#[test]
-fn blizzard_encounter_journal_starts_hidden() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_encounter_journal_starts_hidden(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &encounter_journal_toc())
         .expect("Blizzard_EncounterJournal should load");
 
@@ -204,10 +203,10 @@ fn blizzard_encounter_journal_starts_hidden() {
          flips visibility"
     );
 }
+}
 
-#[test]
-fn blizzard_encounter_journal_tooltip_singleton_exists_on_tooltip_strata() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_encounter_journal_tooltip_singleton_exists_on_tooltip_strata(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &encounter_journal_toc())
         .expect("Blizzard_EncounterJournal should load");
 
@@ -237,10 +236,10 @@ fn blizzard_encounter_journal_tooltip_singleton_exists_on_tooltip_strata() {
         "EncounterJournalTooltip must start hidden — only shown on hover"
     );
 }
+}
 
-#[test]
-fn blizzard_encounter_journal_publishes_per_panel_mixin_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_encounter_journal_publishes_per_panel_mixin_globals(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &encounter_journal_toc())
         .expect("Blizzard_EncounterJournal should load");
 
@@ -269,10 +268,10 @@ fn blizzard_encounter_journal_publishes_per_panel_mixin_globals() {
          each XML `<Frame mixin=\"...\">` references one of these"
     );
 }
+}
 
-#[test]
-fn blizzard_encounter_journal_publishes_aj_max_num_suggestions() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_encounter_journal_publishes_aj_max_num_suggestions(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &encounter_journal_toc())
         .expect("Blizzard_EncounterJournal should load");
 
@@ -286,10 +285,10 @@ fn blizzard_encounter_journal_publishes_aj_max_num_suggestions() {
          must equal 3 after load"
     );
 }
+}
 
-#[test]
-fn blizzard_encounter_journal_publishes_flag_icon_atlas_table() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_encounter_journal_publishes_flag_icon_atlas_table(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &encounter_journal_toc())
         .expect("Blizzard_EncounterJournal should load");
 
@@ -304,10 +303,10 @@ fn blizzard_encounter_journal_publishes_flag_icon_atlas_table() {
          exist as a global table after load"
     );
 }
+}
 
-#[test]
-fn blizzard_encounter_journal_publishes_expansion_to_ej_tier_data_table() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_encounter_journal_publishes_expansion_to_ej_tier_data_table(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &encounter_journal_toc())
         .expect("Blizzard_EncounterJournal should load");
 
@@ -322,10 +321,10 @@ fn blizzard_encounter_journal_publishes_expansion_to_ej_tier_data_table() {
          to look up the right tier descriptor for the player's current expansion"
     );
 }
+}
 
-#[test]
-fn blizzard_encounter_journal_publishes_monthly_activities_help_plate() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_encounter_journal_publishes_monthly_activities_help_plate(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &encounter_journal_toc())
         .expect("Blizzard_EncounterJournal should load");
 
@@ -340,10 +339,10 @@ fn blizzard_encounter_journal_publishes_monthly_activities_help_plate() {
          the Monthly Activities panel"
     );
 }
+}
 
-#[test]
-fn blizzard_encounter_journal_is_addon_loaded_returns_true_after_explicit_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_encounter_journal_is_addon_loaded_returns_true_after_explicit_load(env: &WowLuaEnv) {
 
     let loaded_before: bool = env
         .eval(
@@ -375,4 +374,5 @@ fn blizzard_encounter_journal_is_addon_loaded_returns_true_after_explicit_load()
         "After explicit LoadAddOn-style call, IsAddOnLoaded('Blizzard_EncounterJournal') \
          must report true — the loader must register the addon name in the loaded set"
     );
+}
 }

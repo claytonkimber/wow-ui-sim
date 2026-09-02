@@ -3,6 +3,9 @@
 mod profile_cache;
 
 use self::profile_cache::{cache_entry_is_usable, required_profile_cache_entries};
+#[cfg(feature = "casc")]
+use cascette_client_storage::BuildInfoFile;
+use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 #[cfg(feature = "casc")]
 use std::sync::OnceLock;
@@ -16,6 +19,7 @@ const ANNIVERSARY_BLIZZARD_UI_MANIFEST: &str =
     include_str!("../data/blizzard-ui-files/anniversary.txt");
 const COMPLETE_MARKER: &str = ".wow-ui-sim-blizzard-ui-complete";
 const PROVENANCE_FILE: &str = ".wow-ui-sim-blizzard-ui-provenance";
+const PROVENANCE_SCHEMA: &str = "1";
 #[cfg(feature = "casc")]
 static CASC_CONFIGURED: OnceLock<bool> = OnceLock::new();
 
@@ -57,7 +61,9 @@ pub fn sync_blizzard_ui() -> crate::Result<SyncSummary> {
 }
 
 pub fn sync_blizzard_ui_to(root: &Path) -> crate::Result<SyncSummary> {
-    sync_blizzard_ui_entries(root, sync_manifest_entries())
+    let expected_provenance = expected_cache_provenance()?;
+    invalidate_cache_if_provenance_mismatched(root, &expected_provenance)?;
+    sync_blizzard_ui_entries(root, sync_manifest_entries(), &expected_provenance)
 }
 
 pub fn manifest_entries() -> impl Iterator<Item = &'static str> {
@@ -85,6 +91,7 @@ fn sync_manifest_entries() -> impl Iterator<Item = &'static str> {
 fn sync_blizzard_ui_entries<'a>(
     root: &Path,
     entries: impl Iterator<Item = &'a str>,
+    expected_provenance: &CacheProvenance,
 ) -> crate::Result<SyncSummary> {
     #[cfg(feature = "casc")]
     if !casc_available() {
@@ -121,9 +128,128 @@ fn sync_blizzard_ui_entries<'a>(
         });
     }
 
-    write_complete_marker(root)?;
+    write_complete_marker(root, expected_provenance)?;
     Ok(summary)
 }
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct CacheProvenance {
+    contents: String,
+}
+
+impl CacheProvenance {
+    fn new(
+        profile: &str,
+        product: &str,
+        version: &str,
+        build_key: &str,
+        install_key: &str,
+        manifest_sha256: &str,
+    ) -> Self {
+        let contents = format!(
+            "schema={PROVENANCE_SCHEMA}\nprofile={profile}\nproduct={product}\nversion={version}\nbuild_key={build_key}\ninstall_key={install_key}\nmanifest_sha256={manifest_sha256}\nsource=casc-local-or-cdn\nfallback=none\n"
+        );
+        Self { contents }
+    }
+
+    fn contents(&self) -> &str {
+        &self.contents
+    }
+}
+
+#[cfg(feature = "casc")]
+struct BuildIdentity {
+    version: String,
+    build_key: String,
+    install_key: String,
+}
+
+fn expected_cache_provenance() -> crate::Result<CacheProvenance> {
+    #[cfg(feature = "casc")]
+    {
+        let install_root =
+            asset_resolver::wow_install_path().ok_or(crate::Error::WowInstallNotFound)?;
+        let product = crate::asset_resolver_config::active_profile_casc_product();
+        let build_identity = read_active_build_identity(install_root, product)?;
+        let manifest_sha256 = format!("{:x}", Sha256::digest(active_blizzard_ui_manifest()));
+        return Ok(CacheProvenance::new(
+            crate::client_profile::ACTIVE.cache_subdir(),
+            product,
+            &build_identity.version,
+            &build_identity.build_key,
+            &build_identity.install_key,
+            &manifest_sha256,
+        ));
+    }
+
+    #[cfg(not(feature = "casc"))]
+    {
+        Err(casc_feature_error())
+    }
+}
+
+#[cfg(feature = "casc")]
+fn read_active_build_identity(
+    install_root: &Path,
+    active_product: &str,
+) -> crate::Result<BuildIdentity> {
+    let build_info_path = install_root.join(".build.info");
+    let contents = std::fs::read_to_string(&build_info_path).map_err(|error| {
+        crate::Error::Other(format!("read {}: {error}", build_info_path.display()))
+    })?;
+    parse_active_build_identity(&contents, active_product).map_err(crate::Error::Other)
+}
+
+#[cfg(feature = "casc")]
+fn parse_active_build_identity(
+    contents: &str,
+    active_product: &str,
+) -> Result<BuildIdentity, String> {
+    let build_info = BuildInfoFile::parse_str(contents)
+        .map_err(|error| format!("parse .build.info: {error}"))?;
+    let active_entry = build_info
+        .entries()
+        .into_iter()
+        .find(|entry| entry.is_active() && entry.product() == Some(active_product))
+        .ok_or_else(|| {
+            format!(".build.info has no active entry for CASC product {active_product}")
+        })?;
+
+    Ok(BuildIdentity {
+        version: required_build_info_value(active_entry.version(), "Version")?,
+        build_key: required_build_info_value(active_entry.build_key(), "Build Key")?,
+        install_key: active_entry.install_key().unwrap_or_default().to_string(),
+    })
+}
+
+#[cfg(feature = "casc")]
+fn required_build_info_value(value: Option<&str>, column: &str) -> Result<String, String> {
+    value
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
+        .ok_or_else(|| format!("active .build.info entry is missing {column}"))
+}
+
+fn invalidate_cache_if_provenance_mismatched(
+    root: &Path,
+    expected_provenance: &CacheProvenance,
+) -> crate::Result<bool> {
+    let provenance_path = root.join(PROVENANCE_FILE);
+    let provenance_matches = std::fs::read_to_string(provenance_path)
+        .is_ok_and(|actual| actual == expected_provenance.contents());
+    if provenance_matches || !root.exists() {
+        return Ok(false);
+    }
+
+    std::fs::remove_dir_all(root).map_err(|error| {
+        crate::Error::Other(format!(
+            "remove stale Blizzard UI cache directory {}: {error}",
+            root.display()
+        ))
+    })?;
+    Ok(true)
+}
+
 enum EntrySyncResult {
     Present,
     Extracted,
@@ -398,30 +524,24 @@ fn run_casc_async<T>(future: impl std::future::Future<Output = T>) -> T {
         .block_on(future)
 }
 
-fn write_complete_marker(root: &Path) -> crate::Result<()> {
-    std::fs::create_dir_all(root).map_err(|e| {
+fn write_complete_marker(root: &Path, expected_provenance: &CacheProvenance) -> crate::Result<()> {
+    std::fs::create_dir_all(root).map_err(|error| {
         crate::Error::Other(format!(
-            "could not create Blizzard UI cache directory {}: {e}",
+            "could not create Blizzard UI cache directory {}: {error}",
             root.display()
         ))
     })?;
-    write_provenance(root)?;
-    std::fs::write(root.join(COMPLETE_MARKER), b"ok\n").map_err(|e| {
+    std::fs::write(root.join(PROVENANCE_FILE), expected_provenance.contents()).map_err(
+        |error| {
+            crate::Error::Other(format!(
+                "could not write Blizzard UI cache provenance in {}: {error}",
+                root.display()
+            ))
+        },
+    )?;
+    std::fs::write(root.join(COMPLETE_MARKER), b"ok\n").map_err(|error| {
         crate::Error::Other(format!(
-            "could not write Blizzard UI cache marker in {}: {e}",
-            root.display()
-        ))
-    })
-}
-
-fn write_provenance(root: &Path) -> crate::Result<()> {
-    let contents = format!(
-        "profile={}\nsource=casc-local-or-cdn\nfallback=none\n",
-        crate::client_profile::ACTIVE.cache_subdir()
-    );
-    std::fs::write(root.join(PROVENANCE_FILE), contents).map_err(|e| {
-        crate::Error::Other(format!(
-            "could not write Blizzard UI cache provenance in {}: {e}",
+            "could not write Blizzard UI cache marker in {}: {error}",
             root.display()
         ))
     })

@@ -5,6 +5,7 @@ use super::{Anchor, AnchorPoint, WidgetType, next_region_order, next_widget_id};
 use crate::BlendMode;
 use crate::atlas::NineSliceAtlasInfo;
 use std::collections::{BTreeSet, HashMap, HashSet};
+use std::sync::OnceLock;
 
 /// A Frame is the base widget type in WoW's UI system.
 #[derive(Debug)]
@@ -317,26 +318,8 @@ pub struct Frame {
     pub mask_textures: Vec<u64>,
     /// Texture rotation in radians (for SetRotation on Texture widgets).
     pub rotation: f32,
-    /// Model asset path set via Model:SetModel().
-    pub model_path: Option<String>,
-    /// Model file data ID when a model is sourced by file ID instead of path.
-    pub model_file_id: Option<i64>,
-    /// Persisted model transform and camera state.
-    pub model_transform: ModelTransformState,
-    /// Persisted model appearance and playback state.
-    pub model_appearance: ModelAppearanceState,
-    /// Persisted model rendering flags.
-    pub model_rendering: ModelRenderingState,
-    /// Persisted ModelScene state.
-    pub model_scene_state: ModelSceneState,
-    /// ModelScene actor IDs in scene order.
-    pub model_scene_actor_ids: Vec<u64>,
-    /// ModelScene actor lookup by script tag, mirroring
-    /// `ModelSceneMixin.tagToActor`. Populated when `CreateActor(tag)`
-    /// runs with a non-empty tag and cleared by `ClearScene`.
-    pub model_scene_actor_tags: Vec<(String, u64)>,
-    /// Persisted PlayerModel-only state.
-    pub player_model_state: PlayerModelState,
+    /// Lazily allocated model, actor, scene, and player-model state.
+    pub model_state: Option<Box<ModelWidgetState>>,
     /// Whether mouse motion events are enabled.
     pub mouse_motion_enabled: bool,
     /// User-set frame ID (from XML `id` attribute or SetID()).
@@ -564,6 +547,32 @@ impl Default for Frame {
 }
 
 impl Frame {
+    pub fn model_state(&self) -> &ModelWidgetState {
+        static DEFAULT: OnceLock<ModelWidgetState> = OnceLock::new();
+        self.model_state
+            .as_deref()
+            .unwrap_or_else(|| DEFAULT.get_or_init(ModelWidgetState::default))
+    }
+
+    pub fn model_state_mut(&mut self) -> &mut ModelWidgetState {
+        self.model_state
+            .get_or_insert_with(|| Box::new(ModelWidgetState::default()))
+    }
+
+    pub fn existing_model_state_mut(&mut self) -> Option<&mut ModelWidgetState> {
+        self.model_state.as_deref_mut()
+    }
+
+    pub fn update_model_state(
+        &mut self,
+        value_is_non_default: bool,
+        update: impl FnOnce(&mut ModelWidgetState),
+    ) {
+        if value_is_non_default || self.model_state.is_some() {
+            update(self.model_state_mut());
+        }
+    }
+
     pub fn new(widget_type: WidgetType, name: Option<String>, parent_id: Option<u64>) -> Self {
         let mouse_enabled = matches!(
             widget_type,

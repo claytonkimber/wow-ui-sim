@@ -68,11 +68,8 @@ fn test_register_event_callback_uses_event_dispatch_index() {
             r#"
             local received = false
             local f = CreateFrame("Frame")
-            f:RegisterEventCallback("MINIMAP_PING")
-            f:SetScript("OnEvent", function(self, event)
-                if event == "MINIMAP_PING" then
-                    received = true
-                end
+            f:RegisterEventCallback("MINIMAP_PING", function()
+                received = true
             end)
             FireEvent("MINIMAP_PING")
             return received

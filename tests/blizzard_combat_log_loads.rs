@@ -38,22 +38,27 @@ fn load_full_game_ui() -> WowLuaEnv {
 }
 
 #[test]
-fn blizzard_combat_log_is_load_on_demand_not_in_discovery() {
+fn blizzard_combat_log_is_load_on_demand_startup_publisher() {
     let ui = blizzard_ui_dir();
     let addons = discover_blizzard_addons_for_screen(&ui, ScreenKind::Game);
+    let combat_log_position = addons
+        .iter()
+        .position(|(name, _)| name == "Blizzard_CombatLog");
+    let game_position = addons.iter().position(|(name, _)| name == "Blizzard_Game");
 
-    let auto_loaded = addons.iter().any(|(name, _)| name == "Blizzard_CombatLog");
     assert!(
-        !auto_loaded,
-        "Blizzard_CombatLog is `## LoadOnDemand: 1` and must NOT appear in Game-screen \
-         auto-discovery (it is loaded explicitly via runtime `LoadAddOn` from \
-         Blizzard_ChatFrameBase when the chat system needs the COMBATLOG ChatFrame2)"
+        combat_log_position.is_some(),
+        "Blizzard_CombatLog remains `## LoadOnDemand: 1` but must be discovered to publish \
+         CombatLog_LoadUI before Blizzard_Game startup events"
+    );
+    assert!(
+        combat_log_position < game_position,
+        "Blizzard_CombatLog must load before Blizzard_Game"
     );
 }
 
-#[test]
-fn blizzard_combat_log_is_loaded_via_runtime_loadaddon() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_combat_log_is_loaded_via_runtime_loadaddon(env: &WowLuaEnv) {
 
     let already_loaded: bool = env
         .eval(
@@ -69,10 +74,10 @@ fn blizzard_combat_log_is_loaded_via_runtime_loadaddon() {
          while wiring up COMBATLOG=ChatFrame2"
     );
 }
+}
 
-#[test]
-fn blizzard_combat_log_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_combat_log_loads_without_errors(env: &WowLuaEnv) {
 
     let combat_log_errors: Vec<String> = env
         .state()
@@ -92,10 +97,10 @@ fn blizzard_combat_log_loads_without_errors() {
         combat_log_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_combat_log_quick_button_frame_is_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_combat_log_quick_button_frame_is_defined(env: &WowLuaEnv) {
 
     let frame_present: bool = env
         .eval(
@@ -110,10 +115,10 @@ fn blizzard_combat_log_quick_button_frame_is_defined() {
          + $parentAdditionalFilterButton children should be defined after load"
     );
 }
+}
 
-#[test]
-fn blizzard_combat_log_globals_and_settings_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_combat_log_globals_and_settings_are_defined(env: &WowLuaEnv) {
 
     let globals_present: bool = env
         .eval(
@@ -132,10 +137,10 @@ fn blizzard_combat_log_globals_and_settings_are_defined() {
          Blizzard_CombatLog_Filters/Filter_Defaults/CurrentSettings should all be populated"
     );
 }
+}
 
-#[test]
-fn blizzard_combat_log_driver_mixin_is_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_combat_log_driver_mixin_is_defined(env: &WowLuaEnv) {
 
     let mixin_present: bool = env
         .eval(
@@ -156,10 +161,10 @@ fn blizzard_combat_log_driver_mixin_is_defined() {
          after load"
     );
 }
+}
 
-#[test]
-fn blizzard_combat_log_helper_functions_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_combat_log_helper_functions_are_defined(env: &WowLuaEnv) {
 
     let helpers_present: bool = env
         .eval(
@@ -185,4 +190,5 @@ fn blizzard_combat_log_helper_functions_are_defined() {
          RefreshGlobalLinks/CreateUnitMenu/CreateFilterMenu/CreateSpellMenu/CreateActionMenu) \
          and CreateCombatLogContextMenu should be defined after load"
     );
+}
 }

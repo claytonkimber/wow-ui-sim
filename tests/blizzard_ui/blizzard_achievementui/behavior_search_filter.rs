@@ -86,10 +86,10 @@ fn search_box_text_changed_calls_set_achievement_search_string_when_query_meets_
             .eval(
                 r#"
                 assert(AchievementFrame, "AchievementFrame must exist after addon load")
-                assert(AchievementFrame.SearchBox,
-                    "AchievementFrame.SearchBox must exist (xml:2356)")
+                assert(AchievementFrame.HeaderDetails.Filters.SearchBox,
+                    "AchievementFrame.HeaderDetails.Filters.SearchBox must exist (xml:1709)")
 
-                local search_box = AchievementFrame.SearchBox
+                local search_box = AchievementFrame.HeaderDetails.Filters.SearchBox
 
                 local original_template = _G.SearchBoxTemplate_OnTextChanged
                 _G.SearchBoxTemplate_OnTextChanged = function(self) end

@@ -94,9 +94,8 @@ fn blizzard_cuf_profiles_appears_in_game_discovery() {
     );
 }
 
-#[test]
-fn blizzard_cuf_profiles_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_cuf_profiles_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -116,10 +115,10 @@ fn blizzard_cuf_profiles_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_cuf_profiles_dependency_globals_are_populated() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_cuf_profiles_dependency_globals_are_populated(env: &WowLuaEnv) {
 
     let deps_present: bool = env
         .eval(
@@ -144,10 +143,10 @@ fn blizzard_cuf_profiles_dependency_globals_are_populated() {
          OnVariablesLoaded → ApplyCurrentSettings)"
     );
 }
+}
 
-#[test]
-fn blizzard_cuf_profiles_module_local_does_not_leak_globally() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_cuf_profiles_module_local_does_not_leak_globally(env: &WowLuaEnv) {
 
     let local_only: bool = env
         .eval("return _G.CompactUnitFrameProfiles == nil")
@@ -161,4 +160,5 @@ fn blizzard_cuf_profiles_module_local_does_not_leak_globally() {
          and the only externally-visible side effects are the CVar / EventRegistry callback \
          registrations"
     );
+}
 }

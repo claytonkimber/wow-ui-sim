@@ -1,0 +1,77 @@
+{
+  "schema": "patch-api-source-register/v1",
+  "patch": "12.0.5",
+  "source": {
+    "audit": "docs/wiki/investigations/patch-12-0-5-api-audit.md",
+    "probe_addons": 14,
+    "scope": "13 retained SavedVariables captures plus XmlFrameLevelProbe documented behavior without retained raw capture",
+    "normalization": "Probe subfindings use changed direction and valid dot-path symbols rooted in the probe addon."
+  },
+  "documented_status_totals": {
+    "resolved": 30,
+    "best-effort": 4,
+    "unresolved": 4,
+    "total": 38
+  },
+  "documented_states": {
+    "best_effort": [
+      "AttributeDispatchProbe.PanelPulse",
+      "CoreBehaviorProbe.MouseFocusOrder",
+      "IsProtectedProbe.DescendantAnchorPropagation",
+      "ProtectedRetailProbe.SecureStore"
+    ],
+    "unresolved": [
+      "ScaleEventProbe.SameSizeDuplicatePair",
+      "XmlFrameLevelProbe.RawCaptureProvenance",
+      "StoreForbiddenProbe.DropdownPopulation",
+      "StoreForbiddenProbe.ForbiddenDescendants"
+    ],
+    "unresolved_groups": [
+      "Exact retained-probe regressions",
+      "Store lifecycle",
+      "XML provenance",
+      "Same-size transitions"
+    ],
+    "note": "Statuses are preserved here and in the human inventory only; the machine manifest remains neutral until item-specific evidence is attached."
+  },
+  "occurrences": [
+    {"direction":"changed","category":"script support","symbol":"AnimScriptProbe.HandlerMatrix","detail":"Frame, AnimationGroup, and all nine Animation subtypes match the documented matrix: unsupported HasScript calls succeed and return false, while SetScript rejects those handlers."},
+    {"direction":"changed","category":"attributes","symbol":"AttributeDispatchProbe.ScalarRepeat","detail":"Repeated scalar SetAttribute dispatches OnAttributeChanged; explicit false is preserved and delivered as false."},
+    {"direction":"changed","category":"panel lifecycle","symbol":"AttributeDispatchProbe.PanelPulse","detail":"Repeated ShowUIPanel pulse followed by CloseAllWindows preserves the expected panel-stack behavior."},
+    {"direction":"changed","category":"forbidden frames","symbol":"CoreBehaviorProbe.ForbiddenState","detail":"Normal addon frames remain un-forbidden; SetForbidden does not create forbidden state."},
+    {"direction":"changed","category":"forbidden frames","symbol":"CoreBehaviorProbe.ForbiddenConstructor","detail":"CreateForbiddenFrame is nil on retail, so the probe does not enter its creation or EnumerateFrames branch."},
+    {"direction":"changed","category":"events","symbol":"CoreBehaviorProbe.UnitEventFilter","detail":"Valid RegisterUnitEvent registration works; invalid unit filters are dropped while the event remains registered."},
+    {"direction":"changed","category":"attributes","symbol":"CoreBehaviorProbe.AttributeWildcardFalse","detail":"Wildcard GetAttribute preserves explicit stored false."},
+    {"direction":"changed","category":"attributes","symbol":"CoreBehaviorProbe.AttributeWildcardValues","detail":"Wildcard true/string values and one-, two-, and three-argument lookup behavior are preserved."},
+    {"direction":"changed","category":"frame ordering","symbol":"CoreBehaviorProbe.RaiseLowerLevel","detail":"Raise/Lower affect same-level ties but cannot overtake a higher frame level."},
+    {"direction":"changed","category":"mouse focus","symbol":"CoreBehaviorProbe.MouseFocusOrder","detail":"GetMouseFoci/GetMouseFocus shape and hit ordering after Raise/Lower."},
+    {"direction":"changed","category":"frame identity","symbol":"DevToolsDumpProbe.FrameArrayDump","detail":"tinsert(frame, foo), frame slot contents, and DevTools_Dump output metadata."},
+    {"direction":"changed","category":"identity","symbol":"FrameIdentityProbe.IdentitySlot","detail":"Frame slot [0] contains the identity userdata token."},
+    {"direction":"changed","category":"identity","symbol":"FrameIdentityProbe.SurrogateDispatch","detail":"Replacing [0] redirects protection and method dispatch; [1] alone does not."},
+    {"direction":"changed","category":"identity","symbol":"FrameIdentityProbe.DuplicateFreshness","detail":"Duplicate named frames receive fresh Lua objects, identity tokens, and custom-field state."},
+    {"direction":"changed","category":"scripts","symbol":"HookScriptBindingProbe.IndexedHooks","detail":"The normal binding slot succeeds and chains; explicit slots 0 and 2 return false and GetScript reports nil for those slots."},
+    {"direction":"changed","category":"protection","symbol":"IsProtectedProbe.LegacySetters","detail":"Legacy Protect and SetProtected methods are absent and calls fail."},
+    {"direction":"changed","category":"protection","symbol":"IsProtectedProbe.SecureTemplate","detail":"Secure-template buttons report protected state while ordinary frames do not."},
+    {"direction":"changed","category":"protection","symbol":"IsProtectedProbe.DescendantAnchorPropagation","detail":"Child, grandchild, and protected-anchor return values are captured."},
+    {"direction":"changed","category":"FontString layout","symbol":"JustifyProbe.FrameFontStrings","detail":"Direct unanchored frame-layer FontStrings receive the observed default anchors and justification."},
+    {"direction":"changed","category":"FontString layout","symbol":"JustifyProbe.ButtonText","detail":"Implicit ButtonText FontString behavior matches the probe matrix."},
+    {"direction":"changed","category":"FontString layout","symbol":"JustifyProbe.SizeVariants","detail":"No-size, width-only, height-only, and width+height variants are captured."},
+    {"direction":"changed","category":"FontString layout","symbol":"JustifyProbe.ExplicitAnchors","detail":"TOP/BOTTOM/LEFT/RIGHT/TOPLEFT controls distinguish missing from partial anchoring."},
+    {"direction":"changed","category":"FontString layout","symbol":"JustifyProbe.EditBoxRegions","detail":"EditBox FontStrings, including sized and inset variants, are captured."},
+    {"direction":"changed","category":"FontString layout","symbol":"JustifyProbe.MessageRegions","detail":"MessageFrame and ScrollingMessageFrame owner/region behavior and TextInsets effects."},
+    {"direction":"changed","category":"protection","symbol":"ProtectedRetailProbe.PlainFrame","detail":"Plain frame protection/forbidden state and legacy setter behavior."},
+    {"direction":"changed","category":"protection","symbol":"ProtectedRetailProbe.XmlProtected","detail":"XML protected=true frame state and setters."},
+    {"direction":"changed","category":"protection","symbol":"ProtectedRetailProbe.SecureStore","detail":"Secure-template child state and Blizzard Store frame observations."},
+    {"direction":"changed","category":"scale events","symbol":"ScaleEventProbe.OrderedEvents","detail":"DISPLAY_SIZE_CHANGED, UI_SCALE_CHANGED, and relevant CVAR_UPDATE ordering."},
+    {"direction":"changed","category":"scale events","symbol":"ScaleEventProbe.SameSizeDuplicatePair","detail":"Same-size maximize/restore duplicate display/scale event pair."},
+    {"direction":"changed","category":"texture atlas","symbol":"SetAtlasProbe.InvalidArguments","detail":"nil, no-argument, boolean, numeric, empty, and unknown atlas inputs."},
+    {"direction":"changed","category":"texture","symbol":"TextureSetTextureProbe.PathFdid","detail":"UI-Panel-Button-Up path assignment and retained FDID 130828."},
+    {"direction":"changed","category":"texture","symbol":"TextureSetTextureProbe.Clear","detail":"SetTexture(nil) and no-argument clearing behavior."},
+    {"direction":"changed","category":"XML frame level","symbol":"XmlFrameLevelProbe.BareAndFixed","detail":"Bare frameLevel versus fixedFrameLevel=true semantics."},
+    {"direction":"changed","category":"XML frame level","symbol":"XmlFrameLevelProbe.ParentReparent","detail":"Parent-level changes, unfixed-child propagation, and Lua SetFrameLevel reparenting."},
+    {"direction":"changed","category":"XML frame level","symbol":"XmlFrameLevelProbe.Flags","detail":"HasFixedFrameLevel and IsUsingParentLevel observations."},
+    {"direction":"changed","category":"provenance","symbol":"XmlFrameLevelProbe.RawCaptureProvenance","detail":"Raw SavedVariables capture was not retained; only documented behavior remains."},
+    {"direction":"changed","category":"Store lifecycle","symbol":"StoreForbiddenProbe.DropdownPopulation","detail":"Real and synthetic Store dropdown population plus button count/state."},
+    {"direction":"changed","category":"Store lifecycle","symbol":"StoreForbiddenProbe.ForbiddenDescendants","detail":"Store frame/descendant forbidden/protected scan via /sfp."}
+  ]
+}

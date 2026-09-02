@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 
-use wow_ui_sim::loader::load_addon;
 use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, find_toc_file};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
@@ -45,31 +44,6 @@ const PUBLISHED_MIXINS: &[&str] = &[
 
 const VIRTUAL_LIST_TEMPLATES: &[&str] = &["CollapseButtonTemplate", "ListHeaderVisualTemplate"];
 
-fn fresh_env() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-    wow_ui_sim::xml::register_intrinsic_templates();
-    env
-}
-
-fn load_full_game_ui() -> WowLuaEnv {
-    let env = fresh_env();
-
-    let addons = discover_blizzard_addons_for_screen(&blizzard_ui_dir(), ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    env.apply_post_load_workarounds();
-    env
-}
-
 #[test]
 fn find_toc_file_resolves_bare_toc() {
     let resolved = find_toc_file(&shared_xml_game_dir()).expect("SharedXMLGame TOC resolves");
@@ -88,23 +62,16 @@ fn find_toc_file_resolves_bare_toc() {
 }
 
 #[test]
-fn dependencies_accessor_returns_empty_for_singular_dep_form() {
+fn dependencies_accessor_returns_repeated_singular_deps() {
     let toc = TocFile::from_file(&shared_xml_game_toc()).expect("TOC parses");
 
-    let deps = toc.dependencies();
-    assert!(
-        deps.is_empty(),
-        "OBSERVATIONAL QUIRK: SharedXMLGame uses the singular `## Dep:` \
-         form (one line per dep) — `## Dep: Blizzard_SharedXML` and \
-         `## Dep: Blizzard_Colors`. The simulator's `dependencies()` \
-         accessor at src/toc.rs:210-217 only honors `RequiredDep`, \
-         `Dependencies`, `RequiredDeps` keys and falls through silently on \
-         the singular `Dep` form. In real WoW the singular form is \
-         honored, but here it surfaces as empty. Both targets still load \
-         because Blizzard_SharedXML and Blizzard_Colors are themselves \
-         eager (AllowLoad: Both / Game with no LoadOnDemand) — the missing \
-         dep edge is invisible at load time but matters for any audit \
-         that walks the dep graph via `dependencies()`. Got: {deps:?}"
+    assert_eq!(
+        toc.dependencies(),
+        vec![
+            "Blizzard_SharedXML".to_string(),
+            "Blizzard_Colors".to_string(),
+        ],
+        "repeated `## Dep:` directives must be exposed in source order"
     );
 }
 
@@ -336,224 +303,224 @@ fn eager_discovery_includes_addon_only_on_game_screen() {
     }
 }
 
-#[test]
-fn full_game_load_emits_no_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
-    let errors: Vec<String> = env.state().borrow().lua_errors.clone();
+prefork_full_ui_case! {
+    fn full_game_load_emits_no_addon_specific_lua_errors(env: &WowLuaEnv) {
+        let errors: Vec<String> = env.state().borrow().lua_errors.clone();
 
-    let addon_specific: Vec<&String> = errors
-        .iter()
-        .filter(|err| {
-            err.contains("Blizzard_SharedXMLGame")
-                || err.contains("TooltipDataHandler")
-                || err.contains("TooltipDataRules")
-                || err.contains("TooltipComparisonManager")
-                || err.contains("DressUpModelFrameMixin")
-                || err.contains("StaticModelInfo")
-        })
-        .collect();
+        let addon_specific: Vec<&String> = errors
+            .iter()
+            .filter(|err| {
+                err.contains("Blizzard_SharedXMLGame")
+                    || err.contains("TooltipDataHandler")
+                    || err.contains("TooltipDataRules")
+                    || err.contains("TooltipComparisonManager")
+                    || err.contains("DressUpModelFrameMixin")
+                    || err.contains("StaticModelInfo")
+            })
+            .collect();
 
-    assert!(
-        addon_specific.is_empty(),
-        "Full Game-screen UI load must produce zero \
-         SharedXMLGame-attributed Lua errors. Errors: {addon_specific:#?}"
-    );
-}
-
-#[test]
-fn is_addon_loaded_reports_true_after_eager_sweep() {
-    let env = load_full_game_ui();
-
-    let result: bool = env
-        .eval("return C_AddOns.IsAddOnLoaded(\"Blizzard_SharedXMLGame\")")
-        .expect("IsAddOnLoaded query succeeds");
-    assert!(
-        result,
-        "C_AddOns.IsAddOnLoaded(\"Blizzard_SharedXMLGame\") MUST return \
-         true after the Game-screen eager sweep. The TOC has no \
-         LoadOnDemand and AllowLoad: Game, so discovery includes it"
-    );
-}
-
-#[test]
-fn publishes_six_top_level_namespace_tables() {
-    let env = load_full_game_ui();
-
-    for namespace in PUBLISHED_NAMESPACES {
-        let result: bool = env
-            .eval(&format!("return type(_G[{namespace:?}]) == \"table\""))
-            .unwrap_or_else(|err| panic!("eval for {namespace}: {err}"));
         assert!(
-            result,
-            "Top-level namespace {namespace} must be a `_G` table after \
-             SharedXMLGame loads. These are the static-helper namespaces \
-             every game-screen consumer imports — TooltipDataProcessor for \
-             tooltip-data callback registration, StaticModelInfo for \
-             effect-model lookup, TooltipComparisonManager for the \
-             multi-tooltip comparison logic"
+            addon_specific.is_empty(),
+            "Full Game-screen UI load must produce zero \
+             SharedXMLGame-attributed Lua errors. Errors: {addon_specific:#?}"
         );
     }
 }
 
-#[test]
-fn publishes_thirteen_dress_up_and_list_mixin_tables() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+    fn is_addon_loaded_reports_true_after_eager_sweep(env: &WowLuaEnv) {
 
-    for mixin in PUBLISHED_MIXINS {
         let result: bool = env
-            .eval(&format!("return type(_G[{mixin:?}]) == \"table\""))
-            .unwrap_or_else(|err| panic!("eval for {mixin}: {err}"));
+            .eval("return C_AddOns.IsAddOnLoaded(\"Blizzard_SharedXMLGame\")")
+            .expect("IsAddOnLoaded query succeeds");
         assert!(
             result,
-            "Mixin {mixin} must be a `_G` table after SharedXMLGame loads. \
-             DressUp* mixins drive the dress-up preview frame's button \
-             hierarchy (Reset/Link/Close/Cancel/MaxMin); CollapseButton + \
-             ListHeader* mixins drive collapsible list section headers \
-             used pervasively in Mainline addon dialogs (TalentTree spec \
-             list, AchievementUI category list, etc.)"
+            "C_AddOns.IsAddOnLoaded(\"Blizzard_SharedXMLGame\") MUST return \
+             true after the Game-screen eager sweep. The TOC has no \
+             LoadOnDemand and AllowLoad: Game, so discovery includes it"
         );
     }
 }
 
-#[test]
-fn tooltip_data_processor_provides_callback_registration_api() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+    fn publishes_six_top_level_namespace_tables(env: &WowLuaEnv) {
 
-    let result: bool = env
-        .eval(
-            "return type(TooltipDataProcessor) == \"table\" and \
-                    type(TooltipDataProcessor.AddTooltipPreCall) == \"function\" and \
-                    type(TooltipDataProcessor.AddTooltipPostCall) == \"function\" and \
-                    type(TooltipDataProcessor.AddLinePreCall) == \"function\" and \
-                    type(TooltipDataProcessor.AddLinePostCall) == \"function\"",
-        )
-        .expect("TooltipDataProcessor shape check");
-    assert!(
-        result,
-        "TooltipDataProcessor must publish 4 callback registration \
-         entry points: AddTooltipPreCall / AddTooltipPostCall (per-tooltip \
-         hooks keyed by tooltipType) and AddLinePreCall / AddLinePostCall \
-         (per-line hooks keyed by lineType). Every Blizzard tooltip enrich \
-         site (transmog comparison, item-comparison, quest-objective \
-         tooltips) registers via these"
-    );
+        for namespace in PUBLISHED_NAMESPACES {
+            let result: bool = env
+                .eval(&format!("return type(_G[{namespace:?}]) == \"table\""))
+                .unwrap_or_else(|err| panic!("eval for {namespace}: {err}"));
+            assert!(
+                result,
+                "Top-level namespace {namespace} must be a `_G` table after \
+                 SharedXMLGame loads. These are the static-helper namespaces \
+                 every game-screen consumer imports — TooltipDataProcessor for \
+                 tooltip-data callback registration, StaticModelInfo for \
+                 effect-model lookup, TooltipComparisonManager for the \
+                 multi-tooltip comparison logic"
+            );
+        }
+    }
 }
 
-#[test]
-fn static_model_info_helpers_callable() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+    fn publishes_thirteen_dress_up_and_list_mixin_tables(env: &WowLuaEnv) {
 
-    let result: bool = env
-        .eval(
-            "return type(StaticModelInfo) == \"table\" and \
-                    type(StaticModelInfo.CreateModelSceneEntry) == \"function\" and \
-                    type(StaticModelInfo.SetupModelScene) == \"function\"",
-        )
-        .expect("StaticModelInfo shape check");
-    assert!(
-        result,
-        "StaticModelInfo must publish CreateModelSceneEntry (factory for \
-         model-scene effect entries) and SetupModelScene (applies a \
-         pre-built scene config to a ModelScene frame). Used by the \
-         dress-up preview, character creation backdrop, and login portrait \
-         scenes — without these helpers each consumer would re-implement \
-         model-effect plumbing"
-    );
+        for mixin in PUBLISHED_MIXINS {
+            let result: bool = env
+                .eval(&format!("return type(_G[{mixin:?}]) == \"table\""))
+                .unwrap_or_else(|err| panic!("eval for {mixin}: {err}"));
+            assert!(
+                result,
+                "Mixin {mixin} must be a `_G` table after SharedXMLGame loads. \
+                 DressUp* mixins drive the dress-up preview frame's button \
+                 hierarchy (Reset/Link/Close/Cancel/MaxMin); CollapseButton + \
+                 ListHeader* mixins drive collapsible list section headers \
+                 used pervasively in Mainline addon dialogs (TalentTree spec \
+                 list, AchievementUI category list, etc.)"
+            );
+        }
+    }
 }
 
-#[test]
-fn dress_up_model_frame_base_mixin_lifecycle_methods_present() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+    fn tooltip_data_processor_provides_callback_registration_api(env: &WowLuaEnv) {
 
-    let result: bool = env
-        .eval(
-            "return type(DressUpModelFrameBaseMixin) == \"table\" and \
-                    type(DressUpModelFrameBaseMixin.OnLoad) == \"function\" and \
-                    type(DressUpModelFrameBaseMixin.SetMode) == \"function\" and \
-                    type(DressUpModelFrameBaseMixin.GetMode) == \"function\" and \
-                    type(DressUpModelFrameBaseMixin.OnModelSceneReset) == \"function\"",
-        )
-        .expect("DressUpModelFrameBaseMixin shape check");
-    assert!(
-        result,
-        "DressUpModelFrameBaseMixin must publish OnLoad / SetMode / \
-         GetMode / OnModelSceneReset — the lifecycle entry points for the \
-         dress-up preview frame. Mode controls whether the frame is in \
-         transmog-preview mode vs model-inspection mode"
-    );
-}
-
-#[test]
-fn tooltip_comparison_manager_initialize_and_clear_present() {
-    let env = load_full_game_ui();
-
-    let result: bool = env
-        .eval(
-            "return type(TooltipComparisonManager) == \"table\" and \
-                    type(TooltipComparisonManager.Initialize) == \"function\" and \
-                    type(TooltipComparisonManager.Clear) == \"function\" and \
-                    type(TooltipComparisonManager.CreateComparisonItem) == \"function\"",
-        )
-        .expect("TooltipComparisonManager shape check");
-    assert!(
-        result,
-        "TooltipComparisonManager must publish Initialize / Clear / \
-         CreateComparisonItem. Drives the side-by-side equipped-item \
-         comparison shown when the Compare modifier (default Shift) is \
-         held while hovering an item — Initialize binds the manager to a \
-         primary tooltip + anchor frame, CreateComparisonItem builds the \
-         compared-item TooltipData, Clear tears down secondary tooltips"
-    );
-}
-
-#[test]
-fn list_xml_publishes_four_virtual_templates() {
-    let env = load_full_game_ui();
-
-    for template in VIRTUAL_LIST_TEMPLATES {
-        let probe = format!(
-            "local ok = pcall(function() \
-                local f = CreateFrame(\"Button\", nil, nil, {template:?}) \
-                return type(f) == \"table\" \
-             end) return ok"
-        );
         let result: bool = env
-            .eval(&probe)
-            .unwrap_or_else(|err| panic!("eval for {template}: {err}"));
+            .eval(
+                "return type(TooltipDataProcessor) == \"table\" and \
+                        type(TooltipDataProcessor.AddTooltipPreCall) == \"function\" and \
+                        type(TooltipDataProcessor.AddTooltipPostCall) == \"function\" and \
+                        type(TooltipDataProcessor.AddLinePreCall) == \"function\" and \
+                        type(TooltipDataProcessor.AddLinePostCall) == \"function\"",
+            )
+            .expect("TooltipDataProcessor shape check");
         assert!(
             result,
-            "Virtual template {template} (registered by \
-             Mainline/ListTemplates.xml) must materialize via \
-             CreateFrame. CollapseButtonTemplate is the simple base; \
-             ListHeaderVisualTemplate composes it via parentKey \
-             inheritance, validating the cross-template wiring. The \
-             script-bearing siblings ListHeaderCodeTemplate / \
-             ListHeaderThreeSliceTemplate dispatch OnLoad to a method \
-             on the empty ListHeaderMixin (set up later by consumer \
-             addons), so they are intentionally excluded from this \
-             materialization probe — their mixin tables are still \
-             checked by publishes_thirteen_mixin_tables"
+            "TooltipDataProcessor must publish 4 callback registration \
+             entry points: AddTooltipPreCall / AddTooltipPostCall (per-tooltip \
+             hooks keyed by tooltipType) and AddLinePreCall / AddLinePostCall \
+             (per-line hooks keyed by lineType). Every Blizzard tooltip enrich \
+             site (transmog comparison, item-comparison, quest-objective \
+             tooltips) registers via these"
         );
     }
 }
 
-#[test]
-fn compact_raid_group_type_enum_published_with_party_and_raid_keys() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+    fn static_model_info_helpers_callable(env: &WowLuaEnv) {
 
-    let result: bool = env
-        .eval(
-            "return type(CompactRaidGroupTypeEnum) == \"table\" and \
-                    CompactRaidGroupTypeEnum.Party ~= nil and \
-                    CompactRaidGroupTypeEnum.Raid ~= nil",
-        )
-        .expect("CompactRaidGroupTypeEnum shape check");
-    assert!(
-        result,
-        "CompactRaidGroupTypeEnum must publish Party + Raid keys. \
-         CompactUnitFramesConstants.lua (always-loaded, no flavor gate) \
-         seeds this enum so the compact raid frame manager can branch \
-         layout strategy by group composition. Both keys must be present \
-         and non-nil"
-    );
+        let result: bool = env
+            .eval(
+                "return type(StaticModelInfo) == \"table\" and \
+                        type(StaticModelInfo.CreateModelSceneEntry) == \"function\" and \
+                        type(StaticModelInfo.SetupModelScene) == \"function\"",
+            )
+            .expect("StaticModelInfo shape check");
+        assert!(
+            result,
+            "StaticModelInfo must publish CreateModelSceneEntry (factory for \
+             model-scene effect entries) and SetupModelScene (applies a \
+             pre-built scene config to a ModelScene frame). Used by the \
+             dress-up preview, character creation backdrop, and login portrait \
+             scenes — without these helpers each consumer would re-implement \
+             model-effect plumbing"
+        );
+    }
+}
+
+prefork_full_ui_case! {
+    fn dress_up_model_frame_base_mixin_lifecycle_methods_present(env: &WowLuaEnv) {
+
+        let result: bool = env
+            .eval(
+                "return type(DressUpModelFrameBaseMixin) == \"table\" and \
+                        type(DressUpModelFrameBaseMixin.OnLoad) == \"function\" and \
+                        type(DressUpModelFrameBaseMixin.SetMode) == \"function\" and \
+                        type(DressUpModelFrameBaseMixin.GetMode) == \"function\" and \
+                        type(DressUpModelFrameBaseMixin.OnModelSceneReset) == \"function\"",
+            )
+            .expect("DressUpModelFrameBaseMixin shape check");
+        assert!(
+            result,
+            "DressUpModelFrameBaseMixin must publish OnLoad / SetMode / \
+             GetMode / OnModelSceneReset — the lifecycle entry points for the \
+             dress-up preview frame. Mode controls whether the frame is in \
+             transmog-preview mode vs model-inspection mode"
+        );
+    }
+}
+
+prefork_full_ui_case! {
+    fn tooltip_comparison_manager_initialize_and_clear_present(env: &WowLuaEnv) {
+
+        let result: bool = env
+            .eval(
+                "return type(TooltipComparisonManager) == \"table\" and \
+                        type(TooltipComparisonManager.Initialize) == \"function\" and \
+                        type(TooltipComparisonManager.Clear) == \"function\" and \
+                        type(TooltipComparisonManager.CreateComparisonItem) == \"function\"",
+            )
+            .expect("TooltipComparisonManager shape check");
+        assert!(
+            result,
+            "TooltipComparisonManager must publish Initialize / Clear / \
+             CreateComparisonItem. Drives the side-by-side equipped-item \
+             comparison shown when the Compare modifier (default Shift) is \
+             held while hovering an item — Initialize binds the manager to a \
+             primary tooltip + anchor frame, CreateComparisonItem builds the \
+             compared-item TooltipData, Clear tears down secondary tooltips"
+        );
+    }
+}
+
+prefork_full_ui_case! {
+    fn list_xml_publishes_four_virtual_templates(env: &WowLuaEnv) {
+
+        for template in VIRTUAL_LIST_TEMPLATES {
+            let probe = format!(
+                "local ok = pcall(function() \
+                    local f = CreateFrame(\"Button\", nil, nil, {template:?}) \
+                    return type(f) == \"table\" \
+                 end) return ok"
+            );
+            let result: bool = env
+                .eval(&probe)
+                .unwrap_or_else(|err| panic!("eval for {template}: {err}"));
+            assert!(
+                result,
+                "Virtual template {template} (registered by \
+                 Mainline/ListTemplates.xml) must materialize via \
+                 CreateFrame. CollapseButtonTemplate is the simple base; \
+                 ListHeaderVisualTemplate composes it via parentKey \
+                 inheritance, validating the cross-template wiring. The \
+                 script-bearing siblings ListHeaderCodeTemplate / \
+                 ListHeaderThreeSliceTemplate dispatch OnLoad to a method \
+                 on the empty ListHeaderMixin (set up later by consumer \
+                 addons), so they are intentionally excluded from this \
+                 materialization probe — their mixin tables are still \
+                 checked by publishes_thirteen_mixin_tables"
+            );
+        }
+    }
+}
+
+prefork_full_ui_case! {
+    fn compact_raid_group_type_enum_published_with_party_and_raid_keys(env: &WowLuaEnv) {
+
+        let result: bool = env
+            .eval(
+                "return type(CompactRaidGroupTypeEnum) == \"table\" and \
+                        CompactRaidGroupTypeEnum.Party ~= nil and \
+                        CompactRaidGroupTypeEnum.Raid ~= nil",
+            )
+            .expect("CompactRaidGroupTypeEnum shape check");
+        assert!(
+            result,
+            "CompactRaidGroupTypeEnum must publish Party + Raid keys. \
+             CompactUnitFramesConstants.lua (always-loaded, no flavor gate) \
+             seeds this enum so the compact raid frame manager can branch \
+             layout strategy by group composition. Both keys must be present \
+             and non-nil"
+        );
+    }
 }

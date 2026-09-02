@@ -205,9 +205,8 @@ fn blizzard_help_frame_excluded_from_all_glue_screen_auto_discovery_passes() {
     }
 }
 
-#[test]
-fn blizzard_help_frame_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_help_frame_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let lua_errors: Vec<String> = env.state().borrow().lua_errors.clone();
     let related: Vec<&String> = lua_errors
@@ -233,10 +232,10 @@ fn blizzard_help_frame_loads_without_addon_specific_lua_errors() {
             .join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_help_frame_is_addon_loaded_returns_true_after_game_screen_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_help_frame_is_addon_loaded_returns_true_after_game_screen_load(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_HelpFrame')")
@@ -247,10 +246,10 @@ fn blizzard_help_frame_is_addon_loaded_returns_true_after_game_screen_load() {
          `C_AddOns.IsAddOnLoaded('Blizzard_HelpFrame')` should return true"
     );
 }
+}
 
-#[test]
-fn blizzard_help_frame_publishes_three_module_constants() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_help_frame_publishes_three_module_constants(env: &WowLuaEnv) {
 
     let interval: f64 = env
         .eval("return GMTICKET_CHECK_INTERVAL")
@@ -281,10 +280,10 @@ fn blizzard_help_frame_publishes_three_module_constants() {
          decide whether to call HelpBrowser:NavigateHome on next show"
     );
 }
+}
 
-#[test]
-fn blizzard_help_frame_publishes_help_frame_mixin_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_help_frame_publishes_help_frame_mixin_methods(env: &WowLuaEnv) {
 
     for method in [
         "OnLoad",
@@ -315,10 +314,10 @@ fn blizzard_help_frame_publishes_help_frame_mixin_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_help_frame_publishes_help_open_web_ticket_button_helpers() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_help_frame_publishes_help_open_web_ticket_button_helpers(env: &WowLuaEnv) {
 
     for helper in [
         "HelpOpenWebTicketButton_OnEnter",
@@ -338,10 +337,10 @@ fn blizzard_help_frame_publishes_help_open_web_ticket_button_helpers() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_help_frame_publishes_ticket_status_frame_handlers() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_help_frame_publishes_ticket_status_frame_handlers(env: &WowLuaEnv) {
 
     for helper in [
         "TicketStatusFrame_OnLoad",
@@ -366,10 +365,10 @@ fn blizzard_help_frame_publishes_ticket_status_frame_handlers() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_help_frame_publishes_two_free_helpers() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_help_frame_publishes_two_free_helpers(env: &WowLuaEnv) {
 
     for helper in [
         "HelpFrame_IsGMTicketQueueActive",
@@ -388,10 +387,10 @@ fn blizzard_help_frame_publishes_two_free_helpers() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_help_frame_publishes_external_link_static_popup() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_help_frame_publishes_external_link_static_popup(env: &WowLuaEnv) {
 
     let exists: bool = env
         .eval(
@@ -409,10 +408,10 @@ fn blizzard_help_frame_publishes_external_link_static_popup() {
          the embedded help browser intercepts an external link click"
     );
 }
+}
 
-#[test]
-fn blizzard_help_frame_publishes_help_frame_global() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_help_frame_publishes_help_frame_global(env: &WowLuaEnv) {
 
     let exists: bool = env
         .eval(
@@ -429,10 +428,10 @@ fn blizzard_help_frame_publishes_help_frame_global() {
          events registered at OnLoad"
     );
 }
+}
 
-#[test]
-fn blizzard_help_frame_publishes_ticket_status_frame_and_report_cheating_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_help_frame_publishes_ticket_status_frame_and_report_cheating_globals(env: &WowLuaEnv) {
 
     for frame_name in [
         "TicketStatusFrame",
@@ -459,4 +458,5 @@ fn blizzard_help_frame_publishes_ticket_status_frame_and_report_cheating_globals
              HelpOpenWebTicketButton (CharacterMicroButton-overlay icon)"
         );
     }
+}
 }

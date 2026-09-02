@@ -13,6 +13,24 @@ end
 if SOUNDKIT.CATALOG_SHOP_SELECT_GENERIC_UI_BUTTON == nil then
     SOUNDKIT.CATALOG_SHOP_SELECT_GENERIC_UI_BUTTON = 303826
 end
+if SOUNDKIT.CATALOG_SHOP_OPEN_LOADING_SCREEN == nil then
+    SOUNDKIT.CATALOG_SHOP_OPEN_LOADING_SCREEN = 303820
+end
+if SOUNDKIT.CATALOG_SHOP_LOADING_SCREEN_LOOP == nil then
+    SOUNDKIT.CATALOG_SHOP_LOADING_SCREEN_LOOP = 303821
+end
+if SOUNDKIT.CATALOG_SHOP_OPEN_SHOP_AFTER_LOAD == nil then
+    SOUNDKIT.CATALOG_SHOP_OPEN_SHOP_AFTER_LOAD = 303822
+end
+if SOUNDKIT.CATALOG_SHOP_GOLD_SHIMMER_START == nil then
+    SOUNDKIT.CATALOG_SHOP_GOLD_SHIMMER_START = 306261
+end
+if SOUNDKIT.CATALOG_SHOP_GOLD_SHIMMER_LOOP == nil then
+    SOUNDKIT.CATALOG_SHOP_GOLD_SHIMMER_LOOP = 303827
+end
+if SOUNDKIT.CATALOG_SHOP_GOLD_SHIMMER_END == nil then
+    SOUNDKIT.CATALOG_SHOP_GOLD_SHIMMER_END = 306262
+end
 
 local catalogShopConstantsDefaults = {
     ScrollViewType = {
@@ -233,21 +251,38 @@ mod tests {
             super::apply_bootstrap(&mut lua).expect("catalog shop defaults should apply");
         }
 
-        let (nav, button, product_type, details_card): (i64, i64, i64, String) = env
+        let defaults: (i64, i64, i64, i64, i64, i64, i64, i64, i64, String) = env
             .eval(
                 r#"
                 return SOUNDKIT.CATALOG_SHOP_SELECT_NAV_MENU,
                     SOUNDKIT.CATALOG_SHOP_SELECT_GENERIC_UI_BUTTON,
+                    SOUNDKIT.CATALOG_SHOP_OPEN_LOADING_SCREEN,
+                    SOUNDKIT.CATALOG_SHOP_LOADING_SCREEN_LOOP,
+                    SOUNDKIT.CATALOG_SHOP_OPEN_SHOP_AFTER_LOAD,
+                    SOUNDKIT.CATALOG_SHOP_GOLD_SHIMMER_START,
+                    SOUNDKIT.CATALOG_SHOP_GOLD_SHIMMER_LOOP,
+                    SOUNDKIT.CATALOG_SHOP_GOLD_SHIMMER_END,
                     CatalogShopConstants.ScrollViewElementType.Product,
                     CatalogShopConstants.CardTemplate.Details
                 "#,
             )
             .expect("catalog shop defaults should be readable");
 
-        assert_eq!(nav, 303824);
-        assert_eq!(button, 303826);
-        assert_eq!(product_type, 2);
-        assert_eq!(details_card, "DetailsCatalogShopProductCardTemplate");
+        assert_eq!(
+            defaults,
+            (
+                303824,
+                303826,
+                303820,
+                303821,
+                303822,
+                306261,
+                303827,
+                306262,
+                2,
+                "DetailsCatalogShopProductCardTemplate".to_string(),
+            )
+        );
     }
 
     fn install_layout_fixture(env: &WowLuaEnv) {

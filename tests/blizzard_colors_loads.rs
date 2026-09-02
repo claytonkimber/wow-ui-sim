@@ -60,9 +60,8 @@ fn blizzard_colors_appears_in_both_screens_discovery() {
     );
 }
 
-#[test]
-fn blizzard_colors_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_colors_loads_without_errors(env: &WowLuaEnv) {
 
     let colors_errors: Vec<String> = env
         .state()
@@ -78,10 +77,10 @@ fn blizzard_colors_loads_without_errors() {
         colors_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_colors_material_color_tables_are_populated() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_colors_material_color_tables_are_populated(env: &WowLuaEnv) {
 
     let materials_present: bool = env
         .eval(
@@ -116,10 +115,10 @@ fn blizzard_colors_material_color_tables_are_populated() {
         "GetMaterialTextColors('Stone') should return two RGB triplets"
     );
 }
+}
 
-#[test]
-fn blizzard_colors_quality_atlas_tables_are_populated() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_colors_quality_atlas_tables_are_populated(env: &WowLuaEnv) {
 
     let atlases_present: bool = env
         .eval(
@@ -138,10 +137,10 @@ fn blizzard_colors_quality_atlas_tables_are_populated() {
         "Item-quality atlas/color lookup tables should be populated with the expected entries"
     );
 }
+}
 
-#[test]
-fn blizzard_colors_color_manager_helpers_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_colors_color_manager_helpers_are_defined(env: &WowLuaEnv) {
 
     let manager_present: bool = env
         .eval(
@@ -171,4 +170,5 @@ fn blizzard_colors_color_manager_helpers_are_defined() {
         format!("|cnIQ{}:Sword|r", 4),
         "GetFormattedStringForItemQuality should emit the |cnIQ<quality>:text|r token"
     );
+}
 }

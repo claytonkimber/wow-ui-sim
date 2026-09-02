@@ -815,11 +815,6 @@ C_CatalogShop = __wow_merge_namespace(C_CatalogShop, {
     __wow_catalog_shop_emit_seeded_refresh(session_id)
     return session_id
   end,
-  OpenCatalogShopInteraction = function()
-    local session_id = "seeded-catalog-shop-session"
-    __wow_catalog_shop_emit_seeded_refresh(session_id)
-    return session_id
-  end,
   OpenCatalogShopInteractionFromHouse = function()
     local session_id = "seeded-catalog-house-session"
     __wow_catalog_shop_emit_seeded_refresh(session_id)

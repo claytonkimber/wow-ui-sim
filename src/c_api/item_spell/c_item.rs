@@ -1,15 +1,17 @@
 use super::helpers::{
     inv_type_to_class_id, inv_type_to_equip_loc, inv_type_to_subclass, item_class_from_inv_type,
-    item_class_name, item_subclass_name,
+    item_class_name, item_subclass_name, unit_is_reachable,
 };
 use crate::c_api::ensure_namespace;
 use crate::items;
+use crate::lua_api::SimState;
 use crate::lua_api::methods::{borrow_state, create_string, table_get, val_to_string};
 use crate::lua_bridge::{FromStack, stack_val, table_set_rust_fn_static};
 use rilua::vm::gc::arena::GcRef;
 use rilua::vm::state::LuaState;
 use rilua::vm::table::Table;
 use rilua::{LuaResult, Val};
+use std::collections::HashSet;
 
 type CItemMethod = (&'static str, fn(&mut LuaState) -> LuaResult<u32>);
 
@@ -143,6 +145,9 @@ fn register_c_item_inventory_queries(
             ("GetItemGUID", c_item_get_item_guid),
             ("IsBound", c_item_is_bound),
             ("IsBoundToAccountUntilEquip", c_item_is_bound),
+            ("IsConsumableItem", c_item_is_consumable_item),
+            ("IsEquippableItem", c_item_is_equippable_item),
+            ("IsItemInRange", c_item_is_item_in_range),
             (
                 "GetItemInventorySlotInfo",
                 c_item_get_item_inventory_slot_info,
@@ -160,6 +165,43 @@ fn register_c_item_methods(
         table_set_rust_fn_static(state, table_ref, name, func)?;
     }
     Ok(())
+}
+
+pub(crate) fn c_item_is_equippable_item(state: &mut LuaState) -> LuaResult<u32> {
+    push_item_classification(state, |sim| &sim.equippable_items)
+}
+
+pub(crate) fn c_item_is_consumable_item(state: &mut LuaState) -> LuaResult<u32> {
+    push_item_classification(state, |sim| &sim.consumable_items)
+}
+
+fn push_item_classification(
+    state: &mut LuaState,
+    item_ids: fn(&SimState) -> &HashSet<u32>,
+) -> LuaResult<u32> {
+    let item_id = match stack_val(state, 1) {
+        Val::Num(number) if number >= 0.0 => number as u32,
+        _ => {
+            state.push(Val::Bool(false));
+            return Ok(1);
+        }
+    };
+    let classified = {
+        let sim = borrow_state(state)?;
+        item_ids(&sim).contains(&item_id)
+    };
+    state.push(Val::Bool(classified));
+    Ok(1)
+}
+
+pub(crate) fn c_item_is_item_in_range(state: &mut LuaState) -> LuaResult<u32> {
+    let unit = Option::<String>::from_stack(state, 2)?.unwrap_or_default();
+    let in_range = {
+        let sim = borrow_state(state)?;
+        unit_is_reachable(&sim, &unit)
+    };
+    state.push(Val::Bool(in_range));
+    Ok(1)
 }
 
 #[cfg(feature = "retail-12-1-0")]

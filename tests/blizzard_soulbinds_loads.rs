@@ -76,7 +76,7 @@ fn load_full_game_ui() -> WowLuaEnv {
 }
 
 #[test]
-fn toc_declares_load_on_demand_with_blizzard_colors_dep() {
+fn toc_declares_load_on_demand_with_current_dependencies() {
     let toc = TocFile::from_file(&soulbinds_toc()).expect("Soulbinds TOC parses");
 
     assert!(
@@ -92,14 +92,11 @@ fn toc_declares_load_on_demand_with_blizzard_colors_dep() {
 
     assert_eq!(
         toc.dependencies(),
-        vec!["Blizzard_Colors".to_string()],
-        "`## Dependencies: Blizzard_Colors` MUST resolve to \
-         [Blizzard_Colors] via the plural-key path at \
-         src/toc.rs:210-217. Blizzard_Colors publishes the \
-         CONDUIT_POTENCY / CONDUIT_ENDURANCE / CONDUIT_FINESSE color \
-         globals consumed by SoulbindsUtil.GetConduitName / \
-         GetConduitEmblemAtlas at \
-         Blizzard_SoulbindsUtil.lua:84-101"
+        vec![
+            "Blizzard_Colors".to_string(),
+            "Blizzard_GameMenuEsc".to_string(),
+        ],
+        "Current retail Soulbinds depends on Blizzard_Colors and Blizzard_GameMenuEsc"
     );
 }
 
@@ -126,7 +123,7 @@ fn toc_raw_bytes_pin_four_metadata_directives() {
         "## Title: Blizzard Soulbinds",
         "## Author: Blizzard Entertainment",
         "## LoadOnDemand: 1",
-        "## Dependencies: Blizzard_Colors",
+        "## Dependencies: Blizzard_Colors, Blizzard_GameMenuEsc",
     ];
 
     for directive in expected_directives {
@@ -316,9 +313,8 @@ fn soulbinds_does_not_auto_discover_on_any_screen() {
     }
 }
 
-#[test]
-fn explicit_load_addon_succeeds_with_no_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn explicit_load_addon_succeeds_with_no_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -345,10 +341,10 @@ fn explicit_load_addon_succeeds_with_no_addon_specific_lua_errors() {
         matched
     );
 }
+}
 
-#[test]
-fn is_addon_loaded_reports_true_after_explicit_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn is_addon_loaded_reports_true_after_explicit_load(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &soulbinds_toc()).expect("Blizzard_Soulbinds should load");
 
     let loaded: bool = env
@@ -362,10 +358,10 @@ fn is_addon_loaded_reports_true_after_explicit_load() {
          it didn't surface in the eager Game-screen sweep"
     );
 }
+}
 
-#[test]
-fn util_publishes_soulbinds_namespace_with_canonical_helpers() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn util_publishes_soulbinds_namespace_with_canonical_helpers(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &soulbinds_toc()).expect("Blizzard_Soulbinds should load");
 
     let probe = "return type(Soulbinds) == 'table' and \
@@ -397,10 +393,10 @@ fn util_publishes_soulbinds_namespace_with_canonical_helpers() {
          pending-install button-state machine)"
     );
 }
+}
 
-#[test]
-fn util_publishes_renown_currency_id_constant() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn util_publishes_renown_currency_id_constant(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &soulbinds_toc()).expect("Blizzard_Soulbinds should load");
 
     let value: i32 = env
@@ -414,10 +410,10 @@ fn util_publishes_renown_currency_id_constant() {
          Blizzard_SoulbindsUtil.lua:3"
     );
 }
+}
 
-#[test]
-fn publishes_thirteen_mixin_tables() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn publishes_thirteen_mixin_tables(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &soulbinds_toc()).expect("Blizzard_Soulbinds should load");
 
     for mixin in PUBLISHED_MIXINS {
@@ -442,10 +438,10 @@ fn publishes_thirteen_mixin_tables() {
         );
     }
 }
+}
 
-#[test]
-fn callback_registry_mixins_inherit_register_callback() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn callback_registry_mixins_inherit_register_callback(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &soulbinds_toc()).expect("Blizzard_Soulbinds should load");
 
     let probe = "return type(SoulbindViewerMixin.RegisterCallback) == 'function' and \
@@ -466,10 +462,10 @@ fn callback_registry_mixins_inherit_register_callback() {
          SoulbindViewer.OnLoad:32 would throw"
     );
 }
+}
 
-#[test]
-fn trait_node_inherits_tree_node_for_shared_node_surface() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn trait_node_inherits_tree_node_for_shared_node_surface(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &soulbinds_toc()).expect("Blizzard_Soulbinds should load");
 
     let probe = "return type(SoulbindTraitNodeMixin) == 'table' and \
@@ -487,10 +483,10 @@ fn trait_node_inherits_tree_node_for_shared_node_surface() {
          trait/conduit node types"
     );
 }
+}
 
-#[test]
-fn select_button_mixin_inherits_selectable_button_for_radio_behavior() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn select_button_mixin_inherits_selectable_button_for_radio_behavior(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &soulbinds_toc()).expect("Blizzard_Soulbinds should load");
 
     let probe = "return type(SoulbindsSelectButtonMixin) == 'table' and \
@@ -506,10 +502,10 @@ fn select_button_mixin_inherits_selectable_button_for_radio_behavior() {
          one covenant button is selected at a time"
     );
 }
+}
 
-#[test]
-fn conduit_mixin_inherits_spell_mixin_for_tooltip_data() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn conduit_mixin_inherits_spell_mixin_for_tooltip_data(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &soulbinds_toc()).expect("Blizzard_Soulbinds should load");
 
     let probe = "return type(SoulbindConduitMixin) == 'table' and \
@@ -525,10 +521,10 @@ fn conduit_mixin_inherits_spell_mixin_for_tooltip_data() {
          spell tooltip when the conduit is socketed"
     );
 }
+}
 
-#[test]
-fn viewer_global_resolves_to_frame_after_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn viewer_global_resolves_to_frame_after_load(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &soulbinds_toc()).expect("Blizzard_Soulbinds should load");
 
     let probe = "local f = SoulbindViewer \
@@ -551,10 +547,10 @@ fn viewer_global_resolves_to_frame_after_load() {
          canonical proof that Viewer.xml ran before Soulbinds.xml"
     );
 }
+}
 
-#[test]
-fn xml_registers_all_thirteen_virtual_templates() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn xml_registers_all_thirteen_virtual_templates(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &soulbinds_toc()).expect("Blizzard_Soulbinds should load");
 
     for template in VIRTUAL_TEMPLATES {
@@ -600,10 +596,10 @@ fn xml_registers_all_thirteen_virtual_templates() {
         );
     }
 }
+}
 
-#[test]
-fn conduit_install_texture_template_registers_under_node_xml() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn conduit_install_texture_template_registers_under_node_xml(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &soulbinds_toc()).expect("Blizzard_Soulbinds should load");
 
     let probe = "local ok = pcall(function() \
@@ -625,4 +621,5 @@ fn conduit_install_texture_template_registers_under_node_xml() {
          doesn't accept template inheritance the pcall fails benignly \
          — this test pins the surface contract"
     );
+}
 }

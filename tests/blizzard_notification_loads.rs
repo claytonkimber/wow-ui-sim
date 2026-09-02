@@ -224,9 +224,8 @@ fn blizzard_notification_appears_in_game_and_glue_screens_eager_discovery() {
     }
 }
 
-#[test]
-fn blizzard_notification_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_notification_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -247,10 +246,10 @@ fn blizzard_notification_loads_without_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_notification_is_addon_loaded_after_eager_sweep() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_notification_is_addon_loaded_after_eager_sweep(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_Notification')")
@@ -262,10 +261,10 @@ fn blizzard_notification_is_addon_loaded_after_eager_sweep() {
          explicit load_addon call needed"
     );
 }
+}
 
-#[test]
-fn blizzard_notification_publishes_notification_util_table_with_three_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_notification_publishes_notification_util_table_with_three_methods(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval(&format!("return type(_G.{PUBLIC_NAMESPACE})"))
@@ -295,10 +294,10 @@ fn blizzard_notification_publishes_notification_util_table_with_three_methods() 
         );
     }
 }
+}
 
-#[test]
-fn blizzard_notification_publishes_two_backcompat_global_functions() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_notification_publishes_two_backcompat_global_functions(env: &WowLuaEnv) {
 
     for name in BACKCOMPAT_GLOBAL_FUNCTIONS {
         let kind: String = env
@@ -328,10 +327,10 @@ fn blizzard_notification_publishes_two_backcompat_global_functions() {
          broaden the legacy API surface beyond what retail ships"
     );
 }
+}
 
-#[test]
-fn blizzard_notification_does_not_leak_virtual_templates_as_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_notification_does_not_leak_virtual_templates_as_globals(env: &WowLuaEnv) {
 
     for template in VIRTUAL_TEMPLATES_NOT_IN_GLOBALS {
         let kind: String = env
@@ -349,10 +348,10 @@ fn blizzard_notification_does_not_leak_virtual_templates_as_globals() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_notification_does_not_leak_file_private_helpers_as_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_notification_does_not_leak_file_private_helpers_as_globals(env: &WowLuaEnv) {
 
     for private in &["notificationPoolCollection", "AcquireNotificationFrame"] {
         let kind: String = env
@@ -368,4 +367,5 @@ fn blizzard_notification_does_not_leak_file_private_helpers_as_globals() {
              ReleaseAll the entire pool, breaking every consumer's stashed frame reference)"
         );
     }
+}
 }

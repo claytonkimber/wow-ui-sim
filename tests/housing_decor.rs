@@ -1,5 +1,23 @@
 use wow_ui_sim::lua_api::WowLuaEnv;
 
+const HOUSING_DECOR_PREVIEW_STATE_SCRIPT: &str = r#"
+    if C_HousingDecor.IsPreviewState() ~= false or C_HousingDecor.GetNumPreviewDecor() ~= 0 then
+        return "wrong_initial_preview_state"
+    end
+
+    C_HousingDecor.EnterPreviewState()
+    if C_HousingDecor.IsPreviewState() ~= true or C_HousingDecor.GetNumPreviewDecor() ~= 1 then
+        return "enter_preview_not_reflected"
+    end
+
+    C_HousingDecor.ExitPreviewState()
+    if C_HousingDecor.IsPreviewState() ~= false or C_HousingDecor.GetNumPreviewDecor() ~= 0 then
+        return "exit_preview_not_reflected"
+    end
+
+    return "ok"
+"#;
+
 const HOUSING_DECOR_SCRIPT: &str = r#"
     if C_HousingDecor.IsDecorSelected() ~= true then
         return "selected_decor_not_reported"
@@ -40,6 +58,15 @@ const HOUSING_DECOR_SCRIPT: &str = r#"
 
 fn env() -> WowLuaEnv {
     WowLuaEnv::new().expect("Failed to create Lua environment")
+}
+
+#[test]
+fn housing_decor_preview_state_round_trips() {
+    let env = env();
+    let result: String = env
+        .eval(HOUSING_DECOR_PREVIEW_STATE_SCRIPT)
+        .expect("seeded C_HousingDecor preview state should be queryable");
+    assert_eq!(result, "ok");
 }
 
 #[test]

@@ -152,7 +152,7 @@ fn sync_child_key(
         parent.children_keys.insert(key.clone(), child_id);
     }
     if let Some(child) = sim.widgets.get_mut(child_id) {
-        child.parent_key = Some(key);
+        child.parent_key.get_or_insert(key);
     }
 
     Ok(())

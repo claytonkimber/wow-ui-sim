@@ -13,7 +13,7 @@ const WIDGET_REGISTRY_STORAGE_BUDGET_BYTES: usize = 230_000_000;
 
 #[test]
 fn settled_game_ui_widget_registry_stays_within_size_budget() {
-    test_timeout! {
+    perf_test_timeout! {
         let loaded_ui = load_timed_game_ui();
         assert!(
             loaded_ui.startup_elapsed.as_nanos() > 0,

@@ -39,7 +39,7 @@ Source: `src/lua_api/frame/methods/methods_meta.rs:133-172`
 
 Rust methods shadow mixin methods. If a mixin defines `SetShown`, it gets stored in `__frame_fields` but is never reached because the Rust `SetShown` method is found first (step 1).
 
-This means patterns like `self.SetShownBase = self.SetShown` store a **nil** value (Rust methods are not accessible as values through `__index`), unless the method is specifically handled to return a callable.
+This means patterns like `self.SetShownBase = self.SetShown` store a **nil** value (Rust methods are not accessible as values through `__index`). `EditModeSystemMixin` is handled explicitly during mixin application: the simulator resolves the native methods and stores callable aliases before lifecycle scripts run.
 
 ## Property Storage (`__newindex`)
 
@@ -218,16 +218,19 @@ Source: `src/loader/addon.rs:126-144`
 
 ### EditModeSystemMixin "Base" Aliases
 
-`EditModeSystemMixin.OnSystemLoad` normally saves method aliases (`SetShownBase = self.SetShown`). Frames with `inherit="prepend"` OnLoad handlers may call these aliases before OnSystemLoad runs. The simulator pre-initializes them during mixin application:
+`EditModeSystemMixin.OnSystemLoad` normally saves aliases for overridden methods. Frames with `inherit="prepend"` OnLoad handlers can call those aliases before `OnSystemLoad` runs, so the simulator seeds all seven callable native aliases immediately after applying `EditModeSystemMixin`:
 
-```rust
-if name == "EditModeSystemMixin" {
-    post_init.push_str("f.SetScaleBase = f.SetScale ");
-    // ... etc
-}
-```
+- `SetScaleBase`
+- `SetPointBase`
+- `ClearAllPointsBase`
+- `SetShownBase`
+- `ShowBase`
+- `HideBase`
+- `IsShownBase`
 
-Source: `src/lua_api/globals/template/mod.rs:284-295`
+The aliases are resolved from the frame's native method lookup and stored on its per-instance field table before template scripts execute. If a required native method is unavailable, template application returns the error instead of silently installing a nil alias.
+
+Source: `src/lua_api/globals/create_frame/helpers.rs`; propagation through `src/lua_api/globals/create_frame/template_chain.rs` and `template_chain/runtime.rs`
 
 ### Script Chaining Order Issue
 
@@ -240,13 +243,7 @@ With `inherit="prepend"`, the new handler runs **before** the existing one. If t
 
 ### Rust Method Shadow Problem
 
-Rust-registered methods cannot be captured as values. This code:
-```lua
-self.SetShownBase = self.SetShown
-```
-Stores **nil** because `self.SetShown` goes through `__index`, which finds the Rust method in step 1 (mlua method table) — but mlua returns the method result only when it's called with arguments, not when accessed as a value.
-
-Workaround: The simulator pre-initializes these aliases explicitly during mixin application, using Lua wrappers or by storing method references from the Lua side.
+Rust-registered methods cannot be captured as values by ordinary Lua assignment. The `EditModeSystemMixin` path therefore resolves and stores its seven native aliases in Rust during mixin application; this is the explicit exception to the usual `__index` behavior described above.
 
 ### `__frame_{id}` Global Namespace Collision (FIXED)
 

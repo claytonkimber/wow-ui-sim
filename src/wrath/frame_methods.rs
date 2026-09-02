@@ -30,8 +30,6 @@ pub fn register_all(state: &mut LuaState, mt: GcRef<Table>) -> LuaResult<()> {
     table_set_rust_fn_static(state, mt, "SetPlayerTextureWidth", set_player_texture_width)?;
     table_set_rust_fn_static(state, mt, "SetMaxBytes", set_max_bytes)?;
     table_set_rust_fn_static(state, mt, "GetTextHeight", get_text_height)?;
-    table_set_rust_fn_static(state, mt, "NavigateHome", browser_navigate)?;
-    table_set_rust_fn_static(state, mt, "NavigateTo", browser_navigate)?;
     table_set_rust_fn_static(state, mt, "OpenTicket", browser_navigate)?;
     Ok(())
 }

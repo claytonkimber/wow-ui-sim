@@ -238,6 +238,7 @@ fn register_map_and_encounter_surfaces(state: &mut LuaState) -> LuaResult<()> {
     creature_info::register_creature_info_surface(state)?;
     delves_ui::register_delves_ui_surface(state)?;
     encounter_journal::register_encounter_journal_surface(state)?;
+    c_api::c_instance_encounter::register_c_instance_encounter_surface(state)?;
     c_api::c_quest_hub::register_c_quest_hub_surface(state)?;
     c_api::register_map_environment_tables(state)?;
     gossip_info::register_gossip_info_surface(state)?;
@@ -245,12 +246,15 @@ fn register_map_and_encounter_surfaces(state: &mut LuaState) -> LuaResult<()> {
 }
 
 fn register_world_activity_surfaces(state: &mut LuaState) -> LuaResult<()> {
+    c_api::c_catalog_shop::register_c_catalog_shop_surface(state)?;
+    c_api::c_chromie_time::register_c_chromie_time_surface(state)?;
     mythic_plus::register_mythic_plus_surface(state)?;
     if cfg!(feature = "client-mists") {
         quest_choice::register_quest_choice_surface(state)?;
     }
     scenario_info::register_scenario_info_surface(state)?;
     warband_scene::register_warband_scene_surface(state)?;
+    c_api::c_player_choice::register_c_player_choice_surface(state)?;
     c_api::register_nameplate_tables(state)?;
     c_api::c_housing::register_c_housing_surface(state)?;
     ui_widget_manager::register_ui_widget_manager_surface(state)?;
@@ -281,6 +285,7 @@ fn register_group_activity_surfaces(state: &mut LuaState) -> LuaResult<()> {
     c_api::c_party_info::register_c_party_info_surface(state)?;
     player_info::register_player_info_surface(state)?;
     c_api::c_lfg_info::register_c_lfg_info_surface(state)?;
+    c_api::c_pet_battles::register_c_pet_battles_surface(state)?;
     pet_battles::register_pet_battles_surface(state)?;
     c_api::c_account_services::register_c_account_services_surface(state)?;
     c_api::c_merchant_frame::register_c_merchant_frame_surface(state)?;

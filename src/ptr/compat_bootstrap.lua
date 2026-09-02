@@ -51,7 +51,6 @@ __wow_fill_enum("NamePlateStyle", { "Classic" })
 __wow_fill_enum("PingResult", { "FailedSilent" })
 __wow_fill_enum("PingSubjectType", { "ActionReady", "ActionOnCooldown", "ActionUnavailable" })
 __wow_fill_enum("SecretAspect", { "RadialProgress" })
-__wow_fill_enum("TieredEntranceType", { "Lairs" })
 __wow_fill_enum("TooltipDataLineType", { "ItemSpellTriggerOnUse", "ItemSpellTriggerOnEquip", "ItemSpellTriggerOnProc" })
 
 if not Enum.ForbiddenScriptObjectAspect then
@@ -111,6 +110,13 @@ end
 
 if type(FlagsUtil) ~= "table" then
   FlagsUtil = {}
+end
+
+if type(FlagsUtilConstants) ~= "table" then
+  FlagsUtilConstants = {}
+end
+if rawget(FlagsUtilConstants, "CombineShouldSet") == nil then
+  FlagsUtilConstants.CombineShouldSet = true
 end
 
 if FlagsUtil.IsSet == nil then

@@ -131,9 +131,8 @@ fn blizzard_encounter_timeline_loads_after_edit_mode_dependency() {
     );
 }
 
-#[test]
-fn blizzard_encounter_timeline_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_encounter_timeline_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -149,10 +148,10 @@ fn blizzard_encounter_timeline_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_encounter_timeline_is_addon_loaded_returns_true() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_encounter_timeline_is_addon_loaded_returns_true(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_EncounterTimeline') and true or false")
@@ -163,10 +162,10 @@ fn blizzard_encounter_timeline_is_addon_loaded_returns_true() {
          auto-loads on the Game screen"
     );
 }
+}
 
-#[test]
-fn blizzard_encounter_timeline_creates_named_singleton_frame() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_encounter_timeline_creates_named_singleton_frame(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(EncounterTimeline)")
@@ -185,10 +184,10 @@ fn blizzard_encounter_timeline_creates_named_singleton_frame() {
         "EncounterTimeline:GetName() must echo the XML `name` attribute"
     );
 }
+}
 
-#[test]
-fn blizzard_encounter_timeline_starts_hidden() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_encounter_timeline_starts_hidden(env: &WowLuaEnv) {
 
     let hidden: bool = env
         .eval("return EncounterTimeline:IsShown() == false")
@@ -200,10 +199,10 @@ fn blizzard_encounter_timeline_starts_hidden() {
          player is editing the HUD layout or a live encounter triggers it"
     );
 }
+}
 
-#[test]
-fn blizzard_encounter_timeline_publishes_core_mixin() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_encounter_timeline_publishes_core_mixin(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(EncounterTimelineMixin)")
@@ -224,10 +223,10 @@ fn blizzard_encounter_timeline_publishes_core_mixin() {
          five EventRegistry callbacks — must be a function on the mixin"
     );
 }
+}
 
-#[test]
-fn blizzard_encounter_timeline_publishes_settings_mixin_hierarchy() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_encounter_timeline_publishes_settings_mixin_hierarchy(env: &WowLuaEnv) {
 
     let kinds: (String, String, String, String, String, String) = env
         .eval(
@@ -256,10 +255,10 @@ fn blizzard_encounter_timeline_publishes_settings_mixin_hierarchy() {
          TimerSettings) — Edit Mode wires them up to control sizing, transparency, and layout"
     );
 }
+}
 
-#[test]
-fn blizzard_encounter_timeline_publishes_view_and_frame_manager_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_encounter_timeline_publishes_view_and_frame_manager_mixins(env: &WowLuaEnv) {
 
     let kinds: (String, String, String) = env
         .eval(
@@ -280,10 +279,10 @@ fn blizzard_encounter_timeline_publishes_view_and_frame_manager_mixins() {
          underlying mixins must publish as global tables"
     );
 }
+}
 
-#[test]
-fn blizzard_encounter_timeline_publishes_track_and_timer_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_encounter_timeline_publishes_track_and_timer_mixins(env: &WowLuaEnv) {
 
     let kinds: (String, String, String, String, String, String) = env
         .eval(
@@ -313,10 +312,10 @@ fn blizzard_encounter_timeline_publishes_track_and_timer_mixins() {
          TimerViewSettings), TimerViewTrackDividerMixin"
     );
 }
+}
 
-#[test]
-fn blizzard_encounter_timeline_publishes_orientation_and_animation_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_encounter_timeline_publishes_orientation_and_animation_mixins(env: &WowLuaEnv) {
 
     let kinds: (String, String, String, String, String, String) = env
         .eval(
@@ -345,10 +344,10 @@ fn blizzard_encounter_timeline_publishes_orientation_and_animation_mixins() {
          animations applied to encounter event icons"
     );
 }
+}
 
-#[test]
-fn blizzard_encounter_timeline_publishes_constants_table() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_encounter_timeline_publishes_constants_table(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(EncounterTimelineConstants)")
@@ -370,10 +369,10 @@ fn blizzard_encounter_timeline_publishes_constants_table() {
          convert percentage-style settings into native frame scale"
     );
 }
+}
 
-#[test]
-fn blizzard_encounter_timeline_publishes_dirty_flag_and_animation_enums() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_encounter_timeline_publishes_dirty_flag_and_animation_enums(env: &WowLuaEnv) {
 
     let animation_kinds: (i64, i64) = env
         .eval(
@@ -406,10 +405,10 @@ fn blizzard_encounter_timeline_publishes_dirty_flag_and_animation_enums() {
          produced by Flags_CreateMaskFromTable — used to seed CreateFlags() in OnLoad"
     );
 }
+}
 
-#[test]
-fn blizzard_encounter_timeline_publishes_visibility_cvars_array() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_encounter_timeline_publishes_visibility_cvars_array(env: &WowLuaEnv) {
 
     let cvars: (String, String, i64) = env
         .eval(
@@ -448,10 +447,10 @@ fn blizzard_encounter_timeline_publishes_visibility_cvars_array() {
          filtering on the timeline"
     );
 }
+}
 
-#[test]
-fn blizzard_encounter_timeline_timer_layout_direction_enum_values() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_encounter_timeline_timer_layout_direction_enum_values(env: &WowLuaEnv) {
 
     let directions: (i64, i64) = env
         .eval(
@@ -467,4 +466,5 @@ fn blizzard_encounter_timeline_timer_layout_direction_enum_values() {
          spawned timer frames either at the top of the list (growing down) or the bottom \
          (growing up)"
     );
+}
 }

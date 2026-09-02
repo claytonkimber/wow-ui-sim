@@ -1,0 +1,950 @@
+{
+  "schema": "framexml-patch-audit/v2",
+  "patch": "12.0.5",
+  "target": {
+    "flavor": "retail",
+    "build": "12.0.5",
+    "cache_manifest": "data/blizzard-ui-files/retail.txt",
+    "cache_hash": "42abf0ff8118e6be4d41ed321f6a0e7daeb83234928e451f33851d14a488b5ef"
+  },
+  "source": {
+    "path": "data/patch-api/sources/12.0.5-probes.json",
+    "hash": "2d7671b7702eed71c5d8a3ae4e92595771f6c04bb58fe98bd771647ac26cddca",
+    "added_count": 0,
+    "changed_count": 38,
+    "removed_count": 0
+  },
+  "output": {
+    "checklist": "docs/generated/patch-12-0-5-probe-checklist.md",
+    "inventory": "docs/wiki/investigations/patch-12-0-5-probe-inventory.md"
+  },
+  "rows": [
+    {
+      "id": "changed:AnimScriptProbe.HandlerMatrix",
+      "symbol": "AnimScriptProbe.HandlerMatrix",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "script support",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/runtime_subsystems.rs::test_animation_script_handler_matrix_matches_retail_probe",
+          "summary": "Frame, AnimationGroup, and all nine animation subtypes directly match the retained HasScript/SetScript handler matrix.",
+          "source_hash": "e725473130c206e1523dbf24280594be31fd4f021d2a8a115235e5d7d78ab552"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/runtime_subsystems.rs::test_animation_script_handler_matrix_matches_retail_probe"
+      ],
+      "assertions": [],
+      "commit": "0a5040d7e1",
+      "approval_id": null,
+      "notes": "Frame, AnimationGroup, and all nine animation subtypes directly match the retained HasScript/SetScript handler matrix."
+    },
+    {
+      "id": "changed:AttributeDispatchProbe.ScalarRepeat",
+      "symbol": "AttributeDispatchProbe.ScalarRepeat",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "attributes",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "tests/protected_attribute_enforcement.rs::unchanged_scalar_attribute_refires_on_attribute_changed",
+          "summary": "Repeated scalar and explicit-false SetAttribute dispatch is directly regression-tested.",
+          "source_hash": "d8bd52c7fd19dfa52f87f9d145d3a42ba6c8bd17849b24f6f75acd091531e50b"
+        }
+      ],
+      "tests": [
+        "tests/protected_attribute_enforcement.rs::unchanged_scalar_attribute_refires_on_attribute_changed"
+      ],
+      "assertions": [],
+      "commit": "1de9cedea",
+      "approval_id": null,
+      "notes": "Repeated scalar and explicit-false SetAttribute dispatch is directly regression-tested."
+    },
+    {
+      "id": "changed:AttributeDispatchProbe.PanelPulse",
+      "symbol": "AttributeDispatchProbe.PanelPulse",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "panel lifecycle",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "tests/test_showuipanel.rs::repeated_show_ui_panel_pulse_closes_active_panel_stack",
+          "summary": "Sequential center-panel shows replace the first panel, and CloseAllWindows hides the active second panel.",
+          "source_hash": "13c1179779758e949b1d4ce4c3f7f7932dbb48c83098d9404f4e21569cd548a2"
+        }
+      ],
+      "tests": [
+        "tests/test_showuipanel.rs::repeated_show_ui_panel_pulse_closes_active_panel_stack"
+      ],
+      "assertions": [],
+      "commit": "cccddd5ad",
+      "approval_id": null,
+      "notes": "The retained two-panel ShowUIPanel pulse and CloseAllWindows stack behavior is directly regression-tested."
+    },
+    {
+      "id": "changed:CoreBehaviorProbe.ForbiddenState",
+      "symbol": "CoreBehaviorProbe.ForbiddenState",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "forbidden frames",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "tests/protected_frame_enforcement.rs::test_insecure_addon_created_normal_frame_set_forbidden_is_noop",
+          "summary": "Normal addon-frame SetForbidden behavior is directly regression-tested.",
+          "source_hash": "eda8ab6d1fd1ac3105da7c810f9462239492268a6ec1b2d025aaa03ba3283c8e"
+        }
+      ],
+      "tests": [
+        "tests/protected_frame_enforcement.rs::test_insecure_addon_created_normal_frame_set_forbidden_is_noop"
+      ],
+      "assertions": [],
+      "commit": "0afd8e1bc",
+      "approval_id": null,
+      "notes": "Normal addon-frame SetForbidden behavior is directly regression-tested."
+    },
+    {
+      "id": "changed:CoreBehaviorProbe.ForbiddenConstructor",
+      "symbol": "CoreBehaviorProbe.ForbiddenConstructor",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "forbidden frames",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "tests/protected_frame_enforcement.rs::test_retail_create_forbidden_frame_is_absent",
+          "summary": "Retail exposes no CreateForbiddenFrame constructor, so the probe's creation and enumeration branch is unreachable.",
+          "source_hash": "eda8ab6d1fd1ac3105da7c810f9462239492268a6ec1b2d025aaa03ba3283c8e"
+        }
+      ],
+      "tests": [
+        "tests/protected_frame_enforcement.rs::test_retail_create_forbidden_frame_is_absent"
+      ],
+      "assertions": [],
+      "commit": "8505fc5d0",
+      "approval_id": null,
+      "notes": "The retained retail constructor-absence result is directly regression-tested; no EnumerateFrames claim is made because the probe exits before that branch."
+    },
+    {
+      "id": "changed:CoreBehaviorProbe.UnitEventFilter",
+      "symbol": "CoreBehaviorProbe.UnitEventFilter",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "events",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "tests/admin_event_api.rs::test_register_unit_event_reports_registered_unit",
+          "summary": "Valid and invalid RegisterUnitEvent filter behavior is directly regression-tested.",
+          "source_hash": "a6350441c6db6dcfee75a53bc7db80debdd21fc939dd3a71e3b6b31c70ca164c"
+        }
+      ],
+      "tests": [
+        "tests/admin_event_api.rs::test_register_unit_event_reports_registered_unit"
+      ],
+      "assertions": [],
+      "commit": "27771a531",
+      "approval_id": null,
+      "notes": "Valid and invalid RegisterUnitEvent filter behavior is directly regression-tested."
+    },
+    {
+      "id": "changed:CoreBehaviorProbe.AttributeWildcardFalse",
+      "symbol": "CoreBehaviorProbe.AttributeWildcardFalse",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "attributes",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "tests/protected_attribute_enforcement.rs::get_attribute_wildcard_lookup_preserves_explicit_false",
+          "summary": "Wildcard attribute lookup preserving explicit false is directly regression-tested.",
+          "source_hash": "d8bd52c7fd19dfa52f87f9d145d3a42ba6c8bd17849b24f6f75acd091531e50b"
+        }
+      ],
+      "tests": [
+        "tests/protected_attribute_enforcement.rs::get_attribute_wildcard_lookup_preserves_explicit_false"
+      ],
+      "assertions": [],
+      "commit": "6a2c5bbb3",
+      "approval_id": null,
+      "notes": "Wildcard attribute lookup preserving explicit false is directly regression-tested."
+    },
+    {
+      "id": "changed:CoreBehaviorProbe.AttributeWildcardValues",
+      "symbol": "CoreBehaviorProbe.AttributeWildcardValues",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "attributes",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "tests/protected_attribute_enforcement.rs::get_attribute_wildcard_lookup_preserves_explicit_false",
+          "summary": "Wildcard true/string values and lookup arity are directly regression-tested.",
+          "source_hash": "d8bd52c7fd19dfa52f87f9d145d3a42ba6c8bd17849b24f6f75acd091531e50b"
+        }
+      ],
+      "tests": [
+        "tests/protected_attribute_enforcement.rs::get_attribute_wildcard_lookup_preserves_explicit_false"
+      ],
+      "assertions": [],
+      "commit": "6a2c5bbb3",
+      "approval_id": null,
+      "notes": "Wildcard true/string values and lookup arity are directly regression-tested."
+    },
+    {
+      "id": "changed:CoreBehaviorProbe.RaiseLowerLevel",
+      "symbol": "CoreBehaviorProbe.RaiseLowerLevel",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "frame ordering",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "tests/frame_level.rs::test_raise_lower_do_not_change_lua_visible_raised_frame_level",
+          "summary": "Raise/Lower tie ordering and raw frame-level boundaries are directly regression-tested.",
+          "source_hash": "9b014aa7a3b8e8c42d7518e438530e6db7f8ddfecc221348790a03d7e5de58e2"
+        }
+      ],
+      "tests": [
+        "tests/frame_level.rs::test_raise_lower_do_not_change_lua_visible_raised_frame_level",
+        "tests/frame_level.rs::test_raise_lower_do_not_cross_raw_frame_levels_for_hit_order"
+      ],
+      "assertions": [],
+      "commit": "24ab86fcd",
+      "approval_id": null,
+      "notes": "Raise/Lower tie ordering and raw frame-level boundaries are directly regression-tested."
+    },
+    {
+      "id": "changed:CoreBehaviorProbe.MouseFocusOrder",
+      "symbol": "CoreBehaviorProbe.MouseFocusOrder",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "mouse focus",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/iced_app/mouse_tests.rs::mouse_focus_order_tracks_gui_hover_after_raise_and_lower",
+          "summary": "GUI mouse-move hit testing keeps the higher raw-level frame as both GetMouseFocus and GetMouseFoci()[1] across Raise and Lower, then clears focus when hidden.",
+          "source_hash": "846046d4f1a9fae6389530eab92fed1a333b4296b80012e889b350581686ae2b"
+        }
+      ],
+      "tests": [
+        "src/iced_app/mouse_tests.rs::mouse_focus_order_tracks_gui_hover_after_raise_and_lower"
+      ],
+      "assertions": [],
+      "commit": "253bb77f1",
+      "approval_id": null,
+      "notes": "The retained two-frame DIALOG scenario uses the GUI hover path: the level-10 frame remains both GetMouseFocus and GetMouseFoci()[1] before and after lower-frame Raise and higher-frame Lower; hiding both clears focus."
+    },
+    {
+      "id": "changed:DevToolsDumpProbe.FrameArrayDump",
+      "symbol": "DevToolsDumpProbe.FrameArrayDump",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "frame identity",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "tests/blizzard_debug_tools_loads.rs::devtools_dump_captures_frame_array_metadata",
+          "summary": "Frame array insertion, slot retrieval, DevTools_Dump return shape, and emitted metadata are directly regression-tested.",
+          "source_hash": "faa4c0cae51e448f92edd56afab785c86a51a796193a130fbafbd338c95c572f"
+        }
+      ],
+      "tests": [
+        "tests/blizzard_debug_tools_loads.rs::devtools_dump_captures_frame_array_metadata"
+      ],
+      "assertions": [],
+      "commit": "c121c451c",
+      "approval_id": null,
+      "notes": "The retained frame-array and DevTools dump metadata sequence is directly regression-tested against the loaded Blizzard UI surface."
+    },
+    {
+      "id": "changed:FrameIdentityProbe.IdentitySlot",
+      "symbol": "FrameIdentityProbe.IdentitySlot",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "identity",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "tests/frame_table_iteration.rs::frame_pairs_enumerates_identity_and_array_slots",
+          "summary": "Frame slot zero identity userdata is directly regression-tested.",
+          "source_hash": "84de4c69b748525ff9a77686491b5dcf83e8d0fc4d922119b9f1c7e2605b5a8f"
+        }
+      ],
+      "tests": [
+        "tests/frame_table_iteration.rs::frame_pairs_enumerates_identity_and_array_slots"
+      ],
+      "assertions": [],
+      "commit": "b3f579f70",
+      "approval_id": null,
+      "notes": "Frame slot zero identity userdata is directly regression-tested."
+    },
+    {
+      "id": "changed:FrameIdentityProbe.SurrogateDispatch",
+      "symbol": "FrameIdentityProbe.SurrogateDispatch",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "identity",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "tests/security_api.rs::test_frame_identity_slots_dispatch_surrogate_methods",
+          "summary": "Frame slot zero redirects method/protection dispatch, while a slot-one-only surrogate is rejected.",
+          "source_hash": "27a79e6d77acd3592e58136e4fd359d2a86ae32a26108a4348ecc06dae8f8034"
+        }
+      ],
+      "tests": [
+        "tests/security_api.rs::test_frame_identity_slots_dispatch_surrogate_methods",
+        "tests/security_api.rs::test_frame_identity_slot_can_redirect_method_receiver"
+      ],
+      "assertions": [],
+      "commit": "a46933eab",
+      "approval_id": null,
+      "notes": "Frame slot zero redirects method/protection dispatch, while a slot-one-only surrogate is rejected."
+    },
+    {
+      "id": "changed:FrameIdentityProbe.DuplicateFreshness",
+      "symbol": "FrameIdentityProbe.DuplicateFreshness",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "identity",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "tests/globals_legacy.rs::duplicate_named_frame_gets_fresh_identity_and_fields",
+          "summary": "Duplicate named-frame identity and custom-field freshness is directly regression-tested.",
+          "source_hash": "c37c15152c0ceb59bd0a24b4e980ccb982c6d6c6ac292ecab9a7f4f8579e75f6"
+        }
+      ],
+      "tests": [
+        "tests/globals_legacy.rs::duplicate_named_frame_gets_fresh_identity_and_fields"
+      ],
+      "assertions": [],
+      "commit": "8f4f885c3",
+      "approval_id": null,
+      "notes": "Duplicate named-frame identity and custom-field freshness is directly regression-tested."
+    },
+    {
+      "id": "changed:HookScriptBindingProbe.IndexedHooks",
+      "symbol": "HookScriptBindingProbe.IndexedHooks",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "scripts",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "tests/hook_script.rs::test_hook_script_rejects_pre_and_post_binding_slots",
+          "summary": "The normal binding slot chains while explicit slots 0 and 2 return false and remain absent from GetScript.",
+          "source_hash": "12fc97b39717a4823b363f5bd92965f85a7a7af216755236f583921d5a0e09f9"
+        }
+      ],
+      "tests": [
+        "tests/hook_script.rs::test_hook_script_rejects_pre_and_post_binding_slots",
+        "tests/hook_script.rs::test_multiple_hook_scripts_chain_in_order"
+      ],
+      "assertions": [],
+      "commit": "0afd8e1bc",
+      "approval_id": null,
+      "notes": "The normal binding slot chains while explicit slots 0 and 2 return false and remain absent from GetScript; focused tests cover both binding rules and order."
+    },
+    {
+      "id": "changed:IsProtectedProbe.LegacySetters",
+      "symbol": "IsProtectedProbe.LegacySetters",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "protection",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "tests/security_api.rs::test_protect_methods_are_not_public_addon_surface",
+          "summary": "Legacy Protect and SetProtected methods are absent and calls fail.",
+          "source_hash": "27a79e6d77acd3592e58136e4fd359d2a86ae32a26108a4348ecc06dae8f8034"
+        }
+      ],
+      "tests": [
+        "tests/security_api.rs::test_protect_methods_are_not_public_addon_surface"
+      ],
+      "assertions": [],
+      "commit": "35475582c",
+      "approval_id": null,
+      "notes": "Legacy Protect and SetProtected methods are absent and calls fail."
+    },
+    {
+      "id": "changed:IsProtectedProbe.SecureTemplate",
+      "symbol": "IsProtectedProbe.SecureTemplate",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "protection",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "tests/startup_warnings/late.rs::test_secure_action_button_template_is_protected_tuple_after_blizzard_framexml_load",
+          "summary": "SecureActionButtonTemplate instances report protected state after Blizzard FrameXML loads.",
+          "source_hash": "eadca6ddd3aa63fbf72ff4f73dbc8de4cdb249dc4b66158a308d305429422bbe"
+        }
+      ],
+      "tests": [
+        "tests/startup_warnings/late.rs::test_secure_action_button_template_is_protected_tuple_after_blizzard_framexml_load"
+      ],
+      "assertions": [],
+      "commit": "c5176b6f8",
+      "approval_id": null,
+      "notes": "SecureActionButtonTemplate instances report protected state after Blizzard FrameXML loads."
+    },
+    {
+      "id": "changed:IsProtectedProbe.DescendantAnchorPropagation",
+      "symbol": "IsProtectedProbe.DescendantAnchorPropagation",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "protection",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "tests/protected_frame_enforcement.rs::test_protected_state_does_not_propagate_to_descendants_or_anchors",
+          "summary": "Directly protected roots return true/true while child, grandchild, frames anchored to the root or child, and the root-keyed anchored frame remain false/false.",
+          "source_hash": "eda8ab6d1fd1ac3105da7c810f9462239492268a6ec1b2d025aaa03ba3283c8e"
+        }
+      ],
+      "tests": [
+        "tests/protected_frame_enforcement.rs::test_protected_state_does_not_propagate_to_descendants_or_anchors"
+      ],
+      "assertions": [],
+      "commit": "5b4bb274d",
+      "approval_id": null,
+      "notes": "The directly protected root returns true/true; its child, grandchild, frames anchored to the root or child, and the root-keyed anchored frame remain false/false."
+    },
+    {
+      "id": "changed:JustifyProbe.FrameFontStrings",
+      "symbol": "JustifyProbe.FrameFontStrings",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "FontString layout",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/xml_basics_extra.rs::layer_fontstring_without_anchors_uses_justify_h_default_point",
+          "summary": "Unanchored frame-layer FontStrings receive one LEFT, CENTER, or RIGHT parent-relative point selected by justifyH while justifyV does not alter it.",
+          "source_hash": "046291bb2f570ce7ca19ff66ea1fc77b88825ced3bc5f0486c969171df034482"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/xml_basics_extra.rs::layer_fontstring_without_anchors_uses_justify_h_default_point"
+      ],
+      "assertions": [],
+      "commit": "426f428f5",
+      "approval_id": null,
+      "notes": "The retained unanchored frame-layer justifyH/justifyV matrix is directly regression-tested."
+    },
+    {
+      "id": "changed:JustifyProbe.ButtonText",
+      "symbol": "JustifyProbe.ButtonText",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "FontString layout",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/xml_text_region_defaults.rs::button_text_without_anchors_uses_justify_h_default_point",
+          "summary": "Implicit ButtonText default points and justification are directly regression-tested.",
+          "source_hash": "a33cc6f29f0a70f218f8a5cda32e6b1f7419826163c13ec43b41d558307ead65"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/xml_text_region_defaults.rs::button_text_without_anchors_uses_justify_h_default_point"
+      ],
+      "assertions": [],
+      "commit": "f612e3e3b",
+      "approval_id": null,
+      "notes": "Implicit ButtonText default points and justification are directly regression-tested."
+    },
+    {
+      "id": "changed:JustifyProbe.SizeVariants",
+      "symbol": "JustifyProbe.SizeVariants",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "FontString layout",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/xml_basics_extra.rs::layer_fontstring_size_variants_keep_justify_h_default_points",
+          "summary": "No-size, width-only, height-only, and width-plus-height FontStrings retain justifyH-selected default points while configured dimensions remain intact.",
+          "source_hash": "046291bb2f570ce7ca19ff66ea1fc77b88825ced3bc5f0486c969171df034482"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/xml_basics_extra.rs::layer_fontstring_size_variants_keep_justify_h_default_points"
+      ],
+      "assertions": [],
+      "commit": "63dc7c62b",
+      "approval_id": null,
+      "notes": "The retained frame-layer FontString size variants and default-anchor interaction are directly regression-tested."
+    },
+    {
+      "id": "changed:JustifyProbe.ExplicitAnchors",
+      "symbol": "JustifyProbe.ExplicitAnchors",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "FontString layout",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/xml_basics_extra.rs::layer_fontstring_explicit_anchors_remain_authoritative",
+          "summary": "TOP, BOTTOM, LEFT, RIGHT, and TOPLEFT explicit anchors remain the sole point regardless of justifyH.",
+          "source_hash": "046291bb2f570ce7ca19ff66ea1fc77b88825ced3bc5f0486c969171df034482"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/xml_basics_extra.rs::layer_fontstring_explicit_anchors_remain_authoritative"
+      ],
+      "assertions": [],
+      "commit": "63dc7c62b",
+      "approval_id": null,
+      "notes": "The retained explicit-anchor controls are directly regression-tested without adding an implicit justifyH point."
+    },
+    {
+      "id": "changed:JustifyProbe.EditBoxRegions",
+      "symbol": "JustifyProbe.EditBoxRegions",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "FontString layout",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/xml_text_region_defaults.rs::justify_probe_editbox_regions_cover_size_and_inset_variants",
+          "summary": "No-size, explicit-size, and inset EditBoxes expose unanchored backing FontStrings, retain owner TextInsets, and do not publish the XML FontString names.",
+          "source_hash": "a33cc6f29f0a70f218f8a5cda32e6b1f7419826163c13ec43b41d558307ead65"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/xml_text_region_defaults.rs::justify_probe_editbox_regions_cover_size_and_inset_variants"
+      ],
+      "assertions": [],
+      "commit": "63dc7c62b",
+      "approval_id": null,
+      "notes": "The retained EditBox backing-region, size-variant, and TextInsets behavior is directly regression-tested."
+    },
+    {
+      "id": "changed:JustifyProbe.MessageRegions",
+      "symbol": "JustifyProbe.MessageRegions",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "FontString layout",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/xml_text_region_defaults.rs::justify_probe_message_regions_stay_absent_with_owner_insets",
+          "summary": "MessageFrame and ScrollingMessageFrame owners remain unanchored, expose no FontString regions, and retain explicit owner TextInsets.",
+          "source_hash": "a33cc6f29f0a70f218f8a5cda32e6b1f7419826163c13ec43b41d558307ead65"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/xml_text_region_defaults.rs::justify_probe_message_regions_stay_absent_with_owner_insets"
+      ],
+      "assertions": [],
+      "commit": "ce7b2c3cd",
+      "approval_id": null,
+      "notes": "The retained MessageFrame and ScrollingMessageFrame owner/region/TextInsets observations are directly regression-tested."
+    },
+    {
+      "id": "changed:ProtectedRetailProbe.PlainFrame",
+      "symbol": "ProtectedRetailProbe.PlainFrame",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "protection",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "tests/protected_frame_enforcement.rs::test_retail_plain_frame_protection_probe",
+          "summary": "A plain frame remains unprotected and unforbidden; legacy protection setters are absent, their calls fail, and protection state remains false.",
+          "source_hash": "eda8ab6d1fd1ac3105da7c810f9462239492268a6ec1b2d025aaa03ba3283c8e"
+        }
+      ],
+      "tests": [
+        "tests/protected_frame_enforcement.rs::test_retail_plain_frame_protection_probe"
+      ],
+      "assertions": [],
+      "commit": "8505fc5d0",
+      "approval_id": null,
+      "notes": "The retained plain-frame protection, forbidden-state, and legacy-setter sequence is directly regression-tested."
+    },
+    {
+      "id": "changed:ProtectedRetailProbe.XmlProtected",
+      "symbol": "ProtectedRetailProbe.XmlProtected",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "protection",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "tests/xml_frame_strata.rs::test_xml_protected_frame_retains_protection_and_lacks_legacy_setters",
+          "summary": "An XML frame with protected=true remains protected and unforbidden while legacy protection setters stay absent and fail when called.",
+          "source_hash": "4d296cb8c012be5d5d87b68c2b16047fcca63970bd580f00b122cc6994364216"
+        }
+      ],
+      "tests": [
+        "tests/xml_frame_strata.rs::test_xml_protected_frame_retains_protection_and_lacks_legacy_setters"
+      ],
+      "assertions": [],
+      "commit": "c7637481b",
+      "approval_id": null,
+      "notes": "The retained XML protected-attribute state and legacy-setter sequence is directly regression-tested."
+    },
+    {
+      "id": "changed:ProtectedRetailProbe.SecureStore",
+      "symbol": "ProtectedRetailProbe.SecureStore",
+      "change": "changed",
+      "status": "evidence-required",
+      "resolution": "unsafe",
+      "owner": "protection",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "manual",
+          "reference": "data/patch-api/evidence/12.0.5/ProtectedRetailProbe.lua",
+          "source_hash": "4a2a3b8cd061e243306caeb5a5f28fe65216d7dc6675ebcc0b53b8573043918d",
+          "summary": "Retained Store frames are forbidden, legacy setters are absent, and IsProtected errors; the current simulator returns normally, so exact forbidden/secret-return enforcement is unsafe to guess. Await separate informed approval or new live evidence."
+        }
+      ],
+      "tests": [],
+      "assertions": [],
+      "commit": null,
+      "approval_id": null,
+      "notes": "Retained Store frames are forbidden, legacy setters are absent, and IsProtected errors; the current simulator returns normally, so exact forbidden/secret-return enforcement is unsafe to guess. Await authoritative live evidence or a correct modeled implementation."
+    },
+    {
+      "id": "changed:ScaleEventProbe.OrderedEvents",
+      "symbol": "ScaleEventProbe.OrderedEvents",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "scale events",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/iced_app/resize_event_tests.rs::ui_scale_cvar_change_fires_pair_before_cvar_update",
+          "summary": "uiScale and useUiScale changes expose the new effective scale while the old CVar remains visible during DISPLAY_SIZE_CHANGED and UI_SCALE_CHANGED, then store the CVar and dispatch CVAR_UPDATE.",
+          "source_hash": "18656a3c64c518b2a44aa132f8a3ed06c7d6c7c51deb4fc705c9d334505a7fc7"
+        }
+      ],
+      "tests": [
+        "src/iced_app/resize_event_tests.rs::resizing_window_fires_display_size_changed_then_ui_scale_changed",
+        "src/iced_app/resize_event_tests.rs::startup_fires_display_scale_pair_before_player_login_not_after",
+        "src/iced_app/resize_event_tests.rs::ui_scale_cvar_change_fires_pair_before_cvar_update"
+      ],
+      "assertions": [],
+      "commit": "198927536",
+      "approval_id": null,
+      "notes": "Observable resize, startup, and UI-scale CVar transitions now match the retained pair/CVAR_UPDATE ordering. Same-size OS transitions remain a separate unobservable row."
+    },
+    {
+      "id": "changed:ScaleEventProbe.SameSizeDuplicatePair",
+      "symbol": "ScaleEventProbe.SameSizeDuplicatePair",
+      "change": "changed",
+      "status": "evidence-required",
+      "resolution": "impossible",
+      "owner": "scale events",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "source",
+          "reference": "docs/wiki/investigations/display-size-ui-scale-events.md",
+          "source_hash": "00598eea76793bc02fb96026adfb977e51e7cd622de5ba7d157d47532406836e",
+          "summary": "The simulator receives only iced canvas bounds; a same-size maximize/restore transition is indistinguishable from no transition, while emitting on equal-size polls would invent events."
+        }
+      ],
+      "tests": [],
+      "assertions": [],
+      "commit": null,
+      "approval_id": null,
+      "notes": "Same-size maximize/restore duplicate event pairs remain open: the simulator receives no maximize/restore/fullscreen signal, so correct behavior is not modeled. Await an observable window-state input or other authoritative evidence."
+    },
+    {
+      "id": "changed:SetAtlasProbe.InvalidArguments",
+      "symbol": "SetAtlasProbe.InvalidArguments",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "texture atlas",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "tests/set_atlas_arguments.rs::test_set_atlas_argument_validation_matches_retail",
+          "summary": "No-argument and boolean calls raise usage errors, nil clears successfully, and numeric atlas IDs are accepted.",
+          "source_hash": "7afbc0beb76a4b9f642d1d331d933d68628344067f95fd0d3406b64c8353208f"
+        },
+        {
+          "kind": "test",
+          "reference": "tests/texture_atlas_regressions.rs::empty_set_atlas_clears_texture_instead_of_using_empty_atlas_db_entry",
+          "summary": "An empty atlas name clears the texture and atlas state.",
+          "source_hash": "496060b550ac7cf0e523cd38075d77a01a7e17231e7dd6e7f34ce7be4efd5033"
+        },
+        {
+          "kind": "test",
+          "reference": "tests/methods_texture.rs::test_set_atlas_unknown",
+          "summary": "An unknown atlas name remains observable without fabricating a texture path.",
+          "source_hash": "419c30bfd97df89dbc9bb960de00690f769d6ab60e35354a3da9938a0e78361c"
+        }
+      ],
+      "tests": [
+        "tests/set_atlas_arguments.rs::test_set_atlas_argument_validation_matches_retail",
+        "tests/texture_atlas_regressions.rs::empty_set_atlas_clears_texture_instead_of_using_empty_atlas_db_entry",
+        "tests/methods_texture.rs::test_set_atlas_unknown"
+      ],
+      "assertions": [],
+      "commit": "1d5cfe346",
+      "approval_id": null,
+      "notes": "The retained nil, no-argument, boolean, numeric, empty-string, and unknown-atlas matrix is covered by focused behavioral tests."
+    },
+    {
+      "id": "changed:TextureSetTextureProbe.PathFdid",
+      "symbol": "TextureSetTextureProbe.PathFdid",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "texture",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "tests/methods_texture.rs::test_set_texture_known_path_returns_fdid_and_no_args_clear",
+          "summary": "Known texture path resolution to retained FDID 130828 is directly regression-tested.",
+          "source_hash": "419c30bfd97df89dbc9bb960de00690f769d6ab60e35354a3da9938a0e78361c"
+        }
+      ],
+      "tests": [
+        "tests/methods_texture.rs::test_set_texture_known_path_returns_fdid_and_no_args_clear"
+      ],
+      "assertions": [],
+      "commit": "492041ac0",
+      "approval_id": null,
+      "notes": "Known texture path resolution to retained FDID 130828 is directly regression-tested."
+    },
+    {
+      "id": "changed:TextureSetTextureProbe.Clear",
+      "symbol": "TextureSetTextureProbe.Clear",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "texture",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "tests/methods_texture.rs::test_set_texture_known_path_returns_fdid_and_no_args_clear",
+          "summary": "Nil and no-argument texture clearing are directly regression-tested.",
+          "source_hash": "419c30bfd97df89dbc9bb960de00690f769d6ab60e35354a3da9938a0e78361c"
+        }
+      ],
+      "tests": [
+        "tests/methods_texture.rs::test_set_texture_known_path_returns_fdid_and_no_args_clear",
+        "tests/methods_texture.rs::test_set_texture_nil_clears"
+      ],
+      "assertions": [],
+      "commit": "492041ac0",
+      "approval_id": null,
+      "notes": "Nil and no-argument texture clearing are directly regression-tested."
+    },
+    {
+      "id": "changed:XmlFrameLevelProbe.BareAndFixed",
+      "symbol": "XmlFrameLevelProbe.BareAndFixed",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "XML frame level",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "tests/xml_frame_strata.rs::test_xml_frame_level_uses_parent_relative_offset",
+          "summary": "Bare absolute and fixed XML frame-level behavior is directly regression-tested.",
+          "source_hash": "4d296cb8c012be5d5d87b68c2b16047fcca63970bd580f00b122cc6994364216"
+        }
+      ],
+      "tests": [
+        "tests/xml_frame_strata.rs::test_xml_frame_level_uses_parent_relative_offset",
+        "tests/xml_frame_strata.rs::test_xml_fixed_frame_level_stops_parent_propagation_after_initial_offset"
+      ],
+      "assertions": [],
+      "commit": "11543bc5c",
+      "approval_id": null,
+      "notes": "Bare absolute and fixed XML frame-level behavior is directly regression-tested."
+    },
+    {
+      "id": "changed:XmlFrameLevelProbe.ParentReparent",
+      "symbol": "XmlFrameLevelProbe.ParentReparent",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "XML frame level",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "tests/xml_frame_strata.rs::test_xml_frame_level_uses_parent_relative_offset",
+          "summary": "Parent-level propagation and fixed/non-fixed reparent behavior are directly regression-tested.",
+          "source_hash": "4d296cb8c012be5d5d87b68c2b16047fcca63970bd580f00b122cc6994364216"
+        }
+      ],
+      "tests": [
+        "tests/xml_frame_strata.rs::test_xml_frame_level_uses_parent_relative_offset",
+        "tests/frame_level.rs::test_fixed_frame_level_preserved_on_reparent",
+        "tests/frame_level.rs::test_frame_level_recalc_after_nil_reparent"
+      ],
+      "assertions": [],
+      "commit": "11543bc5c",
+      "approval_id": null,
+      "notes": "Parent-level propagation and fixed/non-fixed reparent behavior are directly regression-tested."
+    },
+    {
+      "id": "changed:XmlFrameLevelProbe.Flags",
+      "symbol": "XmlFrameLevelProbe.Flags",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "XML frame level",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "tests/xml_frame_strata.rs::test_xml_frame_level_uses_parent_relative_offset",
+          "summary": "Fixed and use-parent-level query behavior is directly regression-tested.",
+          "source_hash": "4d296cb8c012be5d5d87b68c2b16047fcca63970bd580f00b122cc6994364216"
+        }
+      ],
+      "tests": [
+        "tests/xml_frame_strata.rs::test_xml_frame_level_uses_parent_relative_offset",
+        "tests/xml_frame_strata.rs::test_xml_fixed_frame_level_stops_parent_propagation_after_initial_offset",
+        "tests/xml_frame_strata.rs::test_xml_use_parent_level_overrides_inherited_frame_level"
+      ],
+      "assertions": [],
+      "commit": "11543bc5c",
+      "approval_id": null,
+      "notes": "Fixed and use-parent-level query behavior is directly regression-tested."
+    },
+    {
+      "id": "changed:XmlFrameLevelProbe.RawCaptureProvenance",
+      "symbol": "XmlFrameLevelProbe.RawCaptureProvenance",
+      "change": "changed",
+      "status": "exception-requested",
+      "resolution": "impossible",
+      "owner": "provenance",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "source",
+          "reference": "docs/addons/XmlFrameLevelProbe/README.md",
+          "source_hash": "ae685be6c18d619b6adc9ff22c346fc24c92dd8059b27b98635de072a3d0e94c",
+          "summary": "Behavior is regression-tested, but the raw SavedVariables capture does not exist and cannot be reconstructed locally. Approved as an impossible provenance exception."
+        }
+      ],
+      "tests": [],
+      "assertions": [],
+      "commit": null,
+      "approval_id": "user-chat:changed:XmlFrameLevelProbe.RawCaptureProvenance:2026-08-07-approved-missing-raw-capture",
+      "notes": "Approved as an impossible provenance exception: the historical raw SavedVariables capture is unavailable and cannot be reconstructed locally."
+    },
+    {
+      "id": "changed:StoreForbiddenProbe.DropdownPopulation",
+      "symbol": "StoreForbiddenProbe.DropdownPopulation",
+      "change": "changed",
+      "status": "evidence-required",
+      "resolution": "unsafe",
+      "owner": "Store lifecycle",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "manual",
+          "reference": "data/patch-api/evidence/12.0.5/StoreForbiddenProbe.lua",
+          "source_hash": "adeb170d869d0bb1bd3727623d90abd48e702dd484042e315f5b52bd0f475682",
+          "summary": "The retained capture has StoreDropdown_SetDropdown == nil, so dropdown population, button reuse, text/check state, callbacks, and protection behavior were never observed. Await separate informed approval or new live evidence."
+        }
+      ],
+      "tests": [],
+      "assertions": [],
+      "commit": null,
+      "approval_id": null,
+      "notes": "The retained capture has StoreDropdown_SetDropdown == nil, so dropdown population, button reuse, text/check state, callbacks, and protection behavior were never observed. Await authoritative live evidence or a correct modeled implementation."
+    },
+    {
+      "id": "changed:StoreForbiddenProbe.ForbiddenDescendants",
+      "symbol": "StoreForbiddenProbe.ForbiddenDescendants",
+      "change": "changed",
+      "status": "evidence-required",
+      "resolution": "unsafe",
+      "owner": "Store lifecycle",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "manual",
+          "reference": "data/patch-api/evidence/12.0.5/StoreForbiddenProbe.lua",
+          "source_hash": "adeb170d869d0bb1bd3727623d90abd48e702dd484042e315f5b52bd0f475682",
+          "summary": "The retained file lacks the /sfp manual descendant scan, so Store descendant forbidden/protected state is unknown. Await separate informed approval or new live evidence."
+        }
+      ],
+      "tests": [],
+      "assertions": [],
+      "commit": null,
+      "approval_id": null,
+      "notes": "Store descendant forbidden/protected state remains open: the retained file lacks the /sfp manual descendant scan, so correct behavior is not modeled. Await authoritative live evidence or a correct modeled implementation."
+    }
+  ]
+}

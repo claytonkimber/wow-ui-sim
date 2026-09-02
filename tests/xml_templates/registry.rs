@@ -275,7 +275,7 @@ fn test_env_reinstalls_intrinsic_templates_after_clear() {
 }
 
 #[test]
-fn intrinsic_dropdown_scripts_chain_with_style_template_scripts() {
+fn intrinsic_dropdown_scripts_dispatch_before_style_template_scripts() {
     clear_templates();
     let env = WowLuaEnv::new().unwrap();
     env.exec(
@@ -313,20 +313,21 @@ fn intrinsic_dropdown_scripts_chain_with_style_template_scripts() {
     let toc_path = dir.path().join("TestIntrinsicDropdownScripts.toc");
 
     load_addon(&env.loader_env(), &toc_path).expect("addon load should succeed");
-    env.exec(
-        r#"
-        local handler = XmlConcreteDropdown:GetScript("OnMouseDown")
-        handler(XmlConcreteDropdown)
-    "#,
-    )
-    .unwrap();
+    let frame_id = env
+        .state()
+        .borrow()
+        .widgets
+        .get_id_by_name("XmlConcreteDropdown")
+        .expect("concrete dropdown should exist");
+    env.fire_script_handler(frame_id, "OnMouseDown", Vec::new())
+        .unwrap();
 
     let calls: String = env
         .eval("return table.concat(XmlIntrinsicDropdownCalls, ',')")
         .unwrap();
     assert_eq!(
-        calls, "style,intrinsic",
-        "derived style handlers should not replace intrinsic dropdown handlers"
+        calls, "intrinsic,style",
+        "intrinsic dropdown handlers should dispatch before style-template handlers"
     );
 }
 

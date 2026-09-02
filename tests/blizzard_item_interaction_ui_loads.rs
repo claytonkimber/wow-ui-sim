@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, find_toc_file, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
-use wow_ui_sim::startup::fire_startup_events_for_screen;
 use wow_ui_sim::toc::TocFile;
 
 fn blizzard_ui_dir() -> PathBuf {
@@ -113,32 +112,9 @@ const STATIC_POPUP_KEYS: &[&str] = &[
     "ITEM_INTERACTION_CONFIRMATION_DELAYED_WITH_CHARGE_INFO",
 ];
 
-fn load_full_game_ui_with_item_interaction_lod() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-
-    wow_ui_sim::xml::register_intrinsic_templates();
-
-    let ui = blizzard_ui_dir();
-    let addons = discover_blizzard_addons_for_screen(&ui, ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    env.apply_post_load_workarounds();
-    fire_startup_events_for_screen(&env, ScreenKind::Game);
-
+fn load_item_interaction_ui(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &item_interaction_toc())
         .expect("Blizzard_ItemInteractionUI should load via explicit Rust loader call");
-
-    env
 }
 
 #[test]
@@ -300,9 +276,9 @@ fn blizzard_item_interaction_excluded_from_every_screen_auto_discovery() {
     }
 }
 
-#[test]
-fn blizzard_item_interaction_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui_with_item_interaction_lod();
+prefork_full_ui_case! {
+fn blizzard_item_interaction_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
+    load_item_interaction_ui(env);
 
     let load_errors: Vec<String> = env
         .state()
@@ -327,10 +303,11 @@ fn blizzard_item_interaction_loads_without_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_item_interaction_is_addon_loaded_via_explicit_load() {
-    let env = load_full_game_ui_with_item_interaction_lod();
+prefork_full_ui_case! {
+fn blizzard_item_interaction_is_addon_loaded_via_explicit_load(env: &WowLuaEnv) {
+    load_item_interaction_ui(env);
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_ItemInteractionUI')")
@@ -342,10 +319,11 @@ fn blizzard_item_interaction_is_addon_loaded_via_explicit_load() {
          even though the auto-discovery sweep skipped it (LoadOnDemand)"
     );
 }
+}
 
-#[test]
-fn blizzard_item_interaction_main_mixin_publishes_with_thirty_six_methods() {
-    let env = load_full_game_ui_with_item_interaction_lod();
+prefork_full_ui_case! {
+fn blizzard_item_interaction_main_mixin_publishes_with_thirty_six_methods(env: &WowLuaEnv) {
+    load_item_interaction_ui(env);
 
     let kind: String = env
         .eval("return type(ItemInteractionMixin)")
@@ -375,10 +353,11 @@ fn blizzard_item_interaction_main_mixin_publishes_with_thirty_six_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_item_interaction_publishes_five_secondary_mixins() {
-    let env = load_full_game_ui_with_item_interaction_lod();
+prefork_full_ui_case! {
+fn blizzard_item_interaction_publishes_five_secondary_mixins(env: &WowLuaEnv) {
+    load_item_interaction_ui(env);
 
     for mixin in SECONDARY_MIXIN_NAMES {
         let kind: String = env
@@ -395,10 +374,11 @@ fn blizzard_item_interaction_publishes_five_secondary_mixins() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_item_interaction_item_slot_mixin_carries_eight_lifecycle_methods() {
-    let env = load_full_game_ui_with_item_interaction_lod();
+prefork_full_ui_case! {
+fn blizzard_item_interaction_item_slot_mixin_carries_eight_lifecycle_methods(env: &WowLuaEnv) {
+    load_item_interaction_ui(env);
 
     for method in ITEM_SLOT_METHODS {
         let kind: String = env
@@ -418,10 +398,11 @@ fn blizzard_item_interaction_item_slot_mixin_carries_eight_lifecycle_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_item_interaction_action_button_mixin_carries_three_methods() {
-    let env = load_full_game_ui_with_item_interaction_lod();
+prefork_full_ui_case! {
+fn blizzard_item_interaction_action_button_mixin_carries_three_methods(env: &WowLuaEnv) {
+    load_item_interaction_ui(env);
 
     for method in ACTION_BUTTON_METHODS {
         let kind: String = env
@@ -440,10 +421,11 @@ fn blizzard_item_interaction_action_button_mixin_carries_three_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_item_interaction_conversion_frame_mixin_carries_six_methods() {
-    let env = load_full_game_ui_with_item_interaction_lod();
+prefork_full_ui_case! {
+fn blizzard_item_interaction_conversion_frame_mixin_carries_six_methods(env: &WowLuaEnv) {
+    load_item_interaction_ui(env);
 
     for method in CONVERSION_FRAME_METHODS {
         let kind: String = env
@@ -463,10 +445,11 @@ fn blizzard_item_interaction_conversion_frame_mixin_carries_six_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_item_interaction_conversion_input_slot_mixin_carries_eight_methods() {
-    let env = load_full_game_ui_with_item_interaction_lod();
+prefork_full_ui_case! {
+fn blizzard_item_interaction_conversion_input_slot_mixin_carries_eight_methods(env: &WowLuaEnv) {
+    load_item_interaction_ui(env);
 
     for method in CONVERSION_INPUT_METHODS {
         let kind: String = env
@@ -486,10 +469,11 @@ fn blizzard_item_interaction_conversion_input_slot_mixin_carries_eight_methods()
         );
     }
 }
+}
 
-#[test]
-fn blizzard_item_interaction_conversion_output_slot_mixin_carries_four_methods() {
-    let env = load_full_game_ui_with_item_interaction_lod();
+prefork_full_ui_case! {
+fn blizzard_item_interaction_conversion_output_slot_mixin_carries_four_methods(env: &WowLuaEnv) {
+    load_item_interaction_ui(env);
 
     for method in CONVERSION_OUTPUT_METHODS {
         let kind: String = env
@@ -508,10 +492,11 @@ fn blizzard_item_interaction_conversion_output_slot_mixin_carries_four_methods()
         );
     }
 }
+}
 
-#[test]
-fn blizzard_item_interaction_named_frame_publishes_with_portrait_template_chain() {
-    let env = load_full_game_ui_with_item_interaction_lod();
+prefork_full_ui_case! {
+fn blizzard_item_interaction_named_frame_publishes_with_portrait_template_chain(env: &WowLuaEnv) {
+    load_item_interaction_ui(env);
 
     let kind: String = env
         .eval("return type(ItemInteractionFrame)")
@@ -541,10 +526,11 @@ fn blizzard_item_interaction_named_frame_publishes_with_portrait_template_chain(
          PLAYER_INTERACTION_MANAGER_FRAME_SHOW for an ItemInteraction-type interaction"
     );
 }
+}
 
-#[test]
-fn blizzard_item_interaction_registers_ui_panel_window_entry() {
-    let env = load_full_game_ui_with_item_interaction_lod();
+prefork_full_ui_case! {
+fn blizzard_item_interaction_registers_ui_panel_window_entry(env: &WowLuaEnv) {
+    load_item_interaction_ui(env);
 
     let area: String = env
         .eval("return tostring(UIPanelWindows['ItemInteractionFrame'].area)")
@@ -567,10 +553,11 @@ fn blizzard_item_interaction_registers_ui_panel_window_entry() {
          pushes lower-priority panels aside"
     );
 }
+}
 
-#[test]
-fn blizzard_item_interaction_registers_three_static_popup_dialogs() {
-    let env = load_full_game_ui_with_item_interaction_lod();
+prefork_full_ui_case! {
+fn blizzard_item_interaction_registers_three_static_popup_dialogs(env: &WowLuaEnv) {
+    load_item_interaction_ui(env);
 
     for key in STATIC_POPUP_KEYS {
         let kind: String = env
@@ -586,4 +573,5 @@ fn blizzard_item_interaction_registers_three_static_popup_dialogs() {
              charge-count subtext"
         );
     }
+}
 }

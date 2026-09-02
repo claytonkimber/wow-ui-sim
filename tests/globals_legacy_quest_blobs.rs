@@ -431,6 +431,7 @@ fn test_get_tooltip_index_first() {
 #[test]
 fn test_get_cursor_position_reads_mouse_state() {
     let env = env();
+    env.set_screen_size(1600.0, 1200.0);
 
     env.state().borrow_mut().mouse_position = Some((200.0, 300.0));
 

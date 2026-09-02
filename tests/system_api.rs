@@ -145,7 +145,30 @@ fn test_xpcall_passes_args() {
 }
 
 #[test]
-fn test_protected_calls_record_errors_in_shared_tracker() {
+fn test_xpcall_error_handler_sees_failing_lua_call_path() {
+    let env = env();
+    let (ok, error): (bool, String) = env
+        .eval(
+            r#"
+            return xpcall(function()
+                local function inner()
+                    error("traceback boom")
+                end
+                inner()
+            end, debug.traceback)
+            "#,
+        )
+        .unwrap();
+
+    assert!(!ok);
+    assert!(
+        error.contains("inner"),
+        "traceback should include the failing Lua call path, got: {error}"
+    );
+}
+
+#[test]
+fn test_protected_calls_do_not_record_handled_errors() {
     let env = env();
     let result: String = env
         .eval(
@@ -169,16 +192,15 @@ fn test_protected_calls_record_errors_in_shared_tracker() {
     );
 
     let state = env.state().borrow();
-    assert_eq!(
-        state.lua_error_counts.get("repeat me"),
-        Some(&2),
-        "protected call errors should be tracked in lua_error_counts: {:?}",
+    assert!(
+        state.lua_error_counts.is_empty(),
+        "handled protected-call errors should not enter lua_error_counts: {:?}",
         state.lua_error_counts
     );
 }
 
 #[test]
-fn test_xpcall_handler_failures_are_recorded_in_shared_tracker() {
+fn test_xpcall_handler_failure_returns_original_error_without_recording() {
     let env = env();
     let (_ok, msg): (bool, String) = env
         .eval(
@@ -197,22 +219,10 @@ fn test_xpcall_handler_failures_are_recorded_in_shared_tracker() {
     );
 
     let state = env.state().borrow();
-    assert_eq!(
-        state.lua_error_counts.get("root failure"),
-        Some(&1),
-        "root protected-call failure should be tracked"
-    );
-    let handler_count = state
-        .lua_error_counts
-        .iter()
-        .find_map(|(key, count)| {
-            key.contains("handler failure: root failure")
-                .then_some(*count)
-        })
-        .unwrap_or(0);
-    assert_eq!(
-        handler_count, 1,
-        "xpcall handler failure should be tracked via canonical sink"
+    assert!(
+        state.lua_error_counts.is_empty(),
+        "handled xpcall failures should not enter lua_error_counts: {:?}",
+        state.lua_error_counts
     );
 }
 

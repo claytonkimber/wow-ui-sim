@@ -66,9 +66,15 @@ fn load_test_framework(env: &WowLuaEnv) {
         std::process::exit(1);
     };
     match crate::loader::load_addon(&env.loader_env(), &toc_path) {
-        Ok(r) => {
-            for w in &r.warnings {
-                eprintln!("  [!] {w}");
+        Ok(result) => {
+            for warning in &result.warnings {
+                eprintln!("  [failure] {warning}");
+            }
+            for observation in &result.nil_symbol_observations {
+                eprintln!("  [nil-observation] {observation}");
+            }
+            for requirement in &result.missing_requirements {
+                eprintln!("  [missing-requirement] {requirement}");
             }
         }
         Err(e) => {

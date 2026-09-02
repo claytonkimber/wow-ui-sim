@@ -212,9 +212,8 @@ fn blizzard_map_canvas_secure_util_auto_discovered_on_game_only() {
     }
 }
 
-#[test]
-fn blizzard_map_canvas_secure_util_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_map_canvas_secure_util_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -233,10 +232,10 @@ fn blizzard_map_canvas_secure_util_loads_without_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_map_canvas_secure_util_is_addon_loaded_after_auto_discovery() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_map_canvas_secure_util_is_addon_loaded_after_auto_discovery(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_MapCanvasSecureUtil')")
@@ -249,10 +248,10 @@ fn blizzard_map_canvas_secure_util_is_addon_loaded_after_auto_discovery() {
          required"
     );
 }
+}
 
-#[test]
-fn blizzard_map_canvas_secure_util_publishes_global_table_with_factory() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_map_canvas_secure_util_publishes_global_table_with_factory(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(MapCanvasSecureUtil)")
@@ -276,10 +275,10 @@ fn blizzard_map_canvas_secure_util_publishes_global_table_with_factory() {
          so each canvas instance gets its own isolated handler list)"
     );
 }
+}
 
-#[test]
-fn blizzard_map_canvas_secure_util_create_registry_returns_table_with_four_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_map_canvas_secure_util_create_registry_returns_table_with_four_methods(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(MapCanvasSecureUtil.CreateHandlerRegistry())")
@@ -308,10 +307,10 @@ fn blizzard_map_canvas_secure_util_create_registry_returns_table_with_four_metho
         );
     }
 }
+}
 
-#[test]
-fn blizzard_map_canvas_secure_util_file_local_helpers_not_exposed_globally() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_map_canvas_secure_util_file_local_helpers_not_exposed_globally(env: &WowLuaEnv) {
 
     for helper in SECURE_UTIL_FILE_LOCAL_HELPERS {
         let kind: String = env
@@ -328,10 +327,10 @@ fn blizzard_map_canvas_secure_util_file_local_helpers_not_exposed_globally() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_map_canvas_secure_util_handlers_invoke_in_priority_descending_order() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_map_canvas_secure_util_handlers_invoke_in_priority_descending_order(env: &WowLuaEnv) {
 
     let order: String = env
         .eval(
@@ -353,10 +352,10 @@ fn blizzard_map_canvas_secure_util_handlers_invoke_in_priority_descending_order(
          order. The trail proves all 3 handlers fired and they fired in descending priority"
     );
 }
+}
 
-#[test]
-fn blizzard_map_canvas_secure_util_invoke_handlers_short_circuits_on_truthy_first_return() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_map_canvas_secure_util_invoke_handlers_short_circuits_on_truthy_first_return(env: &WowLuaEnv) {
 
     let trail: String = env
         .eval(
@@ -382,10 +381,10 @@ fn blizzard_map_canvas_secure_util_invoke_handlers_short_circuits_on_truthy_firs
          consumed by returning truthy, and downstream handlers don't run"
     );
 }
+}
 
-#[test]
-fn blizzard_map_canvas_secure_util_invoke_handlers_returns_false_when_no_handler_consumes() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_map_canvas_secure_util_invoke_handlers_returns_false_when_no_handler_consumes(env: &WowLuaEnv) {
 
     let result: String = env
         .eval(
@@ -405,10 +404,10 @@ fn blizzard_map_canvas_secure_util_invoke_handlers_returns_false_when_no_handler
          caller"
     );
 }
+}
 
-#[test]
-fn blizzard_map_canvas_secure_util_remove_handler_drops_matching_entry() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_map_canvas_secure_util_remove_handler_drops_matching_entry(env: &WowLuaEnv) {
 
     let trail: String = env
         .eval(
@@ -432,10 +431,10 @@ fn blizzard_map_canvas_secure_util_remove_handler_drops_matching_entry() {
          compares by reference identity, not by structural equality of the closure"
     );
 }
+}
 
-#[test]
-fn blizzard_map_canvas_secure_util_find_handler_returns_index_or_nil() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_map_canvas_secure_util_find_handler_returns_index_or_nil(env: &WowLuaEnv) {
 
     let trail: String = env
         .eval(
@@ -462,4 +461,5 @@ fn blizzard_map_canvas_secure_util_find_handler_returns_index_or_nil() {
          falls back to handler-only matching (the `not priority` branch in \
          IsEquivalentHandler at lua:30): same target hits at 2"
     );
+}
 }

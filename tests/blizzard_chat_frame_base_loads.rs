@@ -37,9 +37,8 @@ fn load_full_game_ui() -> WowLuaEnv {
     env
 }
 
-#[test]
-fn blizzard_chat_frame_base_top_level_frames_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_chat_frame_base_top_level_frames_are_defined(env: &WowLuaEnv) {
 
     let frames_present: bool = env
         .eval(
@@ -83,10 +82,10 @@ fn blizzard_chat_frame_base_top_level_frames_are_defined() {
         "Chat globals (SlashCmdList, ChatTypeInfo, DEFAULT_CHAT_FRAME) should be populated"
     );
 }
+}
 
-#[test]
-fn chat_frame_add_message_runs_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn chat_frame_add_message_runs_without_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -104,4 +103,5 @@ fn chat_frame_add_message_runs_without_errors() {
         "ChatFrame1:AddMessage emitted Lua errors:\n  {}",
         unexpected_errors.join("\n  ")
     );
+}
 }

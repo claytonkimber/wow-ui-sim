@@ -6,7 +6,9 @@ use crate::Result;
 use crate::lua_api::methods::{
     call_function as call_rilua_function, create_string, frame_ref, val_to_string,
 };
-use crate::lua_api::script_helpers::{call_error_handler, get_event_listeners, get_script};
+use crate::lua_api::script_helpers::{
+    call_error_handler, get_event_listeners, get_script, protected_lua_pcall_state,
+};
 use rilua::{LuaApi, LuaApiMut, Val};
 use std::cell::RefCell;
 use std::env;
@@ -305,7 +307,7 @@ impl WowLuaEnv {
 
         let start = Instant::now();
         self.state.borrow_mut().executing_addon_index = addon_idx;
-        let call_result = call_rilua_function(lua, handler, call_args);
+        let call_result = protected_lua_pcall_state(lua.state_mut(), handler, call_args);
         if let Err(error) = call_result {
             let source = widget_handler_source_label(lua, handler);
             let error = widget_handler_error_message(
@@ -314,7 +316,7 @@ impl WowLuaEnv {
                 addon_idx,
                 handler_name,
                 source.as_deref(),
-                &error.to_string(),
+                &error,
             );
             call_error_handler(lua, &error);
         }

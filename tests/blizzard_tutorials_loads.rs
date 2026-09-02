@@ -25,7 +25,7 @@ const GLUE_SCREENS: &[ScreenKind] = &[
     ScreenKind::CharacterCreate,
 ];
 
-const TOC_REQUIRED_DEPS: &[&str] = &["Blizzard_TutorialManager"];
+const TOC_REQUIRED_DEPS: &[&str] = &["Blizzard_TutorialManager", "Blizzard_UIFrameManager"];
 
 const MODULE_TABLES: &[&str] = &[
     "GameTutorials",
@@ -121,7 +121,7 @@ fn find_toc_file_resolves_bare_toc() {
 }
 
 #[test]
-fn toc_is_eager_with_required_dep() {
+fn toc_is_eager_with_two_required_deps() {
     let toc = TocFile::from_file(&tutorials_toc()).expect("TOC parses");
 
     assert!(
@@ -136,19 +136,17 @@ fn toc_is_eager_with_required_dep() {
     assert_eq!(
         deps.len(),
         TOC_REQUIRED_DEPS.len(),
-        "RequiredDep is read by `dependencies()` at toc.rs:209-217 \
-         (RequiredDep / RequiredDeps / Dependencies are interchangeable). \
-         Expected exactly {} entry. Got: {:?}",
+        "Repeated `## Dep:` lines are merged by `dependencies()`. Expected \
+         exactly {} entries. Got: {:?}",
         TOC_REQUIRED_DEPS.len(),
         deps
     );
     for expected in TOC_REQUIRED_DEPS {
         assert!(
             deps.iter().any(|d| d == expected),
-            "TOC must declare `{expected}` via RequiredDep — without it, \
-             TutorialManager would be nil when GameTutorials:Initialize \
-             tries to register TutorialManager.TutorialsEnabled \
-             callbacks. Got: {deps:?}"
+            "TOC must declare `{expected}` via a repeated `## Dep:` line. \
+             TutorialManager supplies tutorial orchestration and UIFrameManager \
+             supplies the in-game frame-management surface. Got: {deps:?}"
         );
     }
 
@@ -192,13 +190,13 @@ fn allow_load_game_type_standard_is_not_restricted() {
 }
 
 #[test]
-fn toc_raw_bytes_pin_four_directives_and_sixteen_body_files() {
+fn toc_raw_bytes_pin_four_directives_and_fifteen_body_files() {
     let raw = std::fs::read_to_string(tutorials_toc()).expect("TOC reads utf-8");
 
     let expected_lines = [
-        "## Author: Blizzard Entertainment",
-        "## Title: Blizzard Tutorials",
-        "## RequiredDep: Blizzard_TutorialManager",
+        "## Title: Blizzard_Tutorials",
+        "## Dep: Blizzard_TutorialManager",
+        "## Dep: Blizzard_UIFrameManager",
         "## AllowLoadGameType: standard",
         "StateMachineUtil.lua",
         "StateMachineTutorialUtil.lua",
@@ -235,6 +233,7 @@ fn toc_raw_bytes_pin_four_directives_and_sixteen_body_files() {
         );
     }
 
+    assert!(!raw.contains("## Author"));
     assert!(!raw.contains("## LoadOnDemand"));
     assert!(!raw.contains("## AllowLoad: "));
     assert!(!raw.contains("## DefaultState"));
@@ -290,9 +289,8 @@ fn tutorial_manager_dep_directory_exists_on_disk() {
     }
 }
 
-#[test]
-fn full_game_load_publishes_module_tables() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_publishes_module_tables(env: &WowLuaEnv) {
 
     for module in MODULE_TABLES {
         let kind: String = env
@@ -311,10 +309,10 @@ fn full_game_load_publishes_module_tables() {
         );
     }
 }
+}
 
-#[test]
-fn full_game_load_publishes_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_publishes_mixins(env: &WowLuaEnv) {
 
     for mixin in MIXINS {
         let kind: String = env
@@ -339,10 +337,10 @@ fn full_game_load_publishes_mixins() {
         );
     }
 }
+}
 
-#[test]
-fn full_game_load_publishes_class_subclasses() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_publishes_class_subclasses(env: &WowLuaEnv) {
 
     for class in TUTORIAL_CLASSES {
         let kind: String = env
@@ -360,10 +358,10 @@ fn full_game_load_publishes_class_subclasses() {
         );
     }
 }
+}
 
-#[test]
-fn full_game_load_publishes_free_functions() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_publishes_free_functions(env: &WowLuaEnv) {
 
     for func in FREE_FUNCTIONS {
         let kind: String = env
@@ -384,10 +382,10 @@ fn full_game_load_publishes_free_functions() {
         );
     }
 }
+}
 
-#[test]
-fn full_game_load_creates_named_non_virtual_frames() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_creates_named_non_virtual_frames(env: &WowLuaEnv) {
 
     for frame in NAMED_NON_VIRTUAL_FRAMES {
         let exists: bool = env
@@ -408,10 +406,10 @@ fn full_game_load_creates_named_non_virtual_frames() {
         );
     }
 }
+}
 
-#[test]
-fn game_tutorials_initialize_method_exists() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn game_tutorials_initialize_method_exists(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(GameTutorials.Initialize)")
@@ -427,10 +425,10 @@ fn game_tutorials_initialize_method_exists() {
          TutorialManager.TutorialsInit"
     );
 }
+}
 
-#[test]
-fn full_game_load_emits_no_addon_specific_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_emits_no_addon_specific_errors(env: &WowLuaEnv) {
 
     let errors: Vec<String> = env.state().borrow().lua_errors.clone();
     let addon_specific: Vec<&String> = errors
@@ -451,4 +449,5 @@ fn full_game_load_emits_no_addon_specific_errors() {
          must tolerate the simulator's Enum/CVar/C_AddOns/C_Item stubs \
          without raising. Found: {addon_specific:?}"
     );
+}
 }

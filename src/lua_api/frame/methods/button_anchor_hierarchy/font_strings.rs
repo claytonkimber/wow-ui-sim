@@ -223,7 +223,7 @@ pub(super) fn create_font_string(state: &mut LuaState) -> LuaResult<u32> {
     if let Some(font_object) = inherited_font_object {
         store_font_object_for_frame(state, child_id, font_object);
     }
-    apply_font_string_template_mixins(state, child_id, inherits.as_deref());
+    apply_font_string_template_mixins(state, child_id, inherits.as_deref())?;
     let val = frame_ref(state, child_id)?;
     state.push(val);
     Ok(1)
@@ -369,17 +369,21 @@ fn named_color(state: &mut LuaState, name: &str) -> Option<crate::widget::Color>
     ))
 }
 
-fn apply_font_string_template_mixins(state: &mut LuaState, child_id: u64, inherits: Option<&str>) {
+fn apply_font_string_template_mixins(
+    state: &mut LuaState,
+    child_id: u64,
+    inherits: Option<&str>,
+) -> LuaResult<()> {
     let mixins = crate::xml::collect_font_string_mixins(inherits, None);
     if mixins.is_empty() {
-        return;
+        return Ok(());
     }
 
     crate::lua_api::globals::create_frame::apply_frame_mixins(
         state,
         child_id,
         Some(&mixins.join(",")),
-    );
+    )
 }
 
 pub(crate) fn apply_font_object_fields(
@@ -404,10 +408,10 @@ pub(crate) struct FontObjectFields {
 
 pub(crate) fn read_font_object_fields(state: &mut LuaState, font_object: Val) -> FontObjectFields {
     FontObjectFields {
-        font: font_field_string(state, font_object.clone(), "__font", "__fontPath"),
-        font_size: font_field_number(state, font_object.clone(), "__height", "__fontHeight")
+        font: font_field_string(state, font_object.clone(), "__fontPath", "__font"),
+        font_size: font_field_number(state, font_object.clone(), "__fontHeight", "__height")
             .map(|height| height as f32),
-        font_outline: font_field_string(state, font_object.clone(), "__outline", "__fontFlags")
+        font_outline: font_field_string(state, font_object.clone(), "__fontFlags", "__outline")
             .map(|outline| crate::widget::TextOutline::from_wow_str(&outline)),
         justify_h: font_field_string(state, font_object.clone(), "__justifyH", "__justifyH")
             .map(|justify| crate::widget::TextJustify::from_wow_str(&justify)),

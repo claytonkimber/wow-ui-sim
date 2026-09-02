@@ -88,6 +88,8 @@ fn unit_detailed_heal_prediction_populates_calculator() {
         return_count,
         health,
         health_max,
+        damage_absorbs,
+        heal_absorbs,
         heals,
         healer_heals,
         incoming_amount,
@@ -97,7 +99,7 @@ fn unit_detailed_heal_prediction_populates_calculator() {
         current_health,
         maximum_health,
         has_secret_values,
-    ): (i32, i32, i32, i32, i32, i32, i32, i32, bool, i32, i32, bool) = env
+    ): (i32, i32, i32, i32, i32, i32, i32, i32, i32, i32, bool, i32, i32, bool) = env
         .eval(
             r##"
             A_Admin.SetPlayerHealth(75000, 200000)
@@ -108,6 +110,8 @@ fn unit_detailed_heal_prediction_populates_calculator() {
             return returnCount,
                    predicted.health,
                    predicted.healthMax,
+                   predicted.totalDamageAbsorbs,
+                   predicted.totalHealAbsorbs,
                    predicted.totalIncomingHeals,
                    predicted.totalIncomingHealsFromHealer,
                    amount,
@@ -123,6 +127,8 @@ fn unit_detailed_heal_prediction_populates_calculator() {
     assert_eq!(return_count, 0);
     assert_eq!(health, 75000);
     assert_eq!(health_max, 200000);
+    assert_eq!(damage_absorbs, 0);
+    assert_eq!(heal_absorbs, 0);
     assert_eq!(heals, 0);
     assert_eq!(healer_heals, 0);
     assert_eq!(incoming_amount, 0);

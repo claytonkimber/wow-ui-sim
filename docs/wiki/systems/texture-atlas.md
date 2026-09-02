@@ -73,7 +73,9 @@ When a standard button texture child is cleared with `SetAtlas("")`, the corresp
 
 ## Deferred Texture Loading
 
-Quad batch uses `push_textured_path()` with deferred loading: quads store a path reference; during `WowUiPrimitive::prepare()`, paths are resolved to GPU atlas indices. New textures are uploaded to the appropriate tier based on dimensions.
+Quad batch uses `push_textured_path()` with deferred loading: quads store a path reference; during `WowUiPrimitive::prepare()`, paths are resolved to GPU atlas bindings. Ordinary RGBA uploads use the five size tiers; eligible compressed assets may use the separate BC1 or BC3 atlas. Mask requests use the same lookup, so a BC-backed mask receives a valid compressed-atlas binding and UV remap instead of being discarded as unresolved.
+
+The live renderer keeps its GPU atlas in the pipeline across frames. For related headless before/after images, `render_batches_to_images(&[&QuadBatch], ...)` preloads the union of all requests and renders through one persistent atlas context. Separate `render_to_image()` calls repack slots independently; with bilinear filtering, atlas-edge samples can differ even when an unchanged quad's geometry is identical.
 
 ## Sources
 

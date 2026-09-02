@@ -91,6 +91,8 @@ The `Frame` struct is the fundamental data structure representing any widget in 
 
 **Cooldown:** `cooldown_start`, `cooldown_duration`, `cooldown_reverse`, `cooldown_draw_swipe/edge/bling`, `cooldown_hide_countdown`, `cooldown_paused`
 
+**Model family:** `model_state: Option<Box<ModelWidgetState>>` lazily stores model path/file ID, transform, appearance, rendering, ModelScene, actor, and PlayerModel state. Model getters return their existing defaults without allocating; mutating methods allocate the payload only when needed and remain callable on every `WidgetType`.
+
 ### Attributes
 
 - **`attributes: HashMap<String, AttributeValue>`** -- Custom properties (for secure/unit frames)
@@ -126,6 +128,12 @@ pub enum WidgetType {
 
 **Type conversion:** `from_str()` maps WoW names ("ItemButton" -> Button, "ScrollingMessageFrame" -> MessageFrame). `as_str()` reverses to canonical WoW names.
 
+### Model-family boundary
+
+`Model`, `ModelScene`, `PlayerModel`, and related model widgets preserve the Lua-facing object and method surface needed by Blizzard UI code, but the simulator does not render 3D models or visual model effects. Visual-only methods such as `ClearFog` absorb calls as no-ops; this does not claim camera, lighting, mesh, animation, or model-scene rendering behavior.
+
+Model-family state is stored in one lazy `Option<Box<ModelWidgetState>>`, not inline for every frame. `Frame::storage_estimate_bytes()` accounts for the boxed payload and owned capacities only when allocated, preserving model round trips without inflating ordinary 2D widgets.
+
 ---
 
 ## WidgetRegistry
@@ -149,6 +157,10 @@ pub struct WidgetRegistry {
 - **`get_event_listeners(event)`** -- Returns IDs registered for an event
 - **`would_create_anchor_cycle(frame_id, relative_to_id)`** -- BFS cycle detection
 - **`take_render_dirty()`** -- Atomically check and clear dirty flag
+
+### Storage accounting
+
+The registry estimate includes inline `Frame`/registry storage plus collection capacities and owned strings. The model payload is counted only when present, including its path and actor-tag capacities. In the settled full-game fixture, 45,002 frames estimate **213,058,036 bytes**, below the unchanged **230,000,000-byte** budget; before lazy model storage the same fixture estimated **239,185,088 bytes**.
 
 ---
 

@@ -12,7 +12,6 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DEFAULT_MISTS_CARGO_TARGET_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/wow-ui-sim/cargo-targets/mists-panel-parity"
 CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-${MISTS_CARGO_TARGET_DIR:-$DEFAULT_MISTS_CARGO_TARGET_DIR}}"
-CARGO_INCREMENTAL="${CARGO_INCREMENTAL:-0}"
 BASELINE="$REPO_ROOT/docs/baselines/mists-panels.md"
 VISUAL_BASELINE="$REPO_ROOT/docs/baselines/mists-panel-visuals.tsv"
 OUT_DIR="$REPO_ROOT/target/mists-panel-parity"
@@ -30,7 +29,6 @@ SIGNAL_ONLY_VISUALS="${MISTS_PANEL_SIGNAL_ONLY:-0}"
 VISUAL_UPDATE_FILE=""
 OUT_DIR_SET=0
 
-export CARGO_INCREMENTAL
 export CARGO_TARGET_DIR
 
 usage() {

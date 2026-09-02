@@ -13,6 +13,11 @@ use crate::lua_api::methods::{registry_get, registry_set};
 
 const CREATE_SECURE_ENV_LUA: &str = r##"
     local genv = _G
+    local recordPublication = rawget(genv, "__wow_record_secure_global_publication")
+    local logNilSymbolAccess = rawget(genv, "__wow_log_nil_symbol_access")
+    local debugTable = rawget(genv, "debug")
+    rawset(genv, "__wow_record_secure_global_publication", nil)
+
     local secureenv = {}
     for k, v in pairs(genv) do
         secureenv[k] = v
@@ -25,6 +30,23 @@ const CREATE_SECURE_ENV_LUA: &str = r##"
         secureenv.Enum = se
     end
     secureenv._G = secureenv
+    setmetatable(secureenv, {
+        __index = function(_, key)
+            local isGlobalIndex = debugTable and debugTable.isglobalindex
+            if type(isGlobalIndex) == "function" and isGlobalIndex()
+                    and type(logNilSymbolAccess) == "function" then
+                logNilSymbolAccess("__secureenv", key)
+            end
+            return nil
+        end,
+        __newindex = function(t, key, value)
+            rawset(t, key, value)
+            if type(key) == "string" and value ~= nil and key:sub(1, 2) ~= "C_"
+                    and type(recordPublication) == "function" then
+                recordPublication(key)
+            end
+        end,
+    })
     return secureenv
 	"##;
 
@@ -44,10 +66,14 @@ pub(crate) fn set_secure_env_key_state(
 ) -> LuaResult<()> {
     let secureenv_ref = secure_env_table(state)?;
     let key_ref = state.gc.intern_string(key.as_bytes());
+    let publishes_value = !matches!(value, Val::Nil);
     if let Some(secureenv) = state.gc.tables.get_mut(secureenv_ref) {
         let _ = secureenv.raw_set(Val::Str(key_ref), value, &state.gc.string_arena);
     }
     state.gc.barrier_back(secureenv_ref);
+    if publishes_value {
+        crate::lua_api::globals::compat_overrides::record_secure_global_publication(state, key)?;
+    }
     Ok(())
 }
 

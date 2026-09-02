@@ -348,7 +348,7 @@ fn explicit_load_registers_two_static_popups() {
 }
 
 #[test]
-fn explicit_load_pins_two_known_simulator_api_gaps() {
+fn explicit_load_has_no_addon_specific_lua_errors() {
     let env = load_character_select_screen();
 
     {
@@ -361,54 +361,10 @@ fn explicit_load_pins_two_known_simulator_api_gaps() {
     load_addon(&env.loader_env(), &timerunning_toc())
         .expect("Blizzard_TimerunningCharacterCreate must load via Rust loader");
 
-    let errors: Vec<String> = env.state().borrow().lua_errors.clone();
-
-    let is_timerunning_enabled_missing = errors
-        .iter()
-        .any(|e| e.contains("global 'IsTimerunningEnabled' (a nil value)"));
-    let get_remaining_seconds_missing = errors
-        .iter()
-        .any(|e| e.contains("global 'GetRemainingTimerunningSeasonSeconds' (a nil value)"));
-
+    let errors = env.state().borrow().lua_errors.clone();
     assert!(
-        is_timerunning_enabled_missing,
-        "Expected `IsTimerunningEnabled` simulator-API gap — \
-         TimerunningFirstTimeDialog OnLoad → UpdateState calls it at \
-         lua line 127 to gate the CreateButton's enabled state. The \
-         simulator does not stub the timerunning C API, so this OnLoad \
-         emits a 'nil value' error. Errors collected: {:#?}",
-        errors
-    );
-    assert!(
-        get_remaining_seconds_missing,
-        "Expected `GetRemainingTimerunningSeasonSeconds` simulator-API \
-         gap — TimerunningEventBanner OnLoad → UpdateTimeLeft calls \
-         it at lua line 316 to format the countdown text via \
-         TimerunningTimeRemainingFormatter. The simulator does not \
-         stub the timerunning C API, so this OnLoad emits a 'nil \
-         value' error. Errors collected: {:#?}",
-        errors
-    );
-
-    let allowed_needles = [
-        "IsTimerunningEnabled",
-        "GetRemainingTimerunningSeasonSeconds",
-    ];
-    let unexpected: Vec<&String> = errors
-        .iter()
-        .filter(|e| {
-            (e.contains("Blizzard_TimerunningCharacterCreate") || e.contains("Timerunning"))
-                && !allowed_needles.iter().any(|n| e.contains(n))
-        })
-        .collect();
-
-    assert!(
-        unexpected.is_empty(),
-        "Only the 2 known timerunning C API gaps should produce \
-         addon-specific errors; any other Timerunning-tagged error is \
-         a regression. Found {} unexpected: {:#?}",
-        unexpected.len(),
-        unexpected
+        errors.is_empty(),
+        "Timerunning legacy globals should let the addon load without Lua errors. Found: {errors:#?}"
     );
 }
 

@@ -165,6 +165,10 @@ pub(super) fn bind_named_child_global(
     name: &str,
     child_id: u64,
 ) -> LuaResult<()> {
+    if existing_named_sibling_region_owns_global(state, name, child_id)? {
+        return Ok(());
+    }
+
     let child_ref = frame_ref(state, child_id)?;
     let key = state.gc.intern_string(name.as_bytes());
     let global = state.global;
@@ -173,4 +177,37 @@ pub(super) fn bind_named_child_global(
     }
     state.gc.barrier_back(global);
     Ok(())
+}
+
+fn existing_named_sibling_region_owns_global(
+    state: &mut LuaState,
+    name: &str,
+    child_id: u64,
+) -> LuaResult<bool> {
+    let key = state.gc.intern_string(name.as_bytes());
+    let existing = state
+        .gc
+        .tables
+        .get(state.global)
+        .map(|globals| globals.get_str(key, &state.gc.string_arena))
+        .unwrap_or(Val::Nil);
+    let Some(existing_id) = extract_frame_id(state, existing) else {
+        return Ok(false);
+    };
+
+    let sim = borrow_state(state)?;
+    let Some(existing_region) = sim.widgets.get(existing_id) else {
+        return Ok(false);
+    };
+    let Some(new_region) = sim.widgets.get(child_id) else {
+        return Ok(false);
+    };
+    let both_regions = matches!(
+        (existing_region.widget_type, new_region.widget_type),
+        (
+            crate::widget::WidgetType::Texture | crate::widget::WidgetType::FontString,
+            crate::widget::WidgetType::Texture | crate::widget::WidgetType::FontString
+        )
+    );
+    Ok(both_regions && existing_region.parent_id == new_region.parent_id)
 }

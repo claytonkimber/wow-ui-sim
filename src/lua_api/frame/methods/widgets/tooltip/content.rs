@@ -8,7 +8,7 @@ use crate::lua_api::methods::{
     create_table, frame_id_from_stack, frame_ref, table_get, table_set, table_set_num,
     val_to_string,
 };
-use crate::lua_api::script_helpers::{call_void_function_with_fallback_state, get_script};
+use crate::lua_api::script_helpers::{call_void_function_state, get_script};
 use crate::lua_api::state::SEEDED_LOCAL_CHARACTER_GUID;
 use crate::lua_api::tooltip::TooltipLine;
 use crate::lua_bridge::stack_val;
@@ -204,7 +204,7 @@ pub(super) fn fire_tooltip_script(state: &mut LuaState, tooltip_id: u64, script_
     let Ok(self_ref) = frame_ref(state, tooltip_id) else {
         return;
     };
-    let _ = call_void_function_with_fallback_state(state, handler, &[self_ref]);
+    let _ = call_void_function_state(state, handler, &[self_ref]);
 }
 
 pub(super) fn fire_tooltip_script_with_args(
@@ -222,7 +222,7 @@ pub(super) fn fire_tooltip_script_with_args(
     let mut call_args = Vec::with_capacity(args.len() + 1);
     call_args.push(self_ref);
     call_args.extend_from_slice(args);
-    let _ = call_void_function_with_fallback_state(state, handler, &call_args);
+    let _ = call_void_function_state(state, handler, &call_args);
 }
 
 pub(super) fn set_spell_by_id(state: &mut LuaState) -> LuaResult<u32> {

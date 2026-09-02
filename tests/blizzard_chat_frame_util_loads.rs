@@ -37,9 +37,8 @@ fn load_full_game_ui() -> WowLuaEnv {
     env
 }
 
-#[test]
-fn blizzard_chat_frame_util_exposes_auction_house_notification_text() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_chat_frame_util_exposes_auction_house_notification_text(env: &WowLuaEnv) {
 
     let helper_present: bool = env
         .eval(
@@ -52,10 +51,10 @@ fn blizzard_chat_frame_util_exposes_auction_house_notification_text() {
         "ChatFrameUtil.GetAuctionHouseNotificationText should be defined after Blizzard_ChatFrameUtil load"
     );
 }
+}
 
-#[test]
-fn auction_house_notification_text_returns_strings_for_known_types() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn auction_house_notification_text_returns_strings_for_known_types(env: &WowLuaEnv) {
 
     let bid_placed_matches_constant: bool = env
         .eval(
@@ -87,4 +86,5 @@ fn auction_house_notification_text_returns_strings_for_known_types() {
         unknown_returns_empty, "",
         "unknown notification type should return empty string"
     );
+}
 }

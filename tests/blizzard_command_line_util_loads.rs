@@ -62,9 +62,8 @@ fn blizzard_command_line_util_appears_in_both_screens_discovery() {
     );
 }
 
-#[test]
-fn blizzard_command_line_util_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_command_line_util_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -80,10 +79,10 @@ fn blizzard_command_line_util_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_command_line_util_namespace_is_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_command_line_util_namespace_is_defined(env: &WowLuaEnv) {
 
     let helpers_present: bool = env
         .eval(
@@ -98,10 +97,10 @@ fn blizzard_command_line_util_namespace_is_defined() {
          after load"
     );
 }
+}
 
-#[test]
-fn blizzard_command_line_util_score_strings_prefers_substring_match() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_command_line_util_score_strings_prefers_substring_match(env: &WowLuaEnv) {
 
     let exact_match_is_best: bool = env
         .eval(
@@ -118,10 +117,10 @@ fn blizzard_command_line_util_score_strings_prefers_substring_match() {
          (edit distance == math.max(#a, #b) when no character overlaps)"
     );
 }
+}
 
-#[test]
-fn blizzard_command_line_util_binary_insert_keeps_table_sorted_by_score() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_command_line_util_binary_insert_keeps_table_sorted_by_score(env: &WowLuaEnv) {
 
     let stays_sorted: bool = env
         .eval(
@@ -142,4 +141,5 @@ fn blizzard_command_line_util_binary_insert_keeps_table_sorted_by_score() {
         "BinaryInsert should preserve ascending-score order across successive inserts \
          (4 inserts produce a sorted-by-score table of 4 entries)"
     );
+}
 }

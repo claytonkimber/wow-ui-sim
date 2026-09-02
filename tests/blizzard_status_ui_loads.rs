@@ -185,9 +185,8 @@ fn absent_from_every_glue_screen_discovery() {
     }
 }
 
-#[test]
-fn explicit_load_addon_emits_no_addon_specific_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn explicit_load_addon_emits_no_addon_specific_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -221,10 +220,10 @@ fn explicit_load_addon_emits_no_addon_specific_errors() {
         matched
     );
 }
+}
 
-#[test]
-fn is_addon_loaded_reports_true_after_explicit_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn is_addon_loaded_reports_true_after_explicit_load(env: &WowLuaEnv) {
 
     let before: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_StatusUI')")
@@ -246,10 +245,10 @@ fn is_addon_loaded_reports_true_after_explicit_load() {
         "After explicit load_addon, IsAddOnLoaded must report true"
     );
 }
+}
 
-#[test]
-fn status_ui_mixin_publishes_with_three_lifecycle_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn status_ui_mixin_publishes_with_three_lifecycle_methods(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &status_ui_toc())
         .expect("Blizzard_StatusUI must load via Rust loader");
 
@@ -274,10 +273,10 @@ fn status_ui_mixin_publishes_with_three_lifecycle_methods() {
         );
     }
 }
+}
 
-#[test]
-fn status_ui_frame_template_materializes_via_create_frame() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn status_ui_frame_template_materializes_via_create_frame(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &status_ui_toc())
         .expect("Blizzard_StatusUI must load via Rust loader");
 
@@ -295,6 +294,7 @@ fn status_ui_frame_template_materializes_via_create_frame() {
          TitleText/SubtitleText FontStrings + Icon Texture + NineSlice + \
          Pulse animation child frames"
     );
+}
 }
 
 #[test]

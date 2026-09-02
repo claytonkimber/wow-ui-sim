@@ -472,10 +472,20 @@ fn test_seterrorhandler_xpcall_error_is_mirrored_and_recorded() {
             .any(|msg| msg.contains("xpcall runtime boom")),
         "xpcall-handled error should be captured in raw lua_errors"
     );
+    let matching_counts: Vec<_> = state
+        .lua_error_counts
+        .iter()
+        .filter(|(message, _)| message.contains("xpcall mirrored: xpcall runtime boom"))
+        .collect();
     assert_eq!(
-        state.lua_error_counts.get("xpcall runtime boom"),
-        Some(&1),
-        "xpcall runtime failure should be counted in normalized errors: {:?}",
+        matching_counts.len(),
+        1,
+        "xpcall runtime failure should have one normalized error key: {:?}",
+        state.lua_error_counts
+    );
+    assert_eq!(
+        *matching_counts[0].1, 1,
+        "xpcall runtime failure should be counted once: {:?}",
         state.lua_error_counts
     );
     assert!(
@@ -505,9 +515,19 @@ fn test_repeated_runtime_errors_increment_counts_but_mirror_first_occurrence_onl
     env.fire_event("PLAYER_LOGIN").unwrap();
 
     let state = env.state().borrow();
+    let matching_counts: Vec<_> = state
+        .lua_error_counts
+        .iter()
+        .filter(|(message, _)| message.contains("repeat first-seen-only"))
+        .collect();
     assert_eq!(
-        state.lua_error_counts.get("repeat first-seen-only"),
-        Some(&2),
+        matching_counts.len(),
+        1,
+        "repeated runtime errors should have one normalized error key: {:?}",
+        state.lua_error_counts
+    );
+    assert_eq!(
+        *matching_counts[0].1, 2,
         "repeated runtime errors should increment normalized counts: {:?}",
         state.lua_error_counts
     );

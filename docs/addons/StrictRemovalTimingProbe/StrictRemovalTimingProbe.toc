@@ -1,0 +1,9 @@
+## Interface: 120100
+## Title: StrictRemovalTimingProbe
+## Notes: Captures addon-visible strict-removal timing across startup phases
+## Author: Alessio
+## Version: 0.1.0
+## SavedVariables: StrictRemovalTimingProbeDB
+
+Bootstrap.lua [Bootstrap]
+StrictRemovalTimingProbe.lua

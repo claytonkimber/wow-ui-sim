@@ -20,6 +20,7 @@ const LOADSTRING_SECRET_TAINT_MARKER: &str = "*** ForceTaint_Strong ***";
 pub(super) fn register_scrub_fallbacks(lua: &mut rilua::Lua) -> LuaResult<()> {
     register_if_missing(lua, "scrub", scrub_passthrough)?;
     register_if_missing(lua, "scrubsecretvalues", scrub_passthrough)?;
+    register_if_missing(lua, "secretunwrap", secretunwrap_passthrough)?;
     Ok(())
 }
 
@@ -27,6 +28,14 @@ pub(super) fn register_scrub_fallbacks(lua: &mut rilua::Lua) -> LuaResult<()> {
 fn scrub_passthrough(state: &mut LuaState) -> LuaResult<u32> {
     let nargs = (state.top as i32 - state.base as i32).max(0) as u32;
     Ok(nargs)
+}
+
+/// `secretunwrap(value)` — return the same value without changing its metadata.
+fn secretunwrap_passthrough(state: &mut LuaState) -> LuaResult<u32> {
+    if state.top <= state.base {
+        state.push(Val::Nil);
+    }
+    Ok(1)
 }
 
 pub(crate) fn mark_secret_value(state: &mut LuaState, value: Val) {

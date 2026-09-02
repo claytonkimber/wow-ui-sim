@@ -11,7 +11,7 @@ pub struct Event { pub name: String, pub args: Vec<EventArg> }
 pub enum EventArg { String(String), Number(f64), Boolean(bool), Nil }
 ```
 
-Predefined constants include PLAYER_LOGIN, PLAYER_ENTERING_WORLD, ADDON_LOADED, VARIABLES_LOADED, UPDATE_BINDINGS, DISPLAY_SIZE_CHANGED, UNIT_HEALTH, UNIT_POWER_UPDATE, COMBAT_LOG_EVENT, BAG_UPDATE. Any string is accepted.
+Predefined constants include PLAYER_LOGIN, PLAYER_ENTERING_WORLD, ADDON_LOADED, VARIABLES_LOADED, UPDATE_BINDINGS, DISPLAY_SIZE_CHANGED, UNIT_HEALTH, UNIT_POWER_UPDATE, COMBAT_LOG_EVENT, BAG_UPDATE. Retail/PTR `RegisterEvent()` validates names against generated and epoch-specific strict tables; retail 12.1 includes `EXTERNAL_EVENT_LAUNCH_URL_FAILED` for current `Blizzard_GameMenu` loading. Classic profiles accept any non-empty name. Registerability does not model an event producer, payload, or `C_ExternalEventURL` behavior.
 
 ## Script Handler Types (36+, `src/event/mod.rs`)
 

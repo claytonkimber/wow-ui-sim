@@ -116,6 +116,58 @@ const EXPECTED_PRESENT_REMOVALS: &[&str] = &[
 #[test]
 fn remaining_symbols_match_observed_publications() {
     let env = load_full_game_ui_with_all_lod();
+    let compatibility_mismatches: String = env
+        .eval(
+            r#"
+            local function resolve(path)
+                local value = _G
+                for part in string.gmatch(path, "[^.]+") do
+                    value = value and value[part]
+                end
+                return value
+            end
+
+            local function check_callable(path, ...)
+                local value = resolve(path)
+                if type(value) ~= "function" then
+                    return path .. " expected=function observed=" .. type(value)
+                end
+                local ok, errorMessage = pcall(value, ...)
+                if not ok then
+                    return path .. " call failed: " .. tostring(errorMessage)
+                end
+            end
+
+            local mismatches = {}
+            for _, probe in ipairs({
+                { "GetInventorySlotInfo", "MainHandSlot" },
+                { "C_CVar.GetCVar", "UnitNameFocused" },
+                { "C_Housing.IsInsideOwnHouse" },
+                { "C_Ping.GetContextualPingTypeForUnit", "player" },
+                { "C_RecruitAFriend.IsEnabled" },
+                { "C_SuperTrack.GetNextWaypointForMap", 1 },
+                { "C_UnitAuras.TriggerPrivateAuraShowDispelType", false },
+            }) do
+                local path = probe[1]
+                local errorMessage = check_callable(path, unpack(probe, 2))
+                if errorMessage then
+                    table.insert(mismatches, errorMessage)
+                end
+            end
+
+            local iconSize = resolve("Enum.EditModeUnitFrameSetting.IconSize")
+            if type(iconSize) ~= "number" then
+                table.insert(mismatches, "Enum.EditModeUnitFrameSetting.IconSize expected=number observed=" .. type(iconSize))
+            end
+            return table.concat(mismatches, ",")
+            "#,
+        )
+        .expect("pre-removal compatibility observation succeeds");
+    assert_eq!(
+        compatibility_mismatches, "",
+        "pinned Blizzard sources require compatibility symbols before strict removal"
+    );
+
     let mismatches: String = env
         .eval(
             r#"

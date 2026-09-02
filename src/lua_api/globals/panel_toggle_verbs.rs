@@ -136,15 +136,16 @@ fn try_toggle_panel_via_frame_method(state: &mut LuaState, frame_name: &str) -> 
     Ok(true)
 }
 
+fn frame_visibility(state: &mut LuaState, frame_name: &str) -> Option<bool> {
+    borrow_state(state).ok().and_then(|st| {
+        st.widgets
+            .get_id_by_name(frame_name)
+            .and_then(|frame_id| st.widgets.get(frame_id).map(|frame| frame.visible))
+    })
+}
+
 fn sync_open_panel_membership(state: &mut LuaState, panel: &str, frame_name: &str) {
-    let is_open = borrow_state(state)
-        .ok()
-        .and_then(|st| {
-            st.widgets
-                .get_id_by_name(frame_name)
-                .and_then(|frame_id| st.widgets.get(frame_id).map(|frame| frame.visible))
-        })
-        .unwrap_or(false);
+    let is_open = frame_visibility(state, frame_name).unwrap_or(false);
 
     let Ok(mut st) = borrow_state_mut(state) else {
         return;
@@ -196,7 +197,15 @@ fn toggle_spell_book(state: &mut LuaState) -> LuaResult<u32> {
     if matches!(table_get(state, global, "PlayerSpellsFrame"), Val::Nil) {
         let _ = try_load_addon(state, "Blizzard_PlayerSpells")?;
     }
-    if !try_toggle_player_spells_helper(state, "ToggleSpellBookFrame", &[])? {
+
+    let was_visible = frame_visibility(state, "PlayerSpellsFrame");
+    let expected_visibility = !was_visible.unwrap_or(false);
+    let _ = try_toggle_player_spells_helper(state, "ToggleSpellBookFrame", &[])?;
+    let helper_toggled_frame =
+        frame_visibility(state, "PlayerSpellsFrame") == Some(expected_visibility);
+    if helper_toggled_frame {
+        sync_open_panel_membership(state, "SpellBook", "PlayerSpellsFrame");
+    } else {
         toggle_panel(state, "SpellBook", "PlayerSpellsFrame")?;
     }
     Ok(0)
@@ -303,6 +312,7 @@ fn toggle_encounter_journal(state: &mut LuaState) -> LuaResult<u32> {
 define_toggle!(toggle_quest_log, "QuestLog", "QuestLogFrame");
 define_toggle!(toggle_world_map, "WorldMap", "WorldMapFrame");
 define_toggle!(toggle_friends_frame, "Friends", "FriendsFrame");
+#[cfg(not(feature = "client-retail"))]
 define_toggle!(toggle_guild_frame, "Guild", "GuildFrame");
 define_toggle!(toggle_help_frame, "Help", "HelpFrame");
 fn toggle_social_panel(state: &mut LuaState) -> LuaResult<u32> {
@@ -337,6 +347,7 @@ pub fn register_all(lua: &mut rilua::Lua) -> crate::Result<()> {
     LuaApiMut::register_function(lua, "ToggleQuestLog", toggle_quest_log)?;
     LuaApiMut::register_function(lua, "ToggleWorldMap", toggle_world_map)?;
     LuaApiMut::register_function(lua, "ToggleFriendsFrame", toggle_friends_frame)?;
+    #[cfg(not(feature = "client-retail"))]
     LuaApiMut::register_function(lua, "ToggleGuildFrame", toggle_guild_frame)?;
     LuaApiMut::register_function(lua, "ToggleHelpFrame", toggle_help_frame)?;
     LuaApiMut::register_function(lua, "ToggleSocialPanel", toggle_social_panel)?;

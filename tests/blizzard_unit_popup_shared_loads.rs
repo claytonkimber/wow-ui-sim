@@ -354,9 +354,8 @@ fn optional_dep_directories_exist_on_disk() {
     }
 }
 
-#[test]
-fn full_game_load_publishes_unit_popup_manager() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_publishes_unit_popup_manager(env: &WowLuaEnv) {
 
     let manager_kind: String = env
         .eval("return type(UnitPopupManager)")
@@ -417,10 +416,10 @@ fn full_game_load_publishes_unit_popup_manager() {
          flattening behavior is uniform across the 36 root menus"
     );
 }
+}
 
-#[test]
-fn full_game_load_publishes_button_base_mixin_with_default_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_publishes_button_base_mixin_with_default_methods(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(UnitPopupButtonBaseMixin)")
@@ -450,10 +449,10 @@ fn full_game_load_publishes_button_base_mixin_with_default_methods() {
         );
     }
 }
+}
 
-#[test]
-fn full_game_load_publishes_button_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_publishes_button_mixins(env: &WowLuaEnv) {
 
     for mixin in REPRESENTATIVE_BUTTON_MIXINS {
         let kind: String = env
@@ -482,10 +481,10 @@ fn full_game_load_publishes_button_mixins() {
         );
     }
 }
+}
 
-#[test]
-fn full_game_load_publishes_glue_overlay_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_publishes_glue_overlay_mixins(env: &WowLuaEnv) {
 
     for mixin in REPRESENTATIVE_GLUE_MIXINS {
         let kind: String = env
@@ -510,10 +509,10 @@ fn full_game_load_publishes_glue_overlay_mixins() {
         );
     }
 }
+}
 
-#[test]
-fn full_game_load_registers_root_menus_via_unit_popup_manager() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_registers_root_menus_via_unit_popup_manager(env: &WowLuaEnv) {
 
     for menu in REPRESENTATIVE_REGISTERED_MENU_NAMES {
         let kind: String = env
@@ -538,10 +537,10 @@ fn full_game_load_registers_root_menus_via_unit_popup_manager() {
         );
     }
 }
+}
 
-#[test]
-fn full_game_load_publishes_inline_submenus() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_publishes_inline_submenus(env: &WowLuaEnv) {
 
     for submenu in INLINE_SUBMENU_TABLES {
         let kind: String = env
@@ -562,10 +561,10 @@ fn full_game_load_publishes_inline_submenus() {
         );
     }
 }
+}
 
-#[test]
-fn full_game_load_emits_no_addon_specific_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_emits_no_addon_specific_errors(env: &WowLuaEnv) {
 
     let errors: Vec<String> = env.state().borrow().lua_errors.clone();
     let addon_specific: Vec<&String> = errors
@@ -586,4 +585,5 @@ fn full_game_load_emits_no_addon_specific_errors() {
          unit popup AND the friend-list right-click menus on glue \
          screens. Found: {addon_specific:?}"
     );
+}
 }

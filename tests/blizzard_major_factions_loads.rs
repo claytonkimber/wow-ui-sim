@@ -176,9 +176,8 @@ fn blizzard_major_factions_auto_discovered_on_game_screen_only() {
     }
 }
 
-#[test]
-fn blizzard_major_factions_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_major_factions_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -205,10 +204,10 @@ fn blizzard_major_factions_loads_without_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_major_factions_is_addon_loaded_after_auto_discovery() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_major_factions_is_addon_loaded_after_auto_discovery(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_MajorFactions')")
@@ -221,10 +220,10 @@ fn blizzard_major_factions_is_addon_loaded_after_auto_discovery() {
          call required"
     );
 }
+}
 
-#[test]
-fn blizzard_major_factions_publishes_landing_page_helper_table() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_major_factions_publishes_landing_page_helper_table(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(LandingPageMajorFactionList)")
@@ -250,10 +249,10 @@ fn blizzard_major_factions_publishes_landing_page_helper_table() {
          to nil, so each instance is anonymous (no global registration)"
     );
 }
+}
 
-#[test]
-fn blizzard_major_factions_publishes_major_faction_list_mixin() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_major_factions_publishes_major_faction_list_mixin(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(MajorFactionListMixin)")
@@ -281,10 +280,10 @@ fn blizzard_major_factions_publishes_major_faction_list_mixin() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_major_factions_publishes_major_faction_button_mixin() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_major_factions_publishes_major_faction_button_mixin(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(MajorFactionButtonMixin)")
@@ -312,10 +311,10 @@ fn blizzard_major_factions_publishes_major_faction_button_mixin() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_major_factions_publishes_locked_state_mixin() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_major_factions_publishes_locked_state_mixin(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(MajorFactionButtonLockedStateMixin)")
@@ -346,10 +345,10 @@ fn blizzard_major_factions_publishes_locked_state_mixin() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_major_factions_publishes_unlocked_state_mixin() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_major_factions_publishes_unlocked_state_mixin(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(MajorFactionButtonUnlockedStateMixin)")
@@ -383,10 +382,10 @@ fn blizzard_major_factions_publishes_unlocked_state_mixin() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_major_factions_publishes_renown_progress_bar_mixin() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_major_factions_publishes_renown_progress_bar_mixin(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(MajorFactionRenownProgressBarMixin)")
@@ -410,10 +409,10 @@ fn blizzard_major_factions_publishes_renown_progress_bar_mixin() {
          (current, max) reputation values"
     );
 }
+}
 
-#[test]
-fn blizzard_major_factions_publishes_watch_faction_button_mixin() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_major_factions_publishes_watch_faction_button_mixin(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(MajorFactionWatchFactionButtonMixin)")
@@ -446,10 +445,10 @@ fn blizzard_major_factions_publishes_watch_faction_button_mixin() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_major_factions_publishes_celebration_banner_mixin() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_major_factions_publishes_celebration_banner_mixin(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(MajorFactionCelebrationBannerMixin)")
@@ -474,10 +473,10 @@ fn blizzard_major_factions_publishes_celebration_banner_mixin() {
          the banner's faction icon when a celebration toast fires"
     );
 }
+}
 
-#[test]
-fn blizzard_major_factions_publishes_unlock_toast_mixin() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_major_factions_publishes_unlock_toast_mixin(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(MajorFactionUnlockToastMixin)")
@@ -509,10 +508,10 @@ fn blizzard_major_factions_publishes_unlock_toast_mixin() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_major_factions_publishes_renown_toast_mixin() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_major_factions_publishes_renown_toast_mixin(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(MajorFactionsRenownToastMixin)")
@@ -544,10 +543,10 @@ fn blizzard_major_factions_publishes_renown_toast_mixin() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_major_factions_named_frames_resolve_globally() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_major_factions_named_frames_resolve_globally(env: &WowLuaEnv) {
 
     for name in NAMED_MAJOR_FACTION_FRAMES {
         let exists: bool = env
@@ -564,10 +563,10 @@ fn blizzard_major_factions_named_frames_resolve_globally() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_major_factions_unlock_toast_inherits_celebration_banner() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_major_factions_unlock_toast_inherits_celebration_banner(env: &WowLuaEnv) {
 
     let parent_name: String = env
         .eval("return MajorFactionUnlockToast:GetParent():GetName()")
@@ -600,10 +599,10 @@ fn blizzard_major_factions_unlock_toast_inherits_celebration_banner() {
          celebration toast surfaces over normal in-game windows when it fires"
     );
 }
+}
 
-#[test]
-fn blizzard_major_factions_renown_toast_inherits_celebration_banner() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_major_factions_renown_toast_inherits_celebration_banner(env: &WowLuaEnv) {
 
     let parent_name: String = env
         .eval("return MajorFactionsRenownToast:GetParent():GetName()")
@@ -637,6 +636,7 @@ fn blizzard_major_factions_renown_toast_inherits_celebration_banner() {
          the only shipping use-site of the toast strata-decoration combo (DIALOG + \
          evergreen-toast-celebration-* atlas family)"
     );
+}
 }
 
 #[test]

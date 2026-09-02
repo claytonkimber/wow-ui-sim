@@ -298,9 +298,8 @@ fn dep_directories_exist_on_disk() {
     }
 }
 
-#[test]
-fn full_game_load_publishes_representative_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_publishes_representative_mixins(env: &WowLuaEnv) {
 
     for mixin in REPRESENTATIVE_MIXINS {
         let kind: String = env
@@ -322,10 +321,10 @@ fn full_game_load_publishes_representative_mixins() {
         );
     }
 }
+}
 
-#[test]
-fn full_game_load_creates_representative_named_frames() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_creates_representative_named_frames(env: &WowLuaEnv) {
 
     for frame in REPRESENTATIVE_NAMED_FRAMES {
         let exists: bool = env
@@ -343,10 +342,10 @@ fn full_game_load_creates_representative_named_frames() {
         );
     }
 }
+}
 
-#[test]
-fn full_game_load_publishes_representative_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_publishes_representative_globals(env: &WowLuaEnv) {
 
     for global in REPRESENTATIVE_GLOBAL_TABLES {
         let kind: String = env
@@ -363,10 +362,10 @@ fn full_game_load_publishes_representative_globals() {
         );
     }
 }
+}
 
-#[test]
-fn world_map_frame_has_expected_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn world_map_frame_has_expected_methods(env: &WowLuaEnv) {
 
     for method in &["IsMaximized", "Show", "Hide", "OnShow", "OnHide"] {
         let exists: bool = env
@@ -383,10 +382,10 @@ fn world_map_frame_has_expected_methods() {
         );
     }
 }
+}
 
-#[test]
-fn character_frame_has_tab_buttons() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn character_frame_has_tab_buttons(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(CharacterFrameTab1)")
@@ -401,10 +400,10 @@ fn character_frame_has_tab_buttons() {
          etc.) get added/removed by sibling addons"
     );
 }
+}
 
-#[test]
-fn full_game_load_emits_no_addon_specific_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_emits_no_addon_specific_errors(env: &WowLuaEnv) {
 
     let errors: Vec<String> = env.state().borrow().lua_errors.clone();
     let addon_specific: Vec<&String> = errors
@@ -421,4 +420,5 @@ fn full_game_load_emits_no_addon_specific_errors() {
          Container/Quest/Merchant/Bank/Map/Trade/Gossip C-API surface \
          without raising. Found: {addon_specific:?}"
     );
+}
 }

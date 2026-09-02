@@ -304,9 +304,8 @@ fn blizzard_object_api_appears_in_game_screen_eager_discovery_only() {
     }
 }
 
-#[test]
-fn blizzard_object_api_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_object_api_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -334,10 +333,10 @@ fn blizzard_object_api_loads_without_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_object_api_is_addon_loaded_after_eager_sweep() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_object_api_is_addon_loaded_after_eager_sweep(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_ObjectAPI')")
@@ -349,10 +348,10 @@ fn blizzard_object_api_is_addon_loaded_after_eager_sweep() {
          load_addon call needed"
     );
 }
+}
 
-#[test]
-fn blizzard_object_api_publishes_six_constructor_tables() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_object_api_publishes_six_constructor_tables(env: &WowLuaEnv) {
 
     for table in PUBLIC_CONSTRUCTOR_TABLES {
         let kind: String = env
@@ -376,10 +375,10 @@ fn blizzard_object_api_publishes_six_constructor_tables() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_object_api_publishes_six_mixin_tables() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_object_api_publishes_six_mixin_tables(env: &WowLuaEnv) {
 
     for mixin in PUBLIC_MIXIN_TABLES {
         let kind: String = env
@@ -401,10 +400,10 @@ fn blizzard_object_api_publishes_six_mixin_tables() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_object_api_publishes_three_object_caches() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_object_api_publishes_three_object_caches(env: &WowLuaEnv) {
 
     for cache in PUBLIC_CACHES {
         let cache_kind: String = env
@@ -442,10 +441,10 @@ fn blizzard_object_api_publishes_three_object_caches() {
          globally callable so any addon can create its own caches keyed by arbitrary mixin"
     );
 }
+}
 
-#[test]
-fn blizzard_object_api_publishes_three_event_listener_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_object_api_publishes_three_event_listener_globals(env: &WowLuaEnv) {
 
     for listener in PUBLIC_EVENT_LISTENERS {
         let kind: String = env
@@ -466,10 +465,10 @@ fn blizzard_object_api_publishes_three_event_listener_globals() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_object_api_publishes_async_callback_api_type_constants() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_object_api_publishes_async_callback_api_type_constants(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(_G.AsyncCallbackAPIType)")
@@ -495,10 +494,10 @@ fn blizzard_object_api_publishes_async_callback_api_type_constants() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_object_api_does_not_leak_file_private_locals_as_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_object_api_does_not_leak_file_private_locals_as_globals(env: &WowLuaEnv) {
 
     for private in FILE_PRIVATE_LOCALS {
         let kind: String = env
@@ -522,10 +521,10 @@ fn blizzard_object_api_does_not_leak_file_private_locals_as_globals() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_object_api_does_not_load_unlisted_spell_book_item_location_file() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_object_api_does_not_load_unlisted_spell_book_item_location_file(env: &WowLuaEnv) {
 
     for global in UNLISTED_FILE_GLOBALS {
         let kind: String = env
@@ -557,4 +556,5 @@ fn blizzard_object_api_does_not_load_unlisted_spell_book_item_location_file() {
          opt-out",
         unlisted_file.display()
     );
+}
 }

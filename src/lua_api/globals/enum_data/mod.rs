@@ -74,6 +74,8 @@ pub const SEQUENTIAL_ENUMS: &[SeqEnumDef] = &[
     EDIT_MODE_CHAT_FRAME_SETTING,
     EDIT_MODE_ACCOUNT_SETTING,
     EDIT_MODE_LAYOUT_TYPE,
+    #[cfg(feature = "retail-12-1-0")]
+    EDIT_MODE_LOSS_OF_CONTROL_SETTING,
     EDIT_MODE_UNIT_FRAME_SETTING,
     EDIT_MODE_CAST_BAR_SETTING,
     EDIT_MODE_MINIMAP_SETTING,
@@ -89,7 +91,6 @@ pub const SEQUENTIAL_ENUMS: &[SeqEnumDef] = &[
     EDIT_MODE_COOLDOWN_VIEWER_SETTING,
     EDIT_MODE_PERSONAL_RESOURCE_DISPLAY_SETTING,
     PERSONAL_RESOURCE_DISPLAY_VISIBLE_SETTING,
-    EDIT_MODE_ENCOUNTER_EVENTS_SETTING,
     ENCOUNTER_EVENTS_VIEW_TYPE,
     ENCOUNTER_EVENTS_ORIENTATION,
     ENCOUNTER_EVENTS_VISIBILITY,
@@ -124,6 +125,14 @@ pub const SEQUENTIAL_ENUMS: &[SeqEnumDef] = &[
     NAVIGATION_STATE,
     UI_FRAME_TYPE,
     COOLDOWN_VIEWER_CATEGORY,
+    #[cfg(feature = "retail-12-1-0")]
+    COOLDOWN_VIEWER_SOUND,
+    #[cfg(feature = "retail-12-1-0")]
+    CUSTOM_AURA_BUTTON_DISPEL_TYPE_TEXTURE_STYLE,
+    #[cfg(feature = "retail-12-1-0")]
+    RECENT_ALLIES_FRIEND_TAG,
+    #[cfg(feature = "retail-12-1-0")]
+    SOCIAL_SYSTEM_TYPE,
     TTS_VOICE_TYPE,
     GUILD_ERROR_TYPE,
     ROLODEX_TYPE,
@@ -142,6 +151,16 @@ pub const SEQUENTIAL_ENUMS: &[SeqEnumDef] = &[
     NEIGHBORHOOD_OWNER_TYPE,
     HOUSING_LAYOUT_RESTRICTION,
     HOUSING_EXPERT_SUBMODE_RESTRICTION,
+    #[cfg(feature = "retail-12-1-0")]
+    HOUSING_RESULT,
+    #[cfg(feature = "retail-12-1-0")]
+    HOUSING_PET_BEHAVIOR_TYPE,
+    #[cfg(feature = "retail-12-1-0")]
+    HOUSE_EDITOR_PLAYER_TYPE,
+    #[cfg(feature = "retail-12-1-0")]
+    HOUSING_BLUEPRINT_TYPE,
+    #[cfg(feature = "retail-12-1-0")]
+    HOUSING_BLUEPRINT_CONTENT_TYPE,
     SPELL_BOOK_SPELL_BANK,
     SPELL_BOOK_ITEM_TYPE,
     BATTLE_PET_ACTION,
@@ -159,12 +178,80 @@ pub const SEQUENTIAL_ENUMS: &[SeqEnumDef] = &[
     PREY_HUNT_PROGRESS_STATE,
     STATUS_BAR_FILL_STYLE,
     RAID_DISPEL_DISPLAY_TYPE,
+    #[cfg(feature = "retail-12-1-0")]
+    RAID_DISPEL_OVERLAY_TYPE,
     NAME_PLATE_STYLE,
     AUTO_COMPLETE_PRIORITY,
 ];
 
 // All explicit value enums (for batch registration)
 pub const EXPLICIT_ENUMS: &[EnumDef] = &[
+    #[cfg(feature = "retail-12-1-0")]
+    COOLDOWN_VIEWER_SOUND_META,
+    #[cfg(feature = "retail-12-1-0")]
+    CUSTOM_AURA_BUTTON_DISPEL_TYPE_TEXTURE_STYLE_META,
+    #[cfg(feature = "retail-12-1-0")]
+    RECENT_ALLIES_FRIEND_TAG_META,
+    #[cfg(feature = "retail-12-1-0")]
+    ROLODEX_TYPE_LEGACY_FRIEND,
+    #[cfg(feature = "retail-12-1-0")]
+    ROLODEX_TYPE_META,
+    #[cfg(feature = "retail-12-1-0")]
+    BATTLE_NET_FRIEND_LEVEL,
+    #[cfg(feature = "retail-12-1-0")]
+    BATTLE_NET_FRIEND_LEVEL_META,
+    #[cfg(feature = "retail-12-1-0")]
+    BATTLE_NET_FRIEND_TAG,
+    #[cfg(feature = "retail-12-1-0")]
+    BATTLE_NET_FRIEND_TAG_META,
+    #[cfg(feature = "retail-12-1-0")]
+    SOCIAL_UI_BLOCK_TYPE,
+    #[cfg(feature = "retail-12-1-0")]
+    SOCIAL_UI_BLOCK_TYPE_META,
+    #[cfg(feature = "retail-12-1-0")]
+    SOCIAL_UI_PRESENCE_TYPE,
+    #[cfg(feature = "retail-12-1-0")]
+    SOCIAL_UI_PRESENCE_TYPE_META,
+    #[cfg(feature = "retail-12-1-0")]
+    SOCIAL_SYSTEM_TYPE_META,
+    #[cfg(feature = "retail-12-1-0")]
+    EDIT_MODE_ACCOUNT_SETTING_META,
+    #[cfg(feature = "retail-12-1-0")]
+    EDIT_MODE_LOSS_OF_CONTROL_SETTING_META,
+    #[cfg(feature = "retail-12-1-0")]
+    EDIT_MODE_SYSTEM_META,
+    #[cfg(feature = "retail-12-1-0")]
+    VISUAL_ALERT_TYPE,
+    #[cfg(feature = "retail-12-1-0")]
+    VISUAL_ALERT_TYPE_META,
+    #[cfg(feature = "retail-12-1-0")]
+    RAID_DISPEL_OVERLAY_TYPE_META,
+    #[cfg(feature = "retail-12-1-0")]
+    HOUSING_RESULT_META,
+    #[cfg(feature = "retail-12-1-0")]
+    HOUSING_PET_BEHAVIOR_TYPE_META,
+    #[cfg(feature = "retail-12-1-0")]
+    HOUSE_EDITOR_PLAYER_TYPE_META,
+    #[cfg(feature = "retail-12-1-0")]
+    HOUSE_SETTING_FLAGS,
+    #[cfg(feature = "retail-12-1-0")]
+    HOUSE_SETTING_FLAGS_META,
+    #[cfg(feature = "retail-12-1-0")]
+    HOUSING_BUDGET_TYPE,
+    #[cfg(feature = "retail-12-1-0")]
+    HOUSING_BUDGET_TYPE_META,
+    #[cfg(feature = "retail-12-1-0")]
+    HOUSING_HOUSE_SCOPE,
+    #[cfg(feature = "retail-12-1-0")]
+    HOUSING_HOUSE_SCOPE_META,
+    #[cfg(feature = "retail-12-1-0")]
+    HOUSING_BLUEPRINT_TYPE_META,
+    #[cfg(feature = "retail-12-1-0")]
+    HOUSING_BLUEPRINT_CONTENT_TYPE_META,
+    #[cfg(feature = "retail-12-1-0")]
+    HOUSING_BLUEPRINT_UNMET_REQUIREMENT_FLAGS,
+    #[cfg(feature = "retail-12-1-0")]
+    HOUSING_BLUEPRINT_UNMET_REQUIREMENT_FLAGS_META,
     LFG_ROLE,
     UNIT_SEX,
     UI_WIDGET_TEXT_SIZE_TYPE,
@@ -180,6 +267,7 @@ pub const EXPLICIT_ENUMS: &[EnumDef] = &[
     EDIT_MODE_STATUS_TRACKING_BAR_SYSTEM_INDICES,
     EDIT_MODE_COOLDOWN_VIEWER_SYSTEM_INDICES,
     EDIT_MODE_ENCOUNTER_EVENTS_SYSTEM_INDICES,
+    EDIT_MODE_ENCOUNTER_EVENTS_SETTING,
     ENCOUNTER_EVENTS_ICON_DIRECTION,
     AURA_FRAME_ICON_DIRECTION,
     AURA_FRAME_ICON_WRAP,
@@ -192,6 +280,8 @@ pub const EXPLICIT_ENUMS: &[EnumDef] = &[
     CHAT_CHANNEL_TYPE,
     PVP_MATCH_STATE,
     HOUSING_FIXTURE_DECOR_ACTION,
+    #[cfg(feature = "retail-12-1-0")]
+    TIERED_ENTRANCE_TYPE,
     TIERED_ENTRANCE_REWARD_TYPE,
     EDIT_MODE_CHAT_FRAME_DISPLAY_ONLY_SETTING,
     GUIDE_FRAME_STATE,
@@ -215,11 +305,16 @@ pub const EXPLICIT_ENUMS: &[EnumDef] = &[
     COMBAT_AUDIO_ALERT_DEBUFF_SELF_ALERT_VALUES_META,
     COMBAT_AUDIO_ALERT_PLAYER_DEBUFF_FORMAT_VALUES_META,
     NAME_PLATE_SIZE,
+    DAMAGE_METER_VISIBILITY_META,
     EVENT_REALM_QUEUES,
     GAME_MODE,
     PLAYER_MENTORSHIP_STATUS,
     CHARACTER_CREATE_TYPE,
     VALUE_ADDED_SERVICE_TYPE,
+    #[cfg(feature = "retail-12-1-0")]
+    FORBIDDEN_ASPECT,
+    #[cfg(feature = "retail-12-1-0")]
+    FORBIDDEN_ASPECT_META,
     CREATION_CLASS_DISABLED_REASON,
     CREATION_RACE_DISABLED_REASON,
     VAS_QUEUE_STATUS,

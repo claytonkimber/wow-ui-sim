@@ -207,9 +207,8 @@ fn present_in_every_screen_eager_discovery() {
     }
 }
 
-#[test]
-fn status_text_display_mode_publishes_with_four_entries() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn status_text_display_mode_publishes_with_four_entries(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(STATUS_TEXT_DISPLAY_MODE)")
@@ -233,10 +232,10 @@ fn status_text_display_mode_publishes_with_four_entries() {
         );
     }
 }
+}
 
-#[test]
-fn text_status_bar_mixin_publishes_with_fourteen_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn text_status_bar_mixin_publishes_with_fourteen_methods(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(TextStatusBarMixin)")
@@ -265,10 +264,10 @@ fn text_status_bar_mixin_publishes_with_fourteen_methods() {
         );
     }
 }
+}
 
-#[test]
-fn spark_mixin_publishes_with_six_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn spark_mixin_publishes_with_six_methods(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(TextStatusBarSparkMixin)")
@@ -295,10 +294,10 @@ fn spark_mixin_publishes_with_six_methods() {
         );
     }
 }
+}
 
-#[test]
-fn text_status_bar_template_materializes_via_create_frame() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn text_status_bar_template_materializes_via_create_frame(env: &WowLuaEnv) {
 
     let probe = "local ok, frame = pcall(function() \
                     return CreateFrame('StatusBar', nil, UIParent, 'TextStatusBar') \
@@ -316,10 +315,10 @@ fn text_status_bar_template_materializes_via_create_frame() {
          OnMinMaxChanged"
     );
 }
+}
 
-#[test]
-fn spark_template_materializes_via_create_frame() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn spark_template_materializes_via_create_frame(env: &WowLuaEnv) {
 
     let probe = "local parent = CreateFrame('StatusBar', nil, UIParent, 'TextStatusBar') \
                   local ok, tex = pcall(function() \
@@ -337,10 +336,10 @@ fn spark_template_materializes_via_create_frame() {
          anchored RIGHT (positions itself at the bar's fill edge)"
     );
 }
+}
 
-#[test]
-fn explicit_load_addon_emits_no_addon_specific_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn explicit_load_addon_emits_no_addon_specific_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -375,10 +374,10 @@ fn explicit_load_addon_emits_no_addon_specific_errors() {
         matched
     );
 }
+}
 
-#[test]
-fn is_addon_loaded_reports_true_after_eager_sweep() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn is_addon_loaded_reports_true_after_eager_sweep(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_TextStatusBar')")
@@ -388,6 +387,7 @@ fn is_addon_loaded_reports_true_after_eager_sweep() {
         "After full Game eager sweep, IsAddOnLoaded must report true \
          — TextStatusBar is non-LoD, eagerly pulled"
     );
+}
 }
 
 #[test]

@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, find_toc_file, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
-use wow_ui_sim::startup::fire_startup_events_for_screen;
 use wow_ui_sim::toc::TocFile;
 
 fn blizzard_ui_dir() -> PathBuf {
@@ -27,34 +26,11 @@ fn status_ui_toc() -> PathBuf {
         .join("Blizzard_StatusUI.toc")
 }
 
-fn load_full_game_ui_with_gm_chat_ui_lod_chain() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-
-    wow_ui_sim::xml::register_intrinsic_templates();
-
-    let ui = blizzard_ui_dir();
-    let addons = discover_blizzard_addons_for_screen(&ui, ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    env.apply_post_load_workarounds();
-    fire_startup_events_for_screen(&env, ScreenKind::Game);
-
+fn load_gm_chat_ui_with_dependencies(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &status_ui_toc())
         .expect("Blizzard_StatusUI (LoD dep of Blizzard_GMChatUI) should load explicitly");
     load_addon(&env.loader_env(), &gm_chat_ui_toc())
         .expect("Blizzard_GMChatUI should load via explicit Rust loader call");
-
-    env
 }
 
 #[test]
@@ -121,7 +97,7 @@ fn blizzard_gm_chat_ui_toc_declares_no_allow_load_directive() {
 }
 
 #[test]
-fn blizzard_gm_chat_ui_toc_lists_lua_xml_and_localization() {
+fn blizzard_gm_chat_ui_toc_lists_bootstrap_lua_xml_and_localization() {
     let toc = TocFile::from_file(&gm_chat_ui_toc()).expect("Blizzard_GMChatUI TOC should parse");
     let files: Vec<String> = toc
         .files
@@ -131,20 +107,20 @@ fn blizzard_gm_chat_ui_toc_lists_lua_xml_and_localization() {
     assert_eq!(
         files,
         vec![
+            "Blizzard_GMChatUI_Bootstrap.lua".to_string(),
             "Blizzard_GMChatUI.lua".to_string(),
             "Blizzard_GMChatUI.xml".to_string(),
             "Localization.lua".to_string(),
         ],
-        "Blizzard_GMChatUI TOC lists exactly 3 files in this exact order: Blizzard_GMChatUI.lua \
-         (must come first because the XML's `<Scripts><OnLoad function=\"GMChatFrame_OnLoad\"/>` \
-         resolves at XML-parse time and needs the Lua-published functions registered first), \
-         Blizzard_GMChatUI.xml (instantiates GMChatFrame + GMChatStatusFrame), Localization.lua \
-         (currently empty stub kept around for future hotfix-friendly localized strings)"
+        "Blizzard_GMChatUI TOC lists exactly 4 files in source order: the interaction bootstrap, \
+         main Lua helpers required by the XML scripts, XML roots for GMChatFrame and \
+         GMChatStatusFrame, then the localization stub. The Bootstrap annotation does not reorder \
+         normal explicit addon loading"
     );
 }
 
 #[test]
-fn blizzard_gm_chat_ui_directory_ships_three_files_plus_toc() {
+fn blizzard_gm_chat_ui_directory_ships_four_files_plus_toc() {
     let dir = gm_chat_ui_dir();
     let mut entries: Vec<String> = std::fs::read_dir(&dir)
         .expect("Blizzard_GMChatUI directory should exist")
@@ -158,10 +134,11 @@ fn blizzard_gm_chat_ui_directory_ships_three_files_plus_toc() {
             "Blizzard_GMChatUI.lua".to_string(),
             "Blizzard_GMChatUI.toc".to_string(),
             "Blizzard_GMChatUI.xml".to_string(),
+            "Blizzard_GMChatUI_Bootstrap.lua".to_string(),
             "Localization.lua".to_string(),
         ],
-        "Blizzard_GMChatUI directory ships exactly 4 entries (TOC + Lua + XML + Localization) \
-         with no flavor subdirectory or media folder"
+        "Blizzard_GMChatUI directory ships exactly 5 entries (TOC + bootstrap + Lua + XML + \
+         Localization) with no flavor subdirectory or media folder"
     );
 }
 
@@ -185,9 +162,9 @@ fn blizzard_gm_chat_ui_excluded_from_all_screen_auto_discovery_due_to_lod() {
     }
 }
 
-#[test]
-fn blizzard_gm_chat_ui_loads_explicitly_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui_with_gm_chat_ui_lod_chain();
+prefork_full_ui_case! {
+fn blizzard_gm_chat_ui_loads_explicitly_without_addon_specific_lua_errors(env: &WowLuaEnv) {
+    load_gm_chat_ui_with_dependencies(env);
 
     let lua_errors: Vec<String> = env.state().borrow().lua_errors.clone();
     let related: Vec<&String> = lua_errors
@@ -209,10 +186,11 @@ fn blizzard_gm_chat_ui_loads_explicitly_without_addon_specific_lua_errors() {
             .join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_gm_chat_ui_is_addon_loaded_returns_true_after_explicit_load() {
-    let env = load_full_game_ui_with_gm_chat_ui_lod_chain();
+prefork_full_ui_case! {
+fn blizzard_gm_chat_ui_is_addon_loaded_returns_true_after_explicit_load(env: &WowLuaEnv) {
+    load_gm_chat_ui_with_dependencies(env);
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_GMChatUI')")
@@ -223,10 +201,11 @@ fn blizzard_gm_chat_ui_is_addon_loaded_returns_true_after_explicit_load() {
          true — the addon registers itself as loaded once the Rust loader processes its TOC"
     );
 }
+}
 
-#[test]
-fn blizzard_gm_chat_ui_publishes_chat_frame_lifecycle_helpers() {
-    let env = load_full_game_ui_with_gm_chat_ui_lod_chain();
+prefork_full_ui_case! {
+fn blizzard_gm_chat_ui_publishes_chat_frame_lifecycle_helpers(env: &WowLuaEnv) {
+    load_gm_chat_ui_with_dependencies(env);
 
     for helper in [
         "GMChatFrame_OnLoad",
@@ -250,10 +229,11 @@ fn blizzard_gm_chat_ui_publishes_chat_frame_lifecycle_helpers() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_gm_chat_ui_publishes_gm_chat_status_mixin_with_two_methods() {
-    let env = load_full_game_ui_with_gm_chat_ui_lod_chain();
+prefork_full_ui_case! {
+fn blizzard_gm_chat_ui_publishes_gm_chat_status_mixin_with_two_methods(env: &WowLuaEnv) {
+    load_gm_chat_ui_with_dependencies(env);
 
     let mixin_exists: bool = env
         .eval("return type(_G['GMChatStatusMixin']) == 'table'")
@@ -277,31 +257,32 @@ fn blizzard_gm_chat_ui_publishes_gm_chat_status_mixin_with_two_methods() {
         );
     }
 }
-
-#[test]
-fn blizzard_gm_chat_ui_publishes_gm_chat_frame_global() {
-    let env = load_full_game_ui_with_gm_chat_ui_lod_chain();
-
-    let exists: bool = env
-        .eval(
-            "local f = _G['GMChatFrame']; return type(f) == 'table' and type(f.GetName) == 'function'",
-        )
-        .expect("GMChatFrame existence query should succeed");
-    assert!(
-        exists,
-        "After LoadAddOn, `GMChatFrame` should publish as a global frame instance — XML line 3 \
-         declares `<ScrollingMessageFrame name=\"GMChatFrame\" \
-         inherits=\"FloatingChatFrameTemplate\">` so the named non-virtual scrolling-message frame \
-         materializes as a runtime frame published under its declared name. \
-         GMChatStatusFrame is verified indirectly via the GMChatStatusMixin assertions above — \
-         its inherited StatusUIFrame template is virtual, and the simulator's XML loader does not \
-         publish that nested-virtual-Button-template chain as a `_G` global"
-    );
 }
 
-#[test]
-fn blizzard_gm_chat_ui_is_gm_returns_falsy_for_unknown_player() {
-    let env = load_full_game_ui_with_gm_chat_ui_lod_chain();
+prefork_full_ui_case! {
+fn blizzard_gm_chat_ui_publishes_gm_chat_frame_global(env: &WowLuaEnv) {
+    load_gm_chat_ui_with_dependencies(env);
+
+    let frames_exist: bool = env
+        .eval(
+            "local chat = _G['GMChatFrame']; local status = _G['GMChatStatusFrame']; \
+             return type(chat) == 'table' and type(chat.GetName) == 'function' \
+                and type(status) == 'table' and type(status.GetName) == 'function'",
+        )
+        .expect("GM chat frame existence query should succeed");
+    assert!(
+        frames_exist,
+        "After LoadAddOn, both named XML roots must publish globally. GMChatFrame is the \
+         ScrollingMessageFrame root; GMChatStatusFrame is the Button root inheriting the virtual \
+         StatusUIFrame template. A failure while finalizing GMChatFrame must not abort processing \
+         before the status frame is created"
+    );
+}
+}
+
+prefork_full_ui_case! {
+fn blizzard_gm_chat_ui_is_gm_returns_falsy_for_unknown_player(env: &WowLuaEnv) {
+    load_gm_chat_ui_with_dependencies(env);
 
     let result: Option<bool> = env
         .eval("local v = GMChatFrame_IsGM('UnknownPlayer'); return v == nil or v == false")
@@ -312,4 +293,5 @@ fn blizzard_gm_chat_ui_is_gm_returns_falsy_for_unknown_player() {
          observed as a GM — the `ListOfGMs` table starts empty and is only populated when a \
          CHAT_MSG_WHISPER with arg6 == 'GM' is received"
     );
+}
 }

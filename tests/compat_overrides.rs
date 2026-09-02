@@ -134,19 +134,20 @@ fn addframetext_formats_non_string_and_ignores_nil() {
 }
 
 #[test]
-fn next_on_frame_yields_nothing() {
+fn next_on_frame_exposes_identity_slot() {
     let env = env();
-    let count: i64 = env
+    let (key, value_type, has_second_key): (i64, String, bool) = env
         .eval(
             r#"
-            local f = CreateFrame("Frame", nil, UIParent)
-            local n = 0
-            for k, v in pairs(f) do n = n + 1 end
-            return n
+            local frame = CreateFrame("Frame", nil, UIParent)
+            local key, value = next(frame)
+            return key, type(value), next(frame, key) ~= nil
             "#,
         )
         .unwrap();
-    assert_eq!(count, 0, "frames aren't iterable tables");
+    assert_eq!(key, 0, "frames expose their identity through slot zero");
+    assert_eq!(value_type, "userdata");
+    assert!(!has_second_key, "fresh frames expose no second raw key");
 }
 
 #[test]

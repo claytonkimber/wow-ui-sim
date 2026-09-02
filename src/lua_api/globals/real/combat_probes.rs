@@ -10,6 +10,7 @@
 //!                              retail signature is `(isInstance, type)`.
 //! - `IsBattlefieldArena()`  — `world.battlefield_arena`
 
+use crate::c_api::c_instance_encounter::is_encounter_in_progress;
 use crate::lua_api::methods::{borrow_state_mut, create_string};
 use rilua::vm::state::LuaState;
 use rilua::{LuaApiMut, LuaResult, Val};
@@ -17,12 +18,6 @@ use rilua::{LuaApiMut, LuaResult, Val};
 fn in_combat_lockdown(state: &mut LuaState) -> LuaResult<u32> {
     let in_combat = borrow_state_mut(state)?.player.in_combat;
     state.push(Val::Bool(in_combat));
-    Ok(1)
-}
-
-fn is_encounter_in_progress(state: &mut LuaState) -> LuaResult<u32> {
-    let enc = borrow_state_mut(state)?.world.encounter_in_progress;
-    state.push(Val::Bool(enc));
     Ok(1)
 }
 

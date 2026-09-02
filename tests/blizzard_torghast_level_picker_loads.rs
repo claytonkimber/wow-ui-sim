@@ -263,9 +263,8 @@ fn blizzard_colors_dep_directory_exists_on_disk() {
     );
 }
 
-#[test]
-fn explicit_load_publishes_five_mixins_with_expected_method_counts() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn explicit_load_publishes_five_mixins_with_expected_method_counts(env: &WowLuaEnv) {
 
     load_addon(&env.loader_env(), &torghast_toc())
         .expect("Blizzard_TorghastLevelPicker must load via Rust loader");
@@ -301,10 +300,10 @@ fn explicit_load_publishes_five_mixins_with_expected_method_counts() {
         );
     }
 }
+}
 
-#[test]
-fn explicit_load_creates_torghast_level_picker_frame() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn explicit_load_creates_torghast_level_picker_frame(env: &WowLuaEnv) {
 
     load_addon(&env.loader_env(), &torghast_toc())
         .expect("Blizzard_TorghastLevelPicker must load via Rust loader");
@@ -324,10 +323,10 @@ fn explicit_load_creates_torghast_level_picker_frame() {
          etc.) is a virtual template"
     );
 }
+}
 
-#[test]
-fn ui_panel_windows_entry_registered_at_boot() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn ui_panel_windows_entry_registered_at_boot(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(UIPanelWindows['TorghastLevelPickerFrame'])")
@@ -342,6 +341,7 @@ fn ui_panel_windows_entry_registered_at_boot() {
          so ShowUIPanel/HideUIPanel can immediately route the frame \
          once the LoD load materializes it"
     );
+}
 }
 
 #[test]
@@ -366,9 +366,8 @@ fn six_torghast_gossip_texture_kits_route_to_load_addon() {
     }
 }
 
-#[test]
-fn explicit_load_emits_no_addon_specific_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn explicit_load_emits_no_addon_specific_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -395,4 +394,5 @@ fn explicit_load_emits_no_addon_specific_errors() {
         addon_specific.len(),
         addon_specific
     );
+}
 }

@@ -1,83 +1,48 @@
 use crate::common;
 
 use std::path::PathBuf;
-use wow_ui_sim::loader::load_addon;
 use wow_ui_sim::lua_api::WowLuaEnv;
 
-type AddonToc = (&'static str, &'static str);
-
-const ACTION_BAR_ADDONS: &[AddonToc] = &[
-    ("Blizzard_SharedXMLBase", "Blizzard_SharedXMLBase.toc"),
-    ("Blizzard_Colors", "Blizzard_Colors_Mainline.toc"),
-    ("Blizzard_SharedXML", "Blizzard_SharedXML_Mainline.toc"),
-    (
-        "Blizzard_SharedXMLGame",
-        "Blizzard_SharedXMLGame_Mainline.toc",
-    ),
-    (
-        "Blizzard_UIPanelTemplates",
-        "Blizzard_UIPanelTemplates_Mainline.toc",
-    ),
-    (
-        "Blizzard_FrameXMLBase",
-        "Blizzard_FrameXMLBase_Mainline.toc",
-    ),
-    ("Blizzard_LoadLocale", "Blizzard_LoadLocale.toc"),
-    ("Blizzard_Fonts_Shared", "Blizzard_Fonts_Shared.toc"),
-    ("Blizzard_HelpPlate", "Blizzard_HelpPlate.toc"),
-    (
-        "Blizzard_AccessibilityTemplates",
-        "Blizzard_AccessibilityTemplates.toc",
-    ),
-    ("Blizzard_ObjectAPI", "Blizzard_ObjectAPI_Mainline.toc"),
-    ("Blizzard_UIParent", "Blizzard_UIParent_Mainline.toc"),
-    ("Blizzard_TextStatusBar", "Blizzard_TextStatusBar.toc"),
-    ("Blizzard_MoneyFrame", "Blizzard_MoneyFrame_Mainline.toc"),
-    ("Blizzard_POIButton", "Blizzard_POIButton.toc"),
-    ("Blizzard_Flyout", "Blizzard_Flyout.toc"),
-    ("Blizzard_StoreUI", "Blizzard_StoreUI_Mainline.toc"),
-    ("Blizzard_MicroMenu", "Blizzard_MicroMenu_Mainline.toc"),
-    ("Blizzard_EditMode", "Blizzard_EditMode.toc"),
-    ("Blizzard_GarrisonBase", "Blizzard_GarrisonBase.toc"),
-    ("Blizzard_GameTooltip", "Blizzard_GameTooltip_Mainline.toc"),
-    (
-        "Blizzard_UIParentPanelManager",
-        "Blizzard_UIParentPanelManager_Mainline.toc",
-    ),
-    (
-        "Blizzard_Settings_Shared",
-        "Blizzard_Settings_Shared_Mainline.toc",
-    ),
-    (
-        "Blizzard_SettingsDefinitions_Shared",
-        "Blizzard_SettingsDefinitions_Shared.toc",
-    ),
-    (
-        "Blizzard_SettingsDefinitions_Frame",
-        "Blizzard_SettingsDefinitions_Frame_Mainline.toc",
-    ),
-    (
-        "Blizzard_FrameXMLUtil",
-        "Blizzard_FrameXMLUtil_Mainline.toc",
-    ),
-    ("Blizzard_ItemButton", "Blizzard_ItemButton_Mainline.toc"),
-    ("Blizzard_QuickKeybind", "Blizzard_QuickKeybind.toc"),
-    ("Blizzard_FrameXML", "Blizzard_FrameXML_Mainline.toc"),
-    (
-        "Blizzard_UIPanels_Game",
-        "Blizzard_UIPanels_Game_Mainline.toc",
-    ),
-    (
-        "Blizzard_MapCanvasSecureUtil",
-        "Blizzard_MapCanvasSecureUtil.toc",
-    ),
-    ("Blizzard_MapCanvas", "Blizzard_MapCanvas.toc"),
-    (
-        "Blizzard_SharedMapDataProviders",
-        "Blizzard_SharedMapDataProviders_Mainline.toc",
-    ),
-    ("Blizzard_WorldMap", "Blizzard_WorldMap_Mainline.toc"),
-    ("Blizzard_ActionBar", "Blizzard_ActionBar_Mainline.toc"),
+const ACTION_BAR_ADDONS: &[&str] = &[
+    "Blizzard_SharedXMLBase",
+    "Blizzard_Colors",
+    "Blizzard_SharedXML",
+    "Blizzard_SharedXMLGame",
+    "Blizzard_UIPanelTemplates",
+    "Blizzard_FrameXMLBase",
+    "Blizzard_LoadLocale",
+    "Blizzard_Fonts_Shared",
+    "Blizzard_HelpPlate",
+    "Blizzard_AccessibilityTemplates",
+    "Blizzard_ObjectAPI",
+    "Blizzard_UIParent",
+    "Blizzard_TextStatusBar",
+    "Blizzard_MoneyFrame",
+    "Blizzard_POIButton",
+    "Blizzard_Flyout",
+    "Blizzard_StoreUI",
+    "Blizzard_MicroMenu",
+    "Blizzard_ManagedFrameSystem",
+    "Blizzard_GameMenuEsc",
+    "Blizzard_UIParentUtil",
+    "Blizzard_EditMode",
+    "Blizzard_GarrisonBase",
+    "Blizzard_GameTooltip",
+    "Blizzard_UIParentPanelManager",
+    "Blizzard_Settings_Shared",
+    "Blizzard_SettingsDefinitions_Shared",
+    "Blizzard_SettingsDefinitions_Frame",
+    "Blizzard_FrameXMLUtil",
+    "Blizzard_ItemButton",
+    "Blizzard_QuickKeybind",
+    "Blizzard_FrameXML",
+    "Blizzard_UIPanels_Game",
+    "Blizzard_MapCanvasSecureUtil",
+    "Blizzard_MapCanvas",
+    "Blizzard_SharedMapDataProviders",
+    "Blizzard_WorldMap",
+    "Blizzard_PingUI",
+    "Blizzard_ActionBar",
 ];
 
 fn seed_action_slot(env: &WowLuaEnv, slot: u32, spell_id: u32) {
@@ -90,21 +55,11 @@ fn blizzard_ui_dir() -> PathBuf {
     )))
 }
 
-fn action_bar_toc(addon: &str, toc_name: &str) -> PathBuf {
-    blizzard_ui_dir().join(addon).join(toc_name)
-}
-
-fn action_bar_addons() -> &'static [AddonToc] {
-    ACTION_BAR_ADDONS
-}
-
 fn load_action_bar_addons(env: &WowLuaEnv) {
-    env.state().borrow_mut().addon_base_paths = vec![blizzard_ui_dir()];
-    for (name, toc) in action_bar_addons() {
-        let toc_path = action_bar_toc(name, toc);
-        if toc_path.exists() {
-            load_addon(&env.loader_env(), &toc_path).unwrap();
-        }
+    let ui = blizzard_ui_dir();
+    env.state().borrow_mut().addon_base_paths = vec![ui.clone()];
+    for addon_name in ACTION_BAR_ADDONS {
+        common::load_required_blizzard_addon(env, &ui, addon_name);
     }
 }
 
@@ -244,11 +199,13 @@ fn action_button_drag_round_trip_keeps_spell_visible() {
             .unwrap();
 
         let before_drag: bool = env
-            .eval("return type(ActionButton1.icon:GetTexture()) == 'string'")
+            .eval(
+                "return ActionButton1.icon:IsShown() and ActionButton1.icon:GetTexture() == 135963",
+            )
             .unwrap();
         assert!(
             before_drag,
-            "action button should show its icon before drag"
+            "action button should show spell texture 135963 before drag"
         );
         let has_receive_drag: bool = env
             .eval("return ActionButton1:GetScript('OnReceiveDrag') ~= nil")
@@ -264,17 +221,19 @@ fn action_button_drag_round_trip_keeps_spell_visible() {
             .unwrap();
 
         let after_drag: bool = env
-            .eval("return type(ActionButton1.icon:GetTexture()) == 'string' and HasAction(1)")
+            .eval(
+                "return ActionButton1.icon:IsShown() and ActionButton1.icon:GetTexture() == 135963 and HasAction(1)",
+            )
             .unwrap();
         assert!(
             after_drag,
-            "dragging off and back onto the same button should keep the icon"
+            "dragging off and back onto the same button should keep spell texture 135963 and its action"
         );
     });
 }
 
 #[test]
-fn action_button_1_icon_matches_get_action_texture() {
+fn action_button_1_texture_path_resolves_to_icon_fdid() {
     common::with_timeout(120, move || {
         let env = env_with_action_bar();
         seed_action_slot(&env, 1, 853);
@@ -294,13 +253,21 @@ fn action_button_1_icon_matches_get_action_texture() {
                     return "missing_action_button_1_icon"
                 end
 
-                local expected = GetActionTexture(1)
-                local actual = ActionButton1.icon:GetTexture()
-                if actual ~= expected then
+                local actionTexture = GetActionTexture(1)
+                if actionTexture ~= "ICONS/Spell_Holy_SealOfMight" then
                     return string.format(
-                        "icon_mismatch_expected_%s_actual_%s",
-                        tostring(expected),
-                        tostring(actual)
+                        "action_texture_mismatch_expected_%s_actual_%s",
+                        "ICONS/Spell_Holy_SealOfMight",
+                        tostring(actionTexture)
+                    )
+                end
+
+                local iconTexture = ActionButton1.icon:GetTexture()
+                if iconTexture ~= 135963 then
+                    return string.format(
+                        "icon_fdid_mismatch_expected_%s_actual_%s",
+                        tostring(135963),
+                        tostring(iconTexture)
                     )
                 end
 
@@ -311,7 +278,7 @@ fn action_button_1_icon_matches_get_action_texture() {
 
         assert_eq!(
             result, "ok",
-            "ActionButton1 icon should match GetActionTexture(1): {result}"
+            "ActionButton1 texture path should resolve to the expected icon FDID: {result}"
         );
     });
 }

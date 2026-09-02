@@ -100,8 +100,7 @@ fn max_duration(samples: &[Duration]) -> Duration {
 
 #[test]
 fn talent_panel_open_visible_onupdate_handlers_stay_within_ceiling() {
-    test_timeout! {
-        common::with_perf_lock(|| {
+    perf_test_timeout! {
             let env = load_settled_game_ui();
             run_headless_tick(&env);
             let before_count = capture_visible_onupdate(&env).0;
@@ -123,14 +122,12 @@ fn talent_panel_open_visible_onupdate_handlers_stay_within_ceiling() {
                 added_count,
                 visible_names
             );
-        });
     }
 }
 
 #[test]
 fn talent_panel_open_onupdate_tick_latency_stays_under_budget() {
-    test_timeout! {
-        common::with_perf_lock(|| {
+    perf_test_timeout! {
             let env = load_settled_game_ui();
             let baseline_samples = sample_on_update_ticks(&env, BASELINE_TICKS);
             let baseline_avg = mean_duration(&baseline_samples);
@@ -173,6 +170,5 @@ fn talent_panel_open_onupdate_tick_latency_stays_under_budget() {
                 talent_avg,
                 TALENT_PANEL_ONUPDATE_DELTA_BUDGET
             );
-        });
     }
 }

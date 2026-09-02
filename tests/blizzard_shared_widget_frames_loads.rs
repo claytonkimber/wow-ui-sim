@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 
-use wow_ui_sim::loader::load_addon;
 use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, find_toc_file};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
@@ -23,31 +22,6 @@ const PUBLIC_MIXINS: &[&str] = &[
     "UIWidgetCenterDisplayFrameButtonMixin",
     "UIWidgetCenterDisplayFrameExtraButtonMixin",
 ];
-
-fn fresh_env() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-    wow_ui_sim::xml::register_intrinsic_templates();
-    env
-}
-
-fn load_full_game_ui() -> WowLuaEnv {
-    let env = fresh_env();
-
-    let addons = discover_blizzard_addons_for_screen(&blizzard_ui_dir(), ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    env.apply_post_load_workarounds();
-    env
-}
 
 #[test]
 fn find_toc_file_resolves_bare_toc() {
@@ -243,235 +217,235 @@ fn eager_discovery_includes_addon_on_game_screen_only() {
     }
 }
 
-#[test]
-fn full_game_load_emits_no_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+    fn full_game_load_emits_no_addon_specific_lua_errors(env: &WowLuaEnv) {
 
-    let errors: Vec<String> = env.state().borrow().lua_errors.clone();
-    let relevant: Vec<&String> = errors
-        .iter()
-        .filter(|e| {
-            e.contains("Blizzard_SharedWidgetFrames")
-                || e.contains("UIWidgetCenterDisplayFrame")
-                || e.contains("WidgetCenterDisplayFrameMixin")
-        })
-        .collect();
-    assert!(
-        relevant.is_empty(),
-        "Eager load via full Game UI discovery must emit zero addon-specific \
-         Lua errors. Got:\n  {}",
-        relevant
+        let errors: Vec<String> = env.state().borrow().lua_errors.clone();
+        let relevant: Vec<&String> = errors
             .iter()
-            .map(|s| s.as_str())
-            .collect::<Vec<_>>()
-            .join("\n  ")
-    );
-}
-
-#[test]
-fn is_addon_loaded_returns_true_after_full_game_discovery() {
-    let env = load_full_game_ui();
-
-    let loaded: bool = env
-        .eval("return C_AddOns.IsAddOnLoaded('Blizzard_SharedWidgetFrames')")
-        .expect("IsAddOnLoaded probe");
-    assert!(
-        loaded,
-        "C_AddOns.IsAddOnLoaded('Blizzard_SharedWidgetFrames') must be true \
-         after eager discovery — the LoadOnDemand=0 directive guarantees \
-         immediate inclusion when the addon's RequiredDep (Blizzard_UIWidgets) \
-         is itself eager"
-    );
-
-    let dep_loaded: bool = env
-        .eval("return C_AddOns.IsAddOnLoaded('Blizzard_UIWidgets')")
-        .expect("Blizzard_UIWidgets IsAddOnLoaded probe");
-    assert!(
-        dep_loaded,
-        "Blizzard_UIWidgets must be loaded — it's the single RequiredDep, \
-         and UIWidgetContainerTemplate / DefaultWidgetLayout would fail to \
-         resolve without it"
-    );
-}
-
-#[test]
-fn publishes_three_mixin_tables_for_dialog_and_buttons() {
-    let env = load_full_game_ui();
-
-    for mixin in PUBLIC_MIXINS {
-        let kind: String = env
-            .eval(&format!("return type({mixin})"))
-            .unwrap_or_else(|_| panic!("{mixin} probe failed"));
-        assert_eq!(
-            kind, "table",
-            "_G.{mixin} must be a table — XML `mixin=\"{mixin}\"` references \
-             must resolve at parse time. WidgetCenterDisplayFrameMixin lives \
-             on the dialog itself, the two button mixins live on the close / \
-             extra-action buttons inside the dialog"
+            .filter(|e| {
+                e.contains("Blizzard_SharedWidgetFrames")
+                    || e.contains("UIWidgetCenterDisplayFrame")
+                    || e.contains("WidgetCenterDisplayFrameMixin")
+            })
+            .collect();
+        assert!(
+            relevant.is_empty(),
+            "Eager load via full Game UI discovery must emit zero addon-specific \
+             Lua errors. Got:\n  {}",
+            relevant
+                .iter()
+                .map(|s| s.as_str())
+                .collect::<Vec<_>>()
+                .join("\n  ")
         );
     }
 }
 
-#[test]
-fn widget_center_display_frame_mixin_publishes_lifecycle_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+    fn is_addon_loaded_returns_true_after_full_game_discovery(env: &WowLuaEnv) {
 
-    for method in ["OnLoad", "OnEvent", "OnHide", "Setup", "SetupButtons"] {
+        let loaded: bool = env
+            .eval("return C_AddOns.IsAddOnLoaded('Blizzard_SharedWidgetFrames')")
+            .expect("IsAddOnLoaded probe");
+        assert!(
+            loaded,
+            "C_AddOns.IsAddOnLoaded('Blizzard_SharedWidgetFrames') must be true \
+             after eager discovery — the LoadOnDemand=0 directive guarantees \
+             immediate inclusion when the addon's RequiredDep (Blizzard_UIWidgets) \
+             is itself eager"
+        );
+
+        let dep_loaded: bool = env
+            .eval("return C_AddOns.IsAddOnLoaded('Blizzard_UIWidgets')")
+            .expect("Blizzard_UIWidgets IsAddOnLoaded probe");
+        assert!(
+            dep_loaded,
+            "Blizzard_UIWidgets must be loaded — it's the single RequiredDep, \
+             and UIWidgetContainerTemplate / DefaultWidgetLayout would fail to \
+             resolve without it"
+        );
+    }
+}
+
+prefork_full_ui_case! {
+    fn publishes_three_mixin_tables_for_dialog_and_buttons(env: &WowLuaEnv) {
+
+        for mixin in PUBLIC_MIXINS {
+            let kind: String = env
+                .eval(&format!("return type({mixin})"))
+                .unwrap_or_else(|_| panic!("{mixin} probe failed"));
+            assert_eq!(
+                kind, "table",
+                "_G.{mixin} must be a table — XML `mixin=\"{mixin}\"` references \
+                 must resolve at parse time. WidgetCenterDisplayFrameMixin lives \
+                 on the dialog itself, the two button mixins live on the close / \
+                 extra-action buttons inside the dialog"
+            );
+        }
+    }
+}
+
+prefork_full_ui_case! {
+    fn widget_center_display_frame_mixin_publishes_lifecycle_methods(env: &WowLuaEnv) {
+
+        for method in ["OnLoad", "OnEvent", "OnHide", "Setup", "SetupButtons"] {
+            let kind: String = env
+                .eval(&format!(
+                    "return type(WidgetCenterDisplayFrameMixin.{method})"
+                ))
+                .unwrap_or_else(|_| panic!("{method} probe failed"));
+            assert_eq!(
+                kind, "function",
+                "WidgetCenterDisplayFrameMixin.{method} must be a function. \
+                 OnLoad registers GENERIC_WIDGET_DISPLAY_SHOW; OnEvent dispatches \
+                 to Setup; OnHide unregisters the widget set; Setup binds \
+                 displayInfo to the dialog (title, atlas background, widget \
+                 container, buttons); SetupButtons positions the close / extra \
+                 action buttons based on which texts are non-empty"
+            );
+        }
+    }
+}
+
+prefork_full_ui_case! {
+    fn ui_widget_center_display_frame_button_mixin_on_click_calls_close(env: &WowLuaEnv) {
+
         let kind: String = env
-            .eval(&format!(
-                "return type(WidgetCenterDisplayFrameMixin.{method})"
-            ))
-            .unwrap_or_else(|_| panic!("{method} probe failed"));
+            .eval("return type(UIWidgetCenterDisplayFrameButtonMixin.OnClick)")
+            .expect("OnClick probe");
         assert_eq!(
             kind, "function",
-            "WidgetCenterDisplayFrameMixin.{method} must be a function. \
-             OnLoad registers GENERIC_WIDGET_DISPLAY_SHOW; OnEvent dispatches \
-             to Setup; OnHide unregisters the widget set; Setup binds \
-             displayInfo to the dialog (title, atlas background, widget \
-             container, buttons); SetupButtons positions the close / extra \
-             action buttons based on which texts are non-empty"
+            "UIWidgetCenterDisplayFrameButtonMixin.OnClick must be a function — \
+             hides the parent dialog and calls C_GenericWidgetDisplay.Close(). \
+             Without OnClick the close button would visually depress but not \
+             dismiss the dialog (and the server would never get the close \
+             signal)"
         );
     }
 }
 
-#[test]
-fn ui_widget_center_display_frame_button_mixin_on_click_calls_close() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+    fn ui_widget_center_display_frame_extra_button_mixin_on_click_acknowledges(env: &WowLuaEnv) {
 
-    let kind: String = env
-        .eval("return type(UIWidgetCenterDisplayFrameButtonMixin.OnClick)")
-        .expect("OnClick probe");
-    assert_eq!(
-        kind, "function",
-        "UIWidgetCenterDisplayFrameButtonMixin.OnClick must be a function — \
-         hides the parent dialog and calls C_GenericWidgetDisplay.Close(). \
-         Without OnClick the close button would visually depress but not \
-         dismiss the dialog (and the server would never get the close \
-         signal)"
-    );
-}
-
-#[test]
-fn ui_widget_center_display_frame_extra_button_mixin_on_click_acknowledges() {
-    let env = load_full_game_ui();
-
-    let kind: String = env
-        .eval("return type(UIWidgetCenterDisplayFrameExtraButtonMixin.OnClick)")
-        .expect("ExtraButton OnClick probe");
-    assert_eq!(
-        kind, "function",
-        "UIWidgetCenterDisplayFrameExtraButtonMixin.OnClick must be a \
-         function — calls C_GenericWidgetDisplay.Acknowledge() (NOT Close). \
-         The extra button is the affirmative action when the server attaches \
-         a non-empty extraButtonText, and the server distinguishes \
-         Acknowledge (took the extra action) from Close (dismissed) for \
-         analytics + state tracking"
-    );
-}
-
-#[test]
-fn ui_widget_center_display_frame_published_as_dialog_strata_hidden_default() {
-    let env = load_full_game_ui();
-
-    let kind: String = env
-        .eval("return type(UIWidgetCenterDisplayFrame)")
-        .expect("UIWidgetCenterDisplayFrame frame probe");
-    assert!(
-        kind == "table" || kind == "userdata",
-        "_G.UIWidgetCenterDisplayFrame must be a Frame (table-or-userdata) — \
-         the XML at line 3 declares `<Frame name=\"UIWidgetCenterDisplayFrame\" \
-         parent=\"UIParent\" frameStrata=\"DIALOG\" hidden=\"true\">`. Without \
-         a global frame, the GENERIC_WIDGET_DISPLAY_SHOW event would have no \
-         registered receiver. Got: {kind}"
-    );
-
-    let visible: bool = env
-        .eval("return UIWidgetCenterDisplayFrame:IsShown()")
-        .expect("IsShown probe");
-    assert!(
-        !visible,
-        "UIWidgetCenterDisplayFrame must be hidden at load — `hidden=\"true\"` \
-         in the XML. The dialog only shows in response to a server-driven \
-         GENERIC_WIDGET_DISPLAY_SHOW event with valid displayInfo. Auto-show \
-         on login would be a focus-stealing UX bug"
-    );
-
-    let strata: String = env
-        .eval("return UIWidgetCenterDisplayFrame:GetFrameStrata()")
-        .expect("GetFrameStrata probe");
-    assert_eq!(
-        strata, "DIALOG",
-        "UIWidgetCenterDisplayFrame must be on DIALOG strata — XML attr \
-         `frameStrata=\"DIALOG\"`. DIALOG is below FULLSCREEN_DIALOG and \
-         TOOLTIP, so completion-dialog popups can layer over MEDIUM-strata \
-         gameplay UI but tooltips on top stay readable"
-    );
-}
-
-#[test]
-fn ui_widget_center_display_frame_has_expected_subframe_children() {
-    let env = load_full_game_ui();
-
-    for child_key in [
-        "Background",
-        "NineSlice",
-        "TitleContainer",
-        "WidgetContainer",
-    ] {
         let kind: String = env
-            .eval(&format!(
-                "return type(UIWidgetCenterDisplayFrame.{child_key})"
-            ))
-            .unwrap_or_else(|_| panic!("{child_key} probe failed"));
+            .eval("return type(UIWidgetCenterDisplayFrameExtraButtonMixin.OnClick)")
+            .expect("ExtraButton OnClick probe");
+        assert_eq!(
+            kind, "function",
+            "UIWidgetCenterDisplayFrameExtraButtonMixin.OnClick must be a \
+             function — calls C_GenericWidgetDisplay.Acknowledge() (NOT Close). \
+             The extra button is the affirmative action when the server attaches \
+             a non-empty extraButtonText, and the server distinguishes \
+             Acknowledge (took the extra action) from Close (dismissed) for \
+             analytics + state tracking"
+        );
+    }
+}
+
+prefork_full_ui_case! {
+    fn ui_widget_center_display_frame_published_as_dialog_strata_hidden_default(env: &WowLuaEnv) {
+
+        let kind: String = env
+            .eval("return type(UIWidgetCenterDisplayFrame)")
+            .expect("UIWidgetCenterDisplayFrame frame probe");
         assert!(
             kind == "table" || kind == "userdata",
-            "UIWidgetCenterDisplayFrame.{child_key} must exist (parentKey \
-             child). Background is the BACKGROUND-layer Texture filling the \
-             frame at 80% black; NineSlice is the bordered panel (5px \
-             outset); TitleContainer holds the Game36Font_Shadow2 title; \
-             WidgetContainer hosts the inner widget-set frames registered \
-             via UIWidgetContainerTemplate"
+            "_G.UIWidgetCenterDisplayFrame must be a Frame (table-or-userdata) — \
+             the XML at line 3 declares `<Frame name=\"UIWidgetCenterDisplayFrame\" \
+             parent=\"UIParent\" frameStrata=\"DIALOG\" hidden=\"true\">`. Without \
+             a global frame, the GENERIC_WIDGET_DISPLAY_SHOW event would have no \
+             registered receiver. Got: {kind}"
         );
-    }
 
-    for button_key in ["ExtraButton", "CloseButton"] {
-        let kind: String = env
-            .eval(&format!(
-                "return type(UIWidgetCenterDisplayFrame.{button_key})"
-            ))
-            .unwrap_or_else(|_| panic!("{button_key} probe failed"));
+        let visible: bool = env
+            .eval("return UIWidgetCenterDisplayFrame:IsShown()")
+            .expect("IsShown probe");
         assert!(
-            kind == "table" || kind == "userdata",
-            "UIWidgetCenterDisplayFrame.{button_key} must exist as a \
-             100x25 UIPanelButtonTemplate child. CloseButton is always shown \
-             (defaults to CLOSE), ExtraButton is hidden by default and \
-             shown only when displayInfo carries non-empty extraButtonText"
+            !visible,
+            "UIWidgetCenterDisplayFrame must be hidden at load — `hidden=\"true\"` \
+             in the XML. The dialog only shows in response to a server-driven \
+             GENERIC_WIDGET_DISPLAY_SHOW event with valid displayInfo. Auto-show \
+             on login would be a focus-stealing UX bug"
+        );
+
+        let strata: String = env
+            .eval("return UIWidgetCenterDisplayFrame:GetFrameStrata()")
+            .expect("GetFrameStrata probe");
+        assert_eq!(
+            strata, "DIALOG",
+            "UIWidgetCenterDisplayFrame must be on DIALOG strata — XML attr \
+             `frameStrata=\"DIALOG\"`. DIALOG is below FULLSCREEN_DIALOG and \
+             TOOLTIP, so completion-dialog popups can layer over MEDIUM-strata \
+             gameplay UI but tooltips on top stay readable"
         );
     }
 }
 
-#[test]
-fn extra_button_starts_hidden_close_button_starts_visible() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+    fn ui_widget_center_display_frame_has_expected_subframe_children(env: &WowLuaEnv) {
 
-    let extra_visible: bool = env
-        .eval("return UIWidgetCenterDisplayFrame.ExtraButton:IsShown()")
-        .expect("ExtraButton IsShown probe");
-    assert!(
-        !extra_visible,
-        "ExtraButton must be hidden at load — XML attr `hidden=\"true\"`. \
-         Most generic widget displays are pure-info popups with only a \
-         close button; the extra button only surfaces for displays that \
-         offer an affirmative action"
-    );
+        for child_key in [
+            "Background",
+            "NineSlice",
+            "TitleContainer",
+            "WidgetContainer",
+        ] {
+            let kind: String = env
+                .eval(&format!(
+                    "return type(UIWidgetCenterDisplayFrame.{child_key})"
+                ))
+                .unwrap_or_else(|_| panic!("{child_key} probe failed"));
+            assert!(
+                kind == "table" || kind == "userdata",
+                "UIWidgetCenterDisplayFrame.{child_key} must exist (parentKey \
+                 child). Background is the BACKGROUND-layer Texture filling the \
+                 frame at 80% black; NineSlice is the bordered panel (5px \
+                 outset); TitleContainer holds the Game36Font_Shadow2 title; \
+                 WidgetContainer hosts the inner widget-set frames registered \
+                 via UIWidgetContainerTemplate"
+            );
+        }
 
-    let close_visible: bool = env
-        .eval("return UIWidgetCenterDisplayFrame.CloseButton:IsShown()")
-        .expect("CloseButton IsShown probe");
-    assert!(
-        close_visible,
-        "CloseButton must be visible at load (no hidden attr in XML). The \
-         close button is the universal escape hatch — every generic widget \
-         display has one"
-    );
+        for button_key in ["ExtraButton", "CloseButton"] {
+            let kind: String = env
+                .eval(&format!(
+                    "return type(UIWidgetCenterDisplayFrame.{button_key})"
+                ))
+                .unwrap_or_else(|_| panic!("{button_key} probe failed"));
+            assert!(
+                kind == "table" || kind == "userdata",
+                "UIWidgetCenterDisplayFrame.{button_key} must exist as a \
+                 100x25 UIPanelButtonTemplate child. CloseButton is always shown \
+                 (defaults to CLOSE), ExtraButton is hidden by default and \
+                 shown only when displayInfo carries non-empty extraButtonText"
+            );
+        }
+    }
+}
+
+prefork_full_ui_case! {
+    fn extra_button_starts_hidden_close_button_starts_visible(env: &WowLuaEnv) {
+
+        let extra_visible: bool = env
+            .eval("return UIWidgetCenterDisplayFrame.ExtraButton:IsShown()")
+            .expect("ExtraButton IsShown probe");
+        assert!(
+            !extra_visible,
+            "ExtraButton must be hidden at load — XML attr `hidden=\"true\"`. \
+             Most generic widget displays are pure-info popups with only a \
+             close button; the extra button only surfaces for displays that \
+             offer an affirmative action"
+        );
+
+        let close_visible: bool = env
+            .eval("return UIWidgetCenterDisplayFrame.CloseButton:IsShown()")
+            .expect("CloseButton IsShown probe");
+        assert!(
+            close_visible,
+            "CloseButton must be visible at load (no hidden attr in XML). The \
+             close button is the universal escape hatch — every generic widget \
+             display has one"
+        );
+    }
 }

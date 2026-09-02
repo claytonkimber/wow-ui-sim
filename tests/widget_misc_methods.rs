@@ -26,7 +26,7 @@ fn test_frame_debug_env_does_not_change_table_length() {
 }
 
 #[test]
-fn test_frame_debug_env_snapshots_existing_newindex_fields() {
+fn test_frame_debug_env_exposes_live_newindex_fields() {
     let env = WowLuaEnv::new().unwrap();
 
     let result: (String, f64, String, f64, f64) = env
@@ -44,7 +44,7 @@ fn test_frame_debug_env_snapshots_existing_newindex_fields() {
         .unwrap();
 
     assert_eq!(result.0, "before");
-    assert_eq!(result.1, 1.0);
+    assert_eq!(result.1, 2.0);
     assert_eq!(result.2, "after");
     assert_eq!(result.3, 2.0);
     assert_eq!(result.4, 2.0);

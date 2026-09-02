@@ -60,6 +60,22 @@ fn is_encounter_in_progress_reads_world_flag() {
 }
 
 #[test]
+#[cfg(any(feature = "profile-retail", feature = "client-ptr"))]
+fn instance_encounter_progress_reads_the_legacy_encounter_state() {
+    let env = env();
+    let default_values: (bool, bool) = env
+        .eval("return C_InstanceEncounter.IsEncounterInProgress(), IsEncounterInProgress()")
+        .unwrap();
+    assert_eq!(default_values, (false, false));
+
+    env.state().borrow_mut().world.encounter_in_progress = true;
+    let active_values: (bool, bool) = env
+        .eval("return C_InstanceEncounter.IsEncounterInProgress(), IsEncounterInProgress()")
+        .unwrap();
+    assert_eq!(active_values, (true, true));
+}
+
+#[test]
 fn is_flyable_area_reads_world_flag() {
     let env = env();
     env.state().borrow_mut().world.flyable_area = true;

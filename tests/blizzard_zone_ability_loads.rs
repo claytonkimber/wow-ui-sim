@@ -295,9 +295,8 @@ fn absent_from_glue_screen_auto_discovery() {
     }
 }
 
-#[test]
-fn loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -320,10 +319,10 @@ fn loads_without_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn is_addon_loaded_after_eager_pass() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn is_addon_loaded_after_eager_pass(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_ZoneAbility')")
@@ -344,10 +343,10 @@ fn is_addon_loaded_after_eager_pass() {
         );
     }
 }
+}
 
-#[test]
-fn zone_ability_frame_mixin_publishes_with_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn zone_ability_frame_mixin_publishes_with_methods(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(ZoneAbilityFrameMixin)")
@@ -370,10 +369,10 @@ fn zone_ability_frame_mixin_publishes_with_methods() {
         );
     }
 }
+}
 
-#[test]
-fn zone_ability_spell_button_mixin_inherits_content_frame_mixin() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn zone_ability_spell_button_mixin_inherits_content_frame_mixin(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(ZoneAbilityFrameSpellButtonMixin)")
@@ -408,10 +407,10 @@ fn zone_ability_spell_button_mixin_inherits_content_frame_mixin() {
         );
     }
 }
+}
 
-#[test]
-fn zone_ability_frame_updater_publishes_dirty_batcher() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn zone_ability_frame_updater_publishes_dirty_batcher(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(ZoneAbilityFrameUpdater)")
@@ -439,10 +438,11 @@ fn zone_ability_frame_updater_publishes_dirty_batcher() {
         );
     }
 }
+}
 
-#[test]
-fn frame_template_registers_as_virtual() {
-    let _env = load_full_game_ui();
+prefork_full_ui_case! {
+fn frame_template_registers_as_virtual(env: &WowLuaEnv) {
+    let _env = env;
 
     assert!(
         wow_ui_sim::xml::get_template("ZoneAbilityFrameTemplate").is_some(),
@@ -453,10 +453,11 @@ fn frame_template_registers_as_virtual() {
          OnLoad/OnEvent script bindings to ZoneAbilityFrameMixin"
     );
 }
+}
 
-#[test]
-fn spell_button_template_registers_as_virtual() {
-    let _env = load_full_game_ui();
+prefork_full_ui_case! {
+fn spell_button_template_registers_as_virtual(env: &WowLuaEnv) {
+    let _env = env;
 
     assert!(
         wow_ui_sim::xml::get_template("ZoneAbilityFrameSpellButtonTemplate").is_some(),
@@ -468,10 +469,10 @@ fn spell_button_template_registers_as_virtual() {
          lands a non-empty zone-abilities array"
     );
 }
+}
 
-#[test]
-fn zone_ability_frame_publishes_hidden_with_template_chrome() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn zone_ability_frame_publishes_hidden_with_template_chrome(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(ZoneAbilityFrame)")
@@ -509,10 +510,10 @@ fn zone_ability_frame_publishes_hidden_with_template_chrome() {
          RemoveFrame'd at lua:170 when the list goes empty)"
     );
 }
+}
 
-#[test]
-fn zone_ability_frame_inherits_template_children() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn zone_ability_frame_inherits_template_children(env: &WowLuaEnv) {
 
     for child_key in ["Style", "SpellButtonContainer"] {
         let child_kind: String = env
@@ -529,4 +530,5 @@ fn zone_ability_frame_inherits_template_children() {
              ManagedHorizontalLayoutFrameTemplate host that pools the spell buttons"
         );
     }
+}
 }

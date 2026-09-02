@@ -325,9 +325,8 @@ fn blizzard_pvp_match_appears_in_full_addon_inventory() {
     );
 }
 
-#[test]
-fn blizzard_pvp_match_loads_via_eager_game_sweep_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_pvp_match_loads_via_eager_game_sweep_without_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -350,10 +349,10 @@ fn blizzard_pvp_match_loads_via_eager_game_sweep_without_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_pvp_match_publishes_util_global_with_color_tables() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_pvp_match_publishes_util_global_with_color_tables(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(_G.PVPMatchUtil)")
@@ -398,10 +397,10 @@ fn blizzard_pvp_match_publishes_util_global_with_color_tables() {
          `:Init(0, SecondsFormatter.Abbreviation.Truncate, true)`"
     );
 }
+}
 
-#[test]
-fn blizzard_pvp_match_publishes_sixteen_mixin_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_pvp_match_publishes_sixteen_mixin_globals(env: &WowLuaEnv) {
 
     for mixin in PUBLIC_MIXIN_GLOBALS {
         let kind: String = env
@@ -421,10 +420,10 @@ fn blizzard_pvp_match_publishes_sixteen_mixin_globals() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_pvp_match_publishes_two_named_top_level_frames() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_pvp_match_publishes_two_named_top_level_frames(env: &WowLuaEnv) {
 
     for frame_name in ["PVPMatchScoreboard", "PVPMatchResults"] {
         let kind: String = env
@@ -443,10 +442,10 @@ fn blizzard_pvp_match_publishes_two_named_top_level_frames() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_pvp_match_virtual_templates_not_in_global_env() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_pvp_match_virtual_templates_not_in_global_env(env: &WowLuaEnv) {
 
     for template_name in VIRTUAL_TEMPLATES_SAMPLE {
         let kind: String = env
@@ -462,4 +461,5 @@ fn blizzard_pvp_match_virtual_templates_not_in_global_env() {
              Sampled here is a representative subset"
         );
     }
+}
 }

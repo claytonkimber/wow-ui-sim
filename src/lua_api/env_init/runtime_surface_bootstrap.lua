@@ -14,32 +14,6 @@ if debug and rawget(debug, "iscfunction") == nil and type(debug.getinfo) == "fun
   end
 end
 
-SOUNDKIT = SOUNDKIT or {}
-if SOUNDKIT.CATALOG_SHOP_SELECT_NAV_MENU == nil then
-  SOUNDKIT.CATALOG_SHOP_SELECT_NAV_MENU = 303824
-end
-if SOUNDKIT.CATALOG_SHOP_SELECT_GENERIC_UI_BUTTON == nil then
-  SOUNDKIT.CATALOG_SHOP_SELECT_GENERIC_UI_BUTTON = 303826
-end
-if SOUNDKIT.CATALOG_SHOP_OPEN_LOADING_SCREEN == nil then
-  SOUNDKIT.CATALOG_SHOP_OPEN_LOADING_SCREEN = 303820
-end
-if SOUNDKIT.CATALOG_SHOP_LOADING_SCREEN_LOOP == nil then
-  SOUNDKIT.CATALOG_SHOP_LOADING_SCREEN_LOOP = 303821
-end
-if SOUNDKIT.CATALOG_SHOP_OPEN_SHOP_AFTER_LOAD == nil then
-  SOUNDKIT.CATALOG_SHOP_OPEN_SHOP_AFTER_LOAD = 303822
-end
-if SOUNDKIT.CATALOG_SHOP_GOLD_SHIMMER_START == nil then
-  SOUNDKIT.CATALOG_SHOP_GOLD_SHIMMER_START = 306261
-end
-if SOUNDKIT.CATALOG_SHOP_GOLD_SHIMMER_LOOP == nil then
-  SOUNDKIT.CATALOG_SHOP_GOLD_SHIMMER_LOOP = 303827
-end
-if SOUNDKIT.CATALOG_SHOP_GOLD_SHIMMER_END == nil then
-  SOUNDKIT.CATALOG_SHOP_GOLD_SHIMMER_END = 306262
-end
-
 -- DropCursorMoney(frame) drops the cursor's money stack onto the target frame
 -- (a CoinPickupFrame) in real WoW. The simulator does not model cursor-money
 -- drops, but Blizzard XML wires this as an OnLoad handler.
@@ -66,29 +40,6 @@ end
 -- (src/lua_api/globals/modifier_keys.rs), backed by SimState::modifier_keys.
 -- Admin: A_Admin.SetShiftKeyDown(b) / SetControlKeyDown / SetAltKeyDown /
 -- SetMetaKeyDown toggle individual keys.
-
-local __wow_modified_clicks = rawget(_G, "__wow_modified_clicks")
-if type(__wow_modified_clicks) ~= "table" then
-  __wow_modified_clicks = {
-    AUTOLOOTTOGGLE = "SHIFT",
-    CHATLINK = "SHIFT",
-    COMPAREITEMS = "SHIFT",
-    DRESSUP = "CTRL",
-    FOCUSCAST = "NONE",
-    SELFCAST = "ALT",
-  }
-  rawset(_G, "__wow_modified_clicks", __wow_modified_clicks)
-end
-if GetModifiedClick == nil then
-  function GetModifiedClick(action)
-    return __wow_modified_clicks[action] or "NONE"
-  end
-end
-if SetModifiedClick == nil then
-  function SetModifiedClick(action, modifier)
-    __wow_modified_clicks[action] = modifier or "NONE"
-  end
-end
 
 -- GetGuildLogoInfo is registered from Rust (src/lua_api/globals/guild_logo.rs),
 -- backed by SimState::world.guild_logo. Admin: A_Admin.SetGuildEmblem(filename,
@@ -457,7 +408,7 @@ local function __wow_store_frame()
   return nil
 end
 
-C_StoreSecure = __wow_merge_namespace(C_StoreSecure, {})
+C_StoreSecure = __wow_merge_namespace(rawget(_G, "C_StoreSecure"), {})
 C_StoreSecure.IsAvailable = function()
   return __wow_store_state.available == true
 end
@@ -1588,27 +1539,42 @@ __global_mt.__index = function(t, key)
     rawset(t, key, value)
     return value
   end
-  __wow_log_nil_symbol_access("_G", key)
+  if debug.isglobalindex() then
+    __wow_log_nil_symbol_access("_G", key)
+  end
   return nil
 end
+local __wow_record_public_global_publication = rawget(_G, "__wow_record_public_global_publication")
+rawset(_G, "__wow_record_public_global_publication", nil)
+
+local function __wow_record_public_global_assignment(t, key, value)
+  if t ~= _G or type(key) ~= "string" or value == nil or key:sub(1, 2) == "C_" then
+    return
+  end
+  if type(__wow_record_public_global_publication) == "function" then
+    __wow_record_public_global_publication(key)
+  end
+end
+
 __global_mt.__newindex = function(t, key, value)
   value = __wow_prepare_global_assignment(key, value)
   local taint = debug and debug.getstacktaint and debug.getstacktaint()
   if __prev_newindex ~= nil then
     if type(__prev_newindex) == "function" then
       __prev_newindex(t, key, value)
-      return
+    else
+      __prev_newindex[key] = value
+      if taint and type(__sim_mark_slot_taint) == "function" then
+        __sim_mark_slot_taint(__prev_newindex, key, taint)
+      end
     end
-    __prev_newindex[key] = value
+  else
+    rawset(t, key, value)
     if taint and type(__sim_mark_slot_taint) == "function" then
-      __sim_mark_slot_taint(__prev_newindex, key, taint)
+      __sim_mark_slot_taint(t, key, taint)
     end
-    return
   end
-  rawset(t, key, value)
-  if taint and type(__sim_mark_slot_taint) == "function" then
-    __sim_mark_slot_taint(t, key, taint)
-  end
+  __wow_record_public_global_assignment(t, key, value)
 end
 setmetatable(_G, __global_mt)
 __wow_seed_namespace_names()

@@ -293,13 +293,9 @@ fn blizzard_glue_xml_loads_without_addon_specific_lua_errors() {
     let env = load_character_select_screen();
 
     let lua_errors: Vec<String> = env.state().borrow().lua_errors.clone();
-    let known_simulator_gap = |msg: &str| -> bool { msg.contains("global 'CanCreateCharacter'") };
     let related: Vec<&String> = lua_errors
         .iter()
-        .filter(|e| {
-            (e.contains("Blizzard_GlueXML/") || e.contains("Blizzard_GlueXML\\"))
-                && !known_simulator_gap(e)
-        })
+        .filter(|e| e.contains("Blizzard_GlueXML/") || e.contains("Blizzard_GlueXML\\"))
         .collect();
     assert!(
         related.is_empty(),

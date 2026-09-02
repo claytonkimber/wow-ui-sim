@@ -42,8 +42,53 @@ fn load_full_game_ui() -> WowLuaEnv {
 }
 
 #[test]
-fn blizzard_chromie_time_ui_loads_without_errors() {
-    let env = load_full_game_ui();
+fn c_chromie_time_queries_return_fresh_empty_state() {
+    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
+
+    let (namespace_type, option_type, options_type): (String, String, String) = env
+        .eval(
+            "return type(C_ChromieTime), \
+             type(C_ChromieTime and C_ChromieTime.GetChromieTimeExpansionOption), \
+             type(C_ChromieTime and C_ChromieTime.GetChromieTimeExpansionOptions)",
+        )
+        .expect("C_ChromieTime query surface should be inspectable");
+    assert_eq!(namespace_type, "table");
+    assert_eq!(option_type, "function");
+    assert_eq!(options_type, "function");
+
+    let (option_is_nil, first_len, second_len, distinct): (bool, i32, i32, bool) = env
+        .eval(
+            "local first = C_ChromieTime.GetChromieTimeExpansionOptions(); \
+             local second = C_ChromieTime.GetChromieTimeExpansionOptions(); \
+             return C_ChromieTime.GetChromieTimeExpansionOption(987654) == nil, \
+                    #first, #second, first ~= second",
+        )
+        .expect("C_ChromieTime empty-state queries should succeed");
+    assert!(option_is_nil);
+    assert_eq!(first_len, 0);
+    assert_eq!(second_len, 0);
+    assert!(distinct, "each options query should return a fresh table");
+}
+
+#[test]
+fn c_chromie_time_actions_are_no_ops() {
+    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
+
+    let (close_type, select_type): (String, String) = env
+        .eval(
+            "local closeType = type(C_ChromieTime and C_ChromieTime.CloseUI); \
+             local selectType = type(C_ChromieTime and C_ChromieTime.SelectChromieTimeOption); \
+             C_ChromieTime.CloseUI(); \
+             C_ChromieTime.SelectChromieTimeOption(987654); \
+             return closeType, selectType",
+        )
+        .expect("C_ChromieTime no-op actions should succeed");
+    assert_eq!(close_type, "function");
+    assert_eq!(select_type, "function");
+}
+
+prefork_full_ui_case! {
+fn blizzard_chromie_time_ui_loads_without_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -83,10 +128,10 @@ fn blizzard_chromie_time_ui_loads_without_errors() {
         "Blizzard_ChromieTimeUI mixin tables should be defined after load"
     );
 }
+}
 
-#[test]
-fn chromie_time_frame_show_and_hide_run_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn chromie_time_frame_show_and_hide_run_without_errors(env: &WowLuaEnv) {
 
     load_addon(&env.loader_env(), &chromie_time_ui_toc())
         .expect("Blizzard_ChromieTimeUI should load");
@@ -115,4 +160,5 @@ fn chromie_time_frame_show_and_hide_run_without_errors() {
         "ChromieTimeFrame Show/Hide emitted unexpected Lua errors:\n  {}",
         unexpected_errors.join("\n  ")
     );
+}
 }

@@ -142,6 +142,10 @@ const POST_LOAD_WORKAROUNDS: &[WorkaroundStep] = &[
         apply: patch_auth_challenge_frame_parent_from_env,
     },
     WorkaroundStep {
+        label: "patch_settings_surface_defaults",
+        apply: patch_settings_surface_defaults,
+    },
+    WorkaroundStep {
         label: "patch_settings_canvas_layout_visibility",
         apply: patch_settings_canvas_layout_visibility,
     },
@@ -509,6 +513,10 @@ fn init_edit_mode_layout(env: &crate::lua_api::WowLuaEnv) {
 
 fn init_chat_type_colors(env: &crate::lua_api::WowLuaEnv) {
     crate::lua_api::chat_init::init_chat_type_colors(env);
+}
+
+fn patch_settings_surface_defaults(env: &crate::lua_api::WowLuaEnv) {
+    temporary::settings_surface_defaults::patch(env);
 }
 
 fn patch_settings_canvas_layout_visibility(env: &crate::lua_api::WowLuaEnv) {

@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, find_toc_file, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
-use wow_ui_sim::startup::fire_startup_events_for_screen;
 use wow_ui_sim::toc::TocFile;
 
 fn blizzard_ui_dir() -> PathBuf {
@@ -34,34 +33,11 @@ const SURVEY_MIXIN_METHODS: &[&str] = &["OnLoad", "OnEvent", "OnClick"];
 
 const STATUS_UI_MIXIN_METHODS: &[&str] = &["OnLoad", "OnShow", "OnHide"];
 
-fn load_full_game_ui_with_explicit_wow_survey() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-
-    wow_ui_sim::xml::register_intrinsic_templates();
-
-    let ui = blizzard_ui_dir();
-    let addons = discover_blizzard_addons_for_screen(&ui, ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    env.apply_post_load_workarounds();
-    fire_startup_events_for_screen(&env, ScreenKind::Game);
-
+fn load_wow_survey_ui_with_dependency(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &status_ui_toc())
         .expect("Blizzard_StatusUI dep should load via explicit Rust loader call");
     load_addon(&env.loader_env(), &wow_survey_toc())
         .expect("Blizzard_WowSurveyUI should load via explicit Rust loader call");
-
-    env
 }
 
 #[test]
@@ -254,9 +230,9 @@ fn absent_from_all_screen_auto_discovery() {
     }
 }
 
-#[test]
-fn loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui_with_explicit_wow_survey();
+prefork_full_ui_case! {
+fn loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
+    load_wow_survey_ui_with_dependency(env);
 
     let load_errors: Vec<String> = env
         .state()
@@ -279,10 +255,11 @@ fn loads_without_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn is_addon_loaded_after_explicit_lod_load() {
-    let env = load_full_game_ui_with_explicit_wow_survey();
+prefork_full_ui_case! {
+fn is_addon_loaded_after_explicit_lod_load(env: &WowLuaEnv) {
+    load_wow_survey_ui_with_dependency(env);
 
     let survey_loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_WowSurveyUI')")
@@ -299,13 +276,14 @@ fn is_addon_loaded_after_explicit_lod_load() {
     assert!(
         dep_loaded,
         "C_AddOns.IsAddOnLoaded('Blizzard_StatusUI') must also return true — the dep was \
-         loaded explicitly before the consumer in load_full_game_ui_with_explicit_wow_survey"
+         loaded explicitly before the consumer in load_wow_survey_ui_with_dependency"
     );
 }
+}
 
-#[test]
-fn wow_survey_load_ui_publishes_as_function() {
-    let env = load_full_game_ui_with_explicit_wow_survey();
+prefork_full_ui_case! {
+fn wow_survey_load_ui_publishes_as_function(env: &WowLuaEnv) {
+    load_wow_survey_ui_with_dependency(env);
 
     let kind: String = env
         .eval("return type(WowSurvey_LoadUI)")
@@ -318,10 +296,11 @@ fn wow_survey_load_ui_publishes_as_function() {
          which calls `C_AddOns.LoadAddOn` and surfaces the failure dialog on error"
     );
 }
+}
 
-#[test]
-fn wow_survey_status_mixin_publishes_with_methods() {
-    let env = load_full_game_ui_with_explicit_wow_survey();
+prefork_full_ui_case! {
+fn wow_survey_status_mixin_publishes_with_methods(env: &WowLuaEnv) {
+    load_wow_survey_ui_with_dependency(env);
 
     let kind: String = env
         .eval("return type(WowSurveyStatusMixin)")
@@ -344,10 +323,11 @@ fn wow_survey_status_mixin_publishes_with_methods() {
         );
     }
 }
+}
 
-#[test]
-fn status_ui_mixin_publishes_with_methods() {
-    let env = load_full_game_ui_with_explicit_wow_survey();
+prefork_full_ui_case! {
+fn status_ui_mixin_publishes_with_methods(env: &WowLuaEnv) {
+    load_wow_survey_ui_with_dependency(env);
 
     let kind: String = env
         .eval("return type(StatusUIMixin)")
@@ -374,10 +354,12 @@ fn status_ui_mixin_publishes_with_methods() {
         );
     }
 }
+}
 
-#[test]
-fn status_ui_frame_template_registers_as_virtual_button() {
-    let _env = load_full_game_ui_with_explicit_wow_survey();
+prefork_full_ui_case! {
+fn status_ui_frame_template_registers_as_virtual_button(env: &WowLuaEnv) {
+    load_wow_survey_ui_with_dependency(env);
+    let _env = env;
 
     assert!(
         wow_ui_sim::xml::get_template("StatusUIFrame").is_some(),
@@ -388,10 +370,11 @@ fn status_ui_frame_template_registers_as_virtual_button() {
          survey button only needs to set the title text + register the SURVEY_DELIVERED event"
     );
 }
+}
 
-#[test]
-fn wow_survey_status_frame_publishes_with_inherited_template() {
-    let env = load_full_game_ui_with_explicit_wow_survey();
+prefork_full_ui_case! {
+fn wow_survey_status_frame_publishes_with_inherited_template(env: &WowLuaEnv) {
+    load_wow_survey_ui_with_dependency(env);
 
     let kind: String = env
         .eval("return type(WowSurveyStatusFrame)")
@@ -420,10 +403,11 @@ fn wow_survey_status_frame_publishes_with_inherited_template() {
          present the YES/LATER/NO dialog"
     );
 }
+}
 
-#[test]
-fn static_popup_dialog_registers_with_three_buttons() {
-    let env = load_full_game_ui_with_explicit_wow_survey();
+prefork_full_ui_case! {
+fn static_popup_dialog_registers_with_three_buttons(env: &WowLuaEnv) {
+    load_wow_survey_ui_with_dependency(env);
 
     let dialog_kind: String = env
         .eval("return type(StaticPopupDialogs and StaticPopupDialogs['WOW_SURVEY'])")
@@ -501,10 +485,11 @@ fn static_popup_dialog_registers_with_three_buttons() {
          re-shows. Escape behaves like LATER from the user's perspective"
     );
 }
+}
 
-#[test]
-fn wow_survey_status_frame_inherits_status_ui_chrome_children() {
-    let env = load_full_game_ui_with_explicit_wow_survey();
+prefork_full_ui_case! {
+fn wow_survey_status_frame_inherits_status_ui_chrome_children(env: &WowLuaEnv) {
+    load_wow_survey_ui_with_dependency(env);
 
     for child_key in ["TitleText", "SubtitleText", "Icon", "NineSlice", "Pulse"] {
         let child_kind: String = env
@@ -521,4 +506,5 @@ fn wow_survey_status_frame_inherits_status_ui_chrome_children() {
              survey button inherits ALL of them through `inherits=\"StatusUIFrame\"`"
         );
     }
+}
 }

@@ -458,9 +458,8 @@ fn lane_addons_do_not_load_on_glue_screens() {
     }
 }
 
-#[test]
-fn full_game_ui_load_publishes_world_map_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_ui_load_publishes_world_map_globals(env: &WowLuaEnv) {
 
     let world_map_kind: String = env
         .eval("return type(WorldMapFrame)")
@@ -498,10 +497,10 @@ fn full_game_ui_load_publishes_world_map_globals() {
          the global is nil, every map data provider's OnLoad crashes"
     );
 }
+}
 
-#[test]
-fn world_map_frame_is_parented_to_ui_parent_after_full_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn world_map_frame_is_parented_to_ui_parent_after_full_load(env: &WowLuaEnv) {
 
     let parent_name: String = env
         .eval(
@@ -521,10 +520,10 @@ fn world_map_frame_is_parented_to_ui_parent_after_full_load() {
          RegisterStateDriver) breaks"
     );
 }
+}
 
-#[test]
-fn lane_emits_no_addon_specific_lua_errors_during_full_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn lane_emits_no_addon_specific_lua_errors_during_full_load(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -545,10 +544,10 @@ fn lane_emits_no_addon_specific_lua_errors_during_full_load() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn smoke_lane_addons_remain_unloaded_after_eager_sweep_until_explicitly_triggered() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn smoke_lane_addons_remain_unloaded_after_eager_sweep_until_explicitly_triggered(env: &WowLuaEnv) {
 
     for smoke in SMOKE_LANE_ADDONS {
         let loaded: bool = env
@@ -564,10 +563,10 @@ fn smoke_lane_addons_remain_unloaded_after_eager_sweep_until_explicitly_triggere
         );
     }
 }
+}
 
-#[test]
-fn smoke_lane_addons_can_be_loaded_on_demand_after_eager_sweep_completes() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn smoke_lane_addons_can_be_loaded_on_demand_after_eager_sweep_completes(env: &WowLuaEnv) {
 
     for smoke in SMOKE_LANE_ADDONS {
         let dir = blizzard_ui_dir().join(smoke);
@@ -596,10 +595,10 @@ fn smoke_lane_addons_can_be_loaded_on_demand_after_eager_sweep_completes() {
         );
     }
 }
+}
 
-#[test]
-fn battlefield_map_publishes_battlefield_map_frame_and_tab_after_smoke_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn battlefield_map_publishes_battlefield_map_frame_and_tab_after_smoke_load(env: &WowLuaEnv) {
     let toc_path = find_toc_file(&blizzard_ui_dir().join("Blizzard_BattlefieldMap"))
         .expect("BattlefieldMap TOC resolves");
     wow_ui_sim::loader::load_addon(&env.loader_env(), &toc_path)
@@ -631,10 +630,11 @@ fn battlefield_map_publishes_battlefield_map_frame_and_tab_after_smoke_load() {
          parent (UIParent) and the panel renders at an unexpected screen position"
     );
 }
+}
 
-#[test]
-fn map_canvas_frame_template_is_registered_after_eager_sweep_so_consumers_can_inherit() {
-    let _env = load_full_game_ui();
+prefork_full_ui_case! {
+fn map_canvas_frame_template_is_registered_after_eager_sweep_so_consumers_can_inherit(env: &WowLuaEnv) {
+    let _env = env;
 
     let template = wow_ui_sim::xml::get_template("MapCanvasFrameTemplate");
     assert!(
@@ -657,6 +657,7 @@ fn map_canvas_frame_template_is_registered_after_eager_sweep_so_consumers_can_in
          Blizzard_WorldMap.xml didn't parse — likely a load-order regression where WorldMap \
          emitted before MapCanvas"
     );
+}
 }
 
 #[test]

@@ -250,7 +250,7 @@ fn secure_action_target_calls_target_unit() {
 }
 
 #[test]
-fn click_bindings_fallback_left_click_targets_unit() {
+fn click_bindings_without_profile_report_none_and_do_not_execute() {
     test_timeout! {
         let env = env();
         env.exec("ClearTarget()").expect("ClearTarget");
@@ -259,14 +259,14 @@ fn click_bindings_fallback_left_click_targets_unit() {
             .eval("return C_ClickBindings.GetBindingType('LeftButton', C_ClickBindings.MakeModifiers())")
             .unwrap();
         assert_eq!(
-            binding_type, 2,
-            "temporary click-binding fallback should route left-click through ExecuteBinding"
+            binding_type, 0,
+            "missing click-binding profile should not override secure button attributes"
         );
 
         env.exec("C_ClickBindings.ExecuteBinding('party1', 'LeftButton', 0)")
-            .expect("execute click binding");
-        let target_name: String = env.eval("return UnitName('target')").unwrap();
-        assert_eq!(target_name, "Thrynn");
+            .expect("missing click binding should be inert");
+        let target_exists: bool = env.eval("return UnitExists('target')").unwrap();
+        assert!(!target_exists);
     }
 }
 
@@ -328,6 +328,14 @@ fn use_action_instant_spell_succeeds() {
 
 fn assert_blizzard_secure_unit_button_click_targets_party(env: &WowLuaEnv) {
     env.exec("ClearTarget()").expect("ClearTarget");
+    env.exec(
+        r#"
+            function C_ClickBindings.GetBindingType(_button, _modifiers)
+                return Enum.ClickBindingType.Interaction
+            end
+        "#,
+    )
+    .expect("install explicit interaction binding");
     create_secure_unit_button(env);
     assert_secure_unit_button_attributes(env);
     click_secure_unit_button(env);
@@ -694,8 +702,8 @@ fn blizzard_secure_unit_button_assist_action_targets_assisted_unit_target() {
 
 #[test]
 fn blizzard_full_ui_click_chain_targets_and_casts() {
-    test_timeout! {
-        common::with_perf_lock(|| {
+    common::with_perf_lock(|| {
+        test_timeout! {
             let env = env_with_full_ui();
             install_test_error_handler(&env);
             assert_blizzard_secure_unit_button_click_targets_party(&env);
@@ -703,6 +711,6 @@ fn blizzard_full_ui_click_chain_targets_and_casts() {
             assert_blizzard_party_member_frame_click_targets_party1(&env);
             assert_blizzard_secure_action_button_click_casts_spell(&env);
             assert_blizzard_action_button_click_casts_via_use_action(&env);
-        });
-    }
+        }
+    });
 }

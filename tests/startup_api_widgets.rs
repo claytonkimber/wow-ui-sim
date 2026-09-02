@@ -242,48 +242,55 @@ fn reputation_filter_dropdown_opens_with_blizzard_menu_renderer() {
     let env = env();
     load_blizzard_addons(&env);
 
-    let (
-        show_ok,
-        show_error,
-        click_ok,
-        click_error,
-        has_generator,
-        has_description,
-        is_open,
-        has_menu,
-        manager_open,
-    ): (bool, String, bool, String, bool, bool, bool, bool, bool) = env
+    let (show_ok, show_error, has_generator): (bool, String, bool) = env
         .eval(
             r#"
-            local dropdown = ReputationFrame.filterDropdown
             local onShow = ReputationFrame:GetScript("OnShow")
             local showOk, showErr = pcall(function()
                 onShow(ReputationFrame)
             end)
-            local handler = dropdown:GetScript("OnMouseDown")
-            local clickOk, clickErr = pcall(function()
-                handler(dropdown, "LeftButton")
-            end)
-            local manager = Menu.GetManager()
-            local openMenu = manager and manager:GetOpenMenu()
             return showOk,
                    tostring(showErr),
-                   clickOk,
-                   tostring(clickErr),
-                   type(dropdown.menuGenerator) == "function",
-                   dropdown.menuDescription ~= nil,
+                   type(ReputationFrame.filterDropdown.menuGenerator) == "function"
+            "#,
+        )
+        .unwrap();
+    assert!(show_ok, "ReputationFrame OnShow should run: {show_error}");
+    assert!(
+        has_generator,
+        "OnShow should install Blizzard's menu generator"
+    );
+
+    let state = env.state();
+    let dropdown_id = {
+        let sim = state.borrow();
+        let reputation_id = sim
+            .widgets
+            .get_id_by_name("ReputationFrame")
+            .expect("ReputationFrame should exist");
+        sim.widgets
+            .get(reputation_id)
+            .and_then(|frame| frame.children_keys.get("filterDropdown"))
+            .copied()
+            .expect("ReputationFrame filterDropdown should exist")
+    };
+    let left_button = env.lua_string("LeftButton");
+    env.fire_script_handler(dropdown_id, "OnMouseDown", vec![left_button])
+        .expect("dropdown OnMouseDown should dispatch");
+
+    let (has_description, is_open, has_menu, manager_open): (bool, bool, bool, bool) = env
+        .eval(
+            r#"
+            local dropdown = ReputationFrame.filterDropdown
+            local manager = Menu.GetManager()
+            local openMenu = manager and manager:GetOpenMenu()
+            return dropdown.menuDescription ~= nil,
                    dropdown:IsMenuOpen(),
                    dropdown.menu ~= nil,
                    openMenu ~= nil
             "#,
         )
         .unwrap();
-    assert!(show_ok, "ReputationFrame OnShow should run: {show_error}");
-    assert!(click_ok, "dropdown OnMouseDown should run: {click_error}");
-    assert!(
-        has_generator,
-        "OnShow should install Blizzard's menu generator"
-    );
     assert!(
         has_description,
         "dropdown click should generate a Blizzard menu description"

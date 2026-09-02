@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, find_toc_file, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
-use wow_ui_sim::startup::fire_startup_events_for_screen;
 use wow_ui_sim::toc::TocFile;
 
 fn blizzard_ui_dir() -> PathBuf {
@@ -21,32 +20,9 @@ fn house_list_toc() -> PathBuf {
     house_list_dir().join("Blizzard_HouseList.toc")
 }
 
-fn load_full_game_ui_with_house_list_lod() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-
-    wow_ui_sim::xml::register_intrinsic_templates();
-
-    let ui = blizzard_ui_dir();
-    let addons = discover_blizzard_addons_for_screen(&ui, ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    env.apply_post_load_workarounds();
-    fire_startup_events_for_screen(&env, ScreenKind::Game);
-
+fn load_house_list(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &house_list_toc())
         .expect("Blizzard_HouseList should load via explicit Rust loader call");
-
-    env
 }
 
 #[test]
@@ -204,9 +180,9 @@ fn blizzard_house_list_excluded_from_all_screen_auto_discovery_passes() {
     }
 }
 
-#[test]
-fn blizzard_house_list_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui_with_house_list_lod();
+prefork_full_ui_case! {
+fn blizzard_house_list_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
+    load_house_list(env);
 
     let lua_errors: Vec<String> = env.state().borrow().lua_errors.clone();
     let related: Vec<&String> = lua_errors
@@ -228,10 +204,11 @@ fn blizzard_house_list_loads_without_addon_specific_lua_errors() {
             .join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_house_list_is_addon_loaded_returns_true_after_explicit_lod_load() {
-    let env = load_full_game_ui_with_house_list_lod();
+prefork_full_ui_case! {
+fn blizzard_house_list_is_addon_loaded_returns_true_after_explicit_lod_load(env: &WowLuaEnv) {
+    load_house_list(env);
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_HouseList')")
@@ -244,10 +221,11 @@ fn blizzard_house_list_is_addon_loaded_returns_true_after_explicit_lod_load() {
          should return true"
     );
 }
+}
 
-#[test]
-fn blizzard_house_list_publishes_house_list_frame_global() {
-    let env = load_full_game_ui_with_house_list_lod();
+prefork_full_ui_case! {
+fn blizzard_house_list_publishes_house_list_frame_global(env: &WowLuaEnv) {
+    load_house_list(env);
 
     let exists: bool = env
         .eval(
@@ -264,10 +242,11 @@ fn blizzard_house_list_publishes_house_list_frame_global() {
          as a left-area pushable UI panel"
     );
 }
+}
 
-#[test]
-fn blizzard_house_list_frame_mixin_publishes_nine_methods() {
-    let env = load_full_game_ui_with_house_list_lod();
+prefork_full_ui_case! {
+fn blizzard_house_list_frame_mixin_publishes_nine_methods(env: &WowLuaEnv) {
+    load_house_list(env);
 
     for method in [
         "OnLoad",
@@ -301,10 +280,11 @@ fn blizzard_house_list_frame_mixin_publishes_nine_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_house_entry_template_mixin_publishes_seven_methods() {
-    let env = load_full_game_ui_with_house_list_lod();
+prefork_full_ui_case! {
+fn blizzard_house_entry_template_mixin_publishes_seven_methods(env: &WowLuaEnv) {
+    load_house_list(env);
 
     for method in [
         "Init",
@@ -337,10 +317,11 @@ fn blizzard_house_entry_template_mixin_publishes_seven_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_house_list_does_not_publish_house_entry_template_global() {
-    let env = load_full_game_ui_with_house_list_lod();
+prefork_full_ui_case! {
+fn blizzard_house_list_does_not_publish_house_entry_template_global(env: &WowLuaEnv) {
+    load_house_list(env);
 
     let entry_template_published: bool = env
         .eval("return _G['HouseEntryTemplate'] ~= nil")
@@ -354,10 +335,11 @@ fn blizzard_house_list_does_not_publish_house_entry_template_global() {
          SetElementInitializer call, but the template name itself stays out of `_G`"
     );
 }
+}
 
-#[test]
-fn blizzard_house_list_frame_publishes_all_named_children() {
-    let env = load_full_game_ui_with_house_list_lod();
+prefork_full_ui_case! {
+fn blizzard_house_list_frame_publishes_all_named_children(env: &WowLuaEnv) {
+    load_house_list(env);
 
     let close_button_exists: bool = env
         .eval(
@@ -388,10 +370,11 @@ fn blizzard_house_list_frame_publishes_all_named_children() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_house_list_registers_view_houses_list_recieved_event_on_show() {
-    let env = load_full_game_ui_with_house_list_lod();
+prefork_full_ui_case! {
+fn blizzard_house_list_registers_view_houses_list_recieved_event_on_show(env: &WowLuaEnv) {
+    load_house_list(env);
 
     env.eval::<()>("HouseListFrame:Show()")
         .expect("HouseListFrame:Show should succeed");
@@ -423,10 +406,11 @@ fn blizzard_house_list_registers_view_houses_list_recieved_event_on_show() {
          visible, avoiding stale list updates against a hidden frame"
     );
 }
+}
 
-#[test]
-fn blizzard_house_list_dependency_loads_via_game_screen_pass() {
-    let env = load_full_game_ui_with_house_list_lod();
+prefork_full_ui_case! {
+fn blizzard_house_list_dependency_loads_via_game_screen_pass(env: &WowLuaEnv) {
+    load_house_list(env);
 
     let templates_loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_HousingTemplates')")
@@ -440,10 +424,11 @@ fn blizzard_house_list_dependency_loads_via_game_screen_pass() {
          Both` semantics"
     );
 }
+}
 
-#[test]
-fn blizzard_house_list_publishes_no_event_listeners_before_show() {
-    let env = load_full_game_ui_with_house_list_lod();
+prefork_full_ui_case! {
+fn blizzard_house_list_publishes_no_event_listeners_before_show(env: &WowLuaEnv) {
+    load_house_list(env);
 
     let registered_before_show: bool = env
         .eval("return HouseListFrame:IsEventRegistered('VIEW_HOUSES_LIST_RECIEVED')")
@@ -456,4 +441,5 @@ fn blizzard_house_list_publishes_no_event_listeners_before_show() {
          OnShow/OnHide so that a hidden HouseListFrame does not consume housing-list updates \
          destined for other surfaces"
     );
+}
 }

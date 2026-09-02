@@ -107,7 +107,7 @@ fn blizzard_maw_buffs_find_toc_resolves_bare_variant() {
 }
 
 #[test]
-fn blizzard_maw_buffs_toc_declares_eager_load_with_uiframemanager_required_dep() {
+fn blizzard_maw_buffs_toc_declares_eager_load_with_two_required_deps() {
     let toc = TocFile::from_file(&maw_buffs_toc()).expect("Blizzard_MawBuffs TOC parses");
     assert!(
         !toc.is_load_on_demand(),
@@ -128,10 +128,14 @@ fn blizzard_maw_buffs_toc_declares_eager_load_with_uiframemanager_required_dep()
     );
     assert_eq!(
         toc.dependencies(),
-        vec!["Blizzard_UIFrameManager".to_string()],
-        "Blizzard_MawBuffs declares exactly one `## RequiredDep: Blizzard_UIFrameManager`. \
-         UIFrameManager publishes the frame-style / texture-kit infrastructure used by the \
-         jailerstower-animapowerlist atlases inside the MawBuffsContainer button chrome"
+        vec![
+            "Blizzard_UIFrameManager".to_string(),
+            "Blizzard_Colors".to_string(),
+        ],
+        "Blizzard_MawBuffs declares `## RequiredDep: Blizzard_UIFrameManager, \
+         Blizzard_Colors` in that order. UIFrameManager publishes frame-style \
+         infrastructure, while Blizzard_Colors supplies shared color data used \
+         by the Maw buff presentation"
     );
     assert!(toc.optional_deps().is_empty());
     assert!(
@@ -250,9 +254,8 @@ fn blizzard_maw_buffs_excluded_from_all_glue_screen_auto_discovery_passes() {
     }
 }
 
-#[test]
-fn blizzard_maw_buffs_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_maw_buffs_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -275,10 +278,10 @@ fn blizzard_maw_buffs_loads_without_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_maw_buffs_is_addon_loaded_returns_true_after_game_screen_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_maw_buffs_is_addon_loaded_returns_true_after_game_screen_load(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_MawBuffs')")
@@ -291,10 +294,10 @@ fn blizzard_maw_buffs_is_addon_loaded_returns_true_after_game_screen_load() {
          publish the Lua mixins / globals before the loaded-flag flips)"
     );
 }
+}
 
-#[test]
-fn blizzard_maw_buffs_publishes_three_mixin_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_maw_buffs_publishes_three_mixin_globals(env: &WowLuaEnv) {
 
     for mixin in PUBLISHED_MIXINS {
         let exists: bool = env
@@ -312,10 +315,10 @@ fn blizzard_maw_buffs_publishes_three_mixin_globals() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_maw_buffs_container_mixin_exposes_lifecycle_and_state_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_maw_buffs_container_mixin_exposes_lifecycle_and_state_methods(env: &WowLuaEnv) {
 
     for method in CONTAINER_METHODS {
         let exists: bool = env
@@ -337,10 +340,10 @@ fn blizzard_maw_buffs_container_mixin_exposes_lifecycle_and_state_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_maw_buffs_list_mixin_exposes_pool_and_layout_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_maw_buffs_list_mixin_exposes_pool_and_layout_methods(env: &WowLuaEnv) {
 
     for method in LIST_METHODS {
         let exists: bool = env
@@ -363,10 +366,10 @@ fn blizzard_maw_buffs_list_mixin_exposes_pool_and_layout_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_maw_buffs_buff_mixin_exposes_buff_button_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_maw_buffs_buff_mixin_exposes_buff_button_methods(env: &WowLuaEnv) {
 
     for method in BUFF_METHODS {
         let exists: bool = env
@@ -387,10 +390,10 @@ fn blizzard_maw_buffs_buff_mixin_exposes_buff_button_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_maw_buffs_publishes_should_show_maw_buffs_global_function() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_maw_buffs_publishes_should_show_maw_buffs_global_function(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(ShouldShowMawBuffs)")
@@ -404,10 +407,10 @@ fn blizzard_maw_buffs_publishes_should_show_maw_buffs_global_function() {
          this addon (cross-addon export pattern)"
     );
 }
+}
 
-#[test]
-fn blizzard_maw_buffs_file_local_constants_stay_nil_at_global_scope() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_maw_buffs_file_local_constants_stay_nil_at_global_scope(env: &WowLuaEnv) {
 
     for name in FILE_LOCAL_CONSTANTS {
         let kind: String = env
@@ -424,10 +427,11 @@ fn blizzard_maw_buffs_file_local_constants_stay_nil_at_global_scope() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_maw_buffs_registers_three_virtual_xml_templates() {
-    let _env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_maw_buffs_registers_three_virtual_xml_templates(env: &WowLuaEnv) {
+    let _env = env;
 
     for template in VIRTUAL_TEMPLATES {
         let registered = wow_ui_sim::xml::get_template(template).is_some();
@@ -448,10 +452,10 @@ fn blizzard_maw_buffs_registers_three_virtual_xml_templates() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_maw_buffs_required_dep_blizzard_uiframemanager_loads_first() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_maw_buffs_required_dep_blizzard_uiframemanager_loads_first(env: &WowLuaEnv) {
 
     let dep_loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_UIFrameManager')")
@@ -465,4 +469,5 @@ fn blizzard_maw_buffs_required_dep_blizzard_uiframemanager_loads_first() {
          MawBuffsContainer button styles consume would resolve as nil, and any frame \
          instantiation deriving from MawBuffsContainer would short-circuit"
     );
+}
 }

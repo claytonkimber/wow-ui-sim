@@ -1,73 +1,116 @@
+#![cfg(feature = "client-retail")]
+
+use std::path::PathBuf;
+
+use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
+use wow_ui_sim::screen::ScreenKind;
+use wow_ui_sim::startup::fire_startup_events_for_screen;
 
-#[test]
-fn collections_journal_opened_to_heirlooms_closes_on_escape() {
+fn blizzard_ui_dir() -> PathBuf {
+    wow_ui_sim::client_profile::blizzard_ui_addons_dir_under(std::path::Path::new(env!(
+        "CARGO_MANIFEST_DIR"
+    )))
+}
+
+fn load_full_game_ui() -> WowLuaEnv {
     let env = WowLuaEnv::new().expect("Failed to create Lua environment");
+    env.set_screen_size(1024.0, 768.0);
+    env.set_screen_mode(ScreenKind::Game);
+    env.state().borrow_mut().addon_base_paths = vec![blizzard_ui_dir()];
+
+    wow_ui_sim::xml::register_intrinsic_templates();
+
+    for (name, toc_path) in
+        discover_blizzard_addons_for_screen(&blizzard_ui_dir(), ScreenKind::Game)
+    {
+        load_addon(&env.loader_env(), &toc_path)
+            .unwrap_or_else(|error| panic!("[load {name}] FAILED: {error}"));
+    }
+
     env.apply_post_load_workarounds();
+    fire_startup_events_for_screen(&env, ScreenKind::Game);
+    env
+}
 
-    env.exec(
-        r#"
-        COLLECTIONS_JOURNAL_TAB_INDEX_HEIRLOOMS = 4
+prefork_full_ui_case! {
+fn collections_journal_opened_to_heirlooms_closes_on_escape(env: &WowLuaEnv) {
 
-        CollectionsJournal = CreateFrame("Frame", "CollectionsJournal", UIParent)
-        CollectionsJournal:Hide()
+    let (loaded, reason): (bool, Option<String>) = env
+        .eval(
+            r#"
+            local loaded, reason = C_AddOns.LoadAddOn("Blizzard_Collections")
+            return loaded, reason
+            "#,
+        )
+        .expect("Blizzard_Collections load result should be readable");
+    assert!(
+        loaded,
+        "Blizzard_Collections should load explicitly, reason: {}",
+        reason.unwrap_or_else(|| "<nil>".to_string())
+    );
 
-        local selectedTab = nil
-        managedCollectionsJournalOpen = false
-
-        function PanelTemplates_GetSelectedTab(frame)
-            if frame == CollectionsJournal then
-                return selectedTab
+    let missing_surface: String = env
+        .eval(
+            r#"
+            local missing = {}
+            local function requireSurface(available, name)
+                if not available then
+                    table.insert(missing, name)
+                end
             end
-        end
 
-        function SetCollectionsJournalShown(shown, tabIndex)
-            managedCollectionsJournalOpen = shown and true or false
-            if tabIndex then
-                selectedTab = tabIndex
-            end
-            if shown then
-                CollectionsJournal:Show()
-            else
-                CollectionsJournal:Hide()
-            end
-        end
+            requireSurface(CollectionsJournal ~= nil, "CollectionsJournal")
+            requireSurface(HeirloomsJournal ~= nil, "HeirloomsJournal")
+            requireSurface(GameMenuFrame ~= nil, "GameMenuFrame")
+            requireSurface(type(Menu) == "table", "Menu")
+            requireSurface(type(Menu.GetManager) == "function", "Menu.GetManager")
+            requireSurface(Menu.GetManager() ~= nil, "Menu manager")
+            requireSurface(type(ToggleCollectionsJournal) == "function", "ToggleCollectionsJournal")
+            requireSurface(COLLECTIONS_JOURNAL_TAB_INDEX_HEIRLOOMS == 4, "Heirlooms tab index")
 
-        function CloseAllWindows()
-            if managedCollectionsJournalOpen then
-                SetCollectionsJournalShown(false)
-                return 1
-            end
-            return nil
-        end
-        "#,
-    )
-    .expect("test panel setup should execute");
+            return table.concat(missing, ", ")
+            "#,
+        )
+        .expect("real Collections and game-menu surface should be readable");
+    assert!(
+        missing_surface.is_empty(),
+        "full game UI is missing required Blizzard surface: {missing_surface}"
+    );
 
     env.exec("ToggleCollectionsJournal(COLLECTIONS_JOURNAL_TAB_INDEX_HEIRLOOMS)")
-        .expect("heirlooms tab should open");
+        .expect("real ToggleCollectionsJournal should open Heirlooms");
+
     let opened_to_heirlooms: bool = env
         .eval(
-            "return CollectionsJournal:IsShown() \
-                and PanelTemplates_GetSelectedTab(CollectionsJournal) == COLLECTIONS_JOURNAL_TAB_INDEX_HEIRLOOMS \
-                and managedCollectionsJournalOpen == true",
+            r#"
+            return CollectionsJournal:IsShown()
+                and HeirloomsJournal:IsShown()
+                and PanelTemplates_GetSelectedTab(CollectionsJournal) == COLLECTIONS_JOURNAL_TAB_INDEX_HEIRLOOMS
+                and not GameMenuFrame:IsShown()
+            "#,
         )
-        .expect("open state query should succeed");
+        .expect("opened Collections state should be readable");
     assert!(
         opened_to_heirlooms,
-        "ToggleCollectionsJournal(4) should open the managed CollectionsJournal on the Heirlooms tab"
+        "real CollectionsJournal should open to the visible Heirlooms panel while GameMenu stays hidden"
     );
 
     env.send_key_press("ESCAPE", None)
         .expect("ESCAPE dispatch should succeed");
-    let closed_without_menu: bool = env
+
+    let closed_without_menu: (bool, bool) = env
         .eval(
-            "return not CollectionsJournal:IsShown() \
-                and (GameMenuFrame == nil or not GameMenuFrame:IsShown())",
+            r#"
+            return not CollectionsJournal:IsShown(),
+                not GameMenuFrame:IsShown()
+            "#,
         )
-        .expect("closed state query should succeed");
-    assert!(
+        .expect("closed Collections state should be readable");
+    assert_eq!(
         closed_without_menu,
-        "ESCAPE should close the managed CollectionsJournal instead of opening GameMenuFrame"
+        (true, true),
+        "ESCAPE should close the real CollectionsJournal without opening GameMenuFrame"
     );
+}
 }

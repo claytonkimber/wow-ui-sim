@@ -1,0 +1,725 @@
+{
+  "schema": "patch-api-source-register/v1",
+  "patch": "12.0.7",
+  "source": {
+    "path": "data/patch-api/sources/12.0.7-api-changes.txt",
+    "url": "https://warcraft.wiki.gg/wiki/Patch_12.0.7/API_changes",
+    "snapshot_note": "Warcraft Wiki source snapshot; searched 2026-07-06.",
+    "normalization": "Colon-delimited script-object and widget method paths are normalized to dot notation."
+  },
+  "category_counts": {
+    "added": {
+      "global-api": 35,
+      "script-object-method": 36,
+      "event": 2,
+      "cvar": 6,
+      "total": 79
+    },
+    "changed": {
+      "widget-method": 14,
+      "event": 15,
+      "total": 29
+    },
+    "removed": {
+      "global-api": 17,
+      "widget-method": 6,
+      "total": 23
+    },
+    "total": 131
+  },
+  "crawler_claims": {
+    "cvar_additions_claimed_total": 20,
+    "cvar_removals_claimed_total": 5,
+    "cvar_addition_names_present": 6,
+    "cvar_addition_names_unresolved": 14,
+    "cvar_removal_names_unresolved": 5,
+    "unresolved": true,
+    "note": "The crawler excerpt names six CVar additions but does not provide the full addition or removal lists; unnamed CVar symbols are intentionally omitted."
+  },
+  "occurrences": [
+    {
+      "direction": "added",
+      "category": "global-api",
+      "symbol": "C_BattleNet.InviteFriend"
+    },
+    {
+      "direction": "added",
+      "category": "global-api",
+      "symbol": "C_Container.CalculateTotalNumberOfFreeBagSlots"
+    },
+    {
+      "direction": "added",
+      "category": "global-api",
+      "symbol": "C_DelvesUI.GetDelveEntranceTitleString"
+    },
+    {
+      "direction": "added",
+      "category": "global-api",
+      "symbol": "C_DelvesUI.GetWorldTierDifficultyForActivePlayer"
+    },
+    {
+      "direction": "added",
+      "category": "global-api",
+      "symbol": "C_DurationUtil.CreateDurationTextBinding"
+    },
+    {
+      "direction": "added",
+      "category": "global-api",
+      "symbol": "C_DurationUtil.CreateManualClock"
+    },
+    {
+      "direction": "added",
+      "category": "global-api",
+      "symbol": "C_EncounterTimeline.GetEventColor"
+    },
+    {
+      "direction": "added",
+      "category": "global-api",
+      "symbol": "C_HousingCatalog.GetCatalogCategoryAndSubcategoryNames"
+    },
+    {
+      "direction": "added",
+      "category": "global-api",
+      "symbol": "C_HousingCustomizeMode.RoomConnectionSupportsDoorType"
+    },
+    {
+      "direction": "added",
+      "category": "global-api",
+      "symbol": "C_HousingLayout.CanSetViewedFloor"
+    },
+    {
+      "direction": "added",
+      "category": "global-api",
+      "symbol": "C_MerchantFrame.GetMerchantCurrencies"
+    },
+    {
+      "direction": "added",
+      "category": "global-api",
+      "symbol": "C_PartyInfo.ConfirmReadyCheck"
+    },
+    {
+      "direction": "added",
+      "category": "global-api",
+      "symbol": "C_PartyInfo.DemoteAssistant"
+    },
+    {
+      "direction": "added",
+      "category": "global-api",
+      "symbol": "C_PartyInfo.DoReadyCheck"
+    },
+    {
+      "direction": "added",
+      "category": "global-api",
+      "symbol": "C_PartyInfo.IsGUIDInGroup"
+    },
+    {
+      "direction": "added",
+      "category": "global-api",
+      "symbol": "C_PartyInfo.PromoteToAssistant"
+    },
+    {
+      "direction": "added",
+      "category": "global-api",
+      "symbol": "C_PartyInfo.PromoteToLeader"
+    },
+    {
+      "direction": "added",
+      "category": "global-api",
+      "symbol": "C_PartyInfo.SetEveryoneIsAssistant"
+    },
+    {
+      "direction": "added",
+      "category": "global-api",
+      "symbol": "C_PartyInfo.UninviteUnit"
+    },
+    {
+      "direction": "added",
+      "category": "global-api",
+      "symbol": "C_PingSecure.ClearPendingPingOffScreenCallback"
+    },
+    {
+      "direction": "added",
+      "category": "global-api",
+      "symbol": "C_PingSecure.SetPendingPingOffScreenCallback"
+    },
+    {
+      "direction": "added",
+      "category": "global-api",
+      "symbol": "C_QuestHub.GetDragonridingRacesForAreaPOI"
+    },
+    {
+      "direction": "added",
+      "category": "global-api",
+      "symbol": "C_UIFileAsset.GetFileID"
+    },
+    {
+      "direction": "added",
+      "category": "global-api",
+      "symbol": "C_UIFileAsset.IsKnownFile"
+    },
+    {
+      "direction": "added",
+      "category": "global-api",
+      "symbol": "C_UIFileAsset.IsLooseFile"
+    },
+    {
+      "direction": "added",
+      "category": "global-api",
+      "symbol": "GetEventCPUUsage"
+    },
+    {
+      "direction": "added",
+      "category": "global-api",
+      "symbol": "GetFunctionCPUUsage"
+    },
+    {
+      "direction": "added",
+      "category": "global-api",
+      "symbol": "GetScriptCPUUsage"
+    },
+    {
+      "direction": "added",
+      "category": "global-api",
+      "symbol": "GetSecurePendingButtonCallback"
+    },
+    {
+      "direction": "added",
+      "category": "global-api",
+      "symbol": "GetSecurePendingPingOffScreenCallback"
+    },
+    {
+      "direction": "added",
+      "category": "global-api",
+      "symbol": "GetSecurePendingToggleRunCallback"
+    },
+    {
+      "direction": "added",
+      "category": "global-api",
+      "symbol": "GameTooltip_AddMoneyLine"
+    },
+    {
+      "direction": "added",
+      "category": "global-api",
+      "symbol": "SetSecurePendingButtonCallback"
+    },
+    {
+      "direction": "added",
+      "category": "global-api",
+      "symbol": "SetSecurePendingPingOffScreenCallback"
+    },
+    {
+      "direction": "added",
+      "category": "global-api",
+      "symbol": "SetSecurePendingToggleRunCallback"
+    },
+    {
+      "direction": "added",
+      "category": "script-object-method",
+      "symbol": "DurationClock.GetTime"
+    },
+    {
+      "direction": "added",
+      "category": "script-object-method",
+      "symbol": "DurationManualClock.AdvanceTime"
+    },
+    {
+      "direction": "added",
+      "category": "script-object-method",
+      "symbol": "DurationManualClock.ResetTime"
+    },
+    {
+      "direction": "added",
+      "category": "script-object-method",
+      "symbol": "DurationManualClock.RewindTime"
+    },
+    {
+      "direction": "added",
+      "category": "script-object-method",
+      "symbol": "DurationManualClock.SetTime"
+    },
+    {
+      "direction": "added",
+      "category": "script-object-method",
+      "symbol": "DurationObject.GetClock"
+    },
+    {
+      "direction": "added",
+      "category": "script-object-method",
+      "symbol": "DurationObject.HasExpired"
+    },
+    {
+      "direction": "added",
+      "category": "script-object-method",
+      "symbol": "DurationObject.HasStarted"
+    },
+    {
+      "direction": "added",
+      "category": "script-object-method",
+      "symbol": "DurationObject.IsActive"
+    },
+    {
+      "direction": "added",
+      "category": "script-object-method",
+      "symbol": "DurationObject.SetClock"
+    },
+    {
+      "direction": "added",
+      "category": "script-object-method",
+      "symbol": "DurationTextBinding.CanFormatText"
+    },
+    {
+      "direction": "added",
+      "category": "script-object-method",
+      "symbol": "DurationTextBinding.CanUpdateFontString"
+    },
+    {
+      "direction": "added",
+      "category": "script-object-method",
+      "symbol": "DurationTextBinding.Disable"
+    },
+    {
+      "direction": "added",
+      "category": "script-object-method",
+      "symbol": "DurationTextBinding.Enable"
+    },
+    {
+      "direction": "added",
+      "category": "script-object-method",
+      "symbol": "DurationTextBinding.GetDuration"
+    },
+    {
+      "direction": "added",
+      "category": "script-object-method",
+      "symbol": "DurationTextBinding.GetExpiredText"
+    },
+    {
+      "direction": "added",
+      "category": "script-object-method",
+      "symbol": "DurationTextBinding.GetFontString"
+    },
+    {
+      "direction": "added",
+      "category": "script-object-method",
+      "symbol": "DurationTextBinding.GetFormattedText"
+    },
+    {
+      "direction": "added",
+      "category": "script-object-method",
+      "symbol": "DurationTextBinding.GetTimeModifier"
+    },
+    {
+      "direction": "added",
+      "category": "script-object-method",
+      "symbol": "DurationTextBinding.GetUpdateInterval"
+    },
+    {
+      "direction": "added",
+      "category": "script-object-method",
+      "symbol": "DurationTextBinding.GetZeroDurationText"
+    },
+    {
+      "direction": "added",
+      "category": "script-object-method",
+      "symbol": "DurationTextBinding.IsEnabled"
+    },
+    {
+      "direction": "added",
+      "category": "script-object-method",
+      "symbol": "DurationTextBinding.SetDuration"
+    },
+    {
+      "direction": "added",
+      "category": "script-object-method",
+      "symbol": "DurationTextBinding.SetExpiredText"
+    },
+    {
+      "direction": "added",
+      "category": "script-object-method",
+      "symbol": "DurationTextBinding.SetFontString"
+    },
+    {
+      "direction": "added",
+      "category": "script-object-method",
+      "symbol": "DurationTextBinding.SetTimeModifier"
+    },
+    {
+      "direction": "added",
+      "category": "script-object-method",
+      "symbol": "DurationTextBinding.SetUpdateInterval"
+    },
+    {
+      "direction": "added",
+      "category": "script-object-method",
+      "symbol": "DurationTextBinding.SetZeroDurationText"
+    },
+    {
+      "direction": "added",
+      "category": "script-object-method",
+      "symbol": "DurationTextFormattingOptions.GetAddRemainingText"
+    },
+    {
+      "direction": "added",
+      "category": "script-object-method",
+      "symbol": "DurationTextFormattingOptions.GetDurationType"
+    },
+    {
+      "direction": "added",
+      "category": "script-object-method",
+      "symbol": "DurationTextFormattingOptions.SetAddRemainingText"
+    },
+    {
+      "direction": "added",
+      "category": "script-object-method",
+      "symbol": "DurationTextFormattingOptions.SetDurationType"
+    },
+    {
+      "direction": "added",
+      "category": "script-object-method",
+      "symbol": "DurationTextRawValue.GetMilliseconds"
+    },
+    {
+      "direction": "added",
+      "category": "script-object-method",
+      "symbol": "DurationTextRawValue.GetSeconds"
+    },
+    {
+      "direction": "added",
+      "category": "script-object-method",
+      "symbol": "DurationTextRawValue.SetMilliseconds"
+    },
+    {
+      "direction": "added",
+      "category": "script-object-method",
+      "symbol": "DurationTextRawValue.SetSeconds"
+    },
+    {
+      "direction": "added",
+      "category": "event",
+      "symbol": "ENCOUNTER_TIMELINE_EVENT_COLOR_CHANGED"
+    },
+    {
+      "direction": "added",
+      "category": "event",
+      "symbol": "URL_TEXTURE_REQUEST_RESULT"
+    },
+    {
+      "direction": "added",
+      "category": "cvar",
+      "symbol": "assistedCombatReduceHighlights"
+    },
+    {
+      "direction": "added",
+      "category": "cvar",
+      "symbol": "developerLogFilterDebug"
+    },
+    {
+      "direction": "added",
+      "category": "cvar",
+      "symbol": "developerLogFilterError"
+    },
+    {
+      "direction": "added",
+      "category": "cvar",
+      "symbol": "developerLogFilterFatal"
+    },
+    {
+      "direction": "added",
+      "category": "cvar",
+      "symbol": "developerLogFilterNormal"
+    },
+    {
+      "direction": "added",
+      "category": "cvar",
+      "symbol": "developerLogFilterSpam"
+    },
+    {
+      "direction": "changed",
+      "category": "widget-method",
+      "symbol": "Button.GetButtonState",
+      "detail": "+ SecretReturnsForAspect"
+    },
+    {
+      "direction": "changed",
+      "category": "widget-method",
+      "symbol": "Button.IsEnabled",
+      "detail": "+ SecretReturnsForAspect"
+    },
+    {
+      "direction": "changed",
+      "category": "widget-method",
+      "symbol": "Button.SetButtonState",
+      "detail": "+ SecretArgumentsAddAspect"
+    },
+    {
+      "direction": "changed",
+      "category": "widget-method",
+      "symbol": "Button.SetEnabled",
+      "detail": "+ SecretArgumentsAddAspect, SecretArguments NotAllowed -> AllowedWhenUntainted"
+    },
+    {
+      "direction": "changed",
+      "category": "widget-method",
+      "symbol": "EditBox.SetFont",
+      "detail": "+ RequiresValidFontHeight + RequiresValidFontAsset"
+    },
+    {
+      "direction": "changed",
+      "category": "widget-method",
+      "symbol": "Font.SetFont",
+      "detail": "+ RequiresValidFontHeight + RequiresValidFontAsset"
+    },
+    {
+      "direction": "changed",
+      "category": "widget-method",
+      "symbol": "FontString.SetFont",
+      "detail": "+ RequiresValidFontHeight + RequiresValidFontAsset, arg2.Type number -> uiFontHeight"
+    },
+    {
+      "direction": "changed",
+      "category": "widget-method",
+      "symbol": "MessageFrame.SetFont",
+      "detail": "+ RequiresValidFontHeight + RequiresValidFontAsset"
+    },
+    {
+      "direction": "changed",
+      "category": "widget-method",
+      "symbol": "ModelSceneActorBase.GetModelUnitGUID",
+      "detail": "- ret1.ConditionalSecret"
+    },
+    {
+      "direction": "changed",
+      "category": "widget-method",
+      "symbol": "ScrollFrame.GetHorizontalScroll",
+      "detail": "+ SecretReturnsForAspect"
+    },
+    {
+      "direction": "changed",
+      "category": "widget-method",
+      "symbol": "ScrollFrame.GetVerticalScroll",
+      "detail": "+ SecretReturnsForAspect"
+    },
+    {
+      "direction": "changed",
+      "category": "widget-method",
+      "symbol": "ScrollFrame.SetHorizontalScroll",
+      "detail": "SecretArguments NotAllowed -> AllowedWhenUntainted + SecretArgumentsAddAspect"
+    },
+    {
+      "direction": "changed",
+      "category": "widget-method",
+      "symbol": "ScrollFrame.SetVerticalScroll",
+      "detail": "SecretArguments NotAllowed -> AllowedWhenUntainted + SecretArgumentsAddAspect"
+    },
+    {
+      "direction": "changed",
+      "category": "widget-method",
+      "symbol": "SimpleHTML.SetFont",
+      "detail": "+ RequiresValidFontHeight + RequiresValidFontAsset"
+    },
+    {
+      "direction": "changed",
+      "category": "event",
+      "symbol": "CHAT_MSG_COMBAT_FACTION_CHANGE",
+      "detail": "- SecretInChatMessagingLockdown"
+    },
+    {
+      "direction": "changed",
+      "category": "event",
+      "symbol": "CHAT_MSG_COMBAT_HONOR_GAIN",
+      "detail": "- SecretInChatMessagingLockdown"
+    },
+    {
+      "direction": "changed",
+      "category": "event",
+      "symbol": "CHAT_MSG_COMBAT_MISC_INFO",
+      "detail": "- SecretInChatMessagingLockdown"
+    },
+    {
+      "direction": "changed",
+      "category": "event",
+      "symbol": "CHAT_MSG_COMBAT_XP_GAIN",
+      "detail": "- SecretInChatMessagingLockdown"
+    },
+    {
+      "direction": "changed",
+      "category": "event",
+      "symbol": "CHAT_MSG_CURRENCY",
+      "detail": "- SecretInChatMessagingLockdown"
+    },
+    {
+      "direction": "changed",
+      "category": "event",
+      "symbol": "CHAT_MSG_FILTERED",
+      "detail": "- SecretInChatMessagingLockdown"
+    },
+    {
+      "direction": "changed",
+      "category": "event",
+      "symbol": "CHAT_MSG_LOOT",
+      "detail": "- SecretInChatMessagingLockdown"
+    },
+    {
+      "direction": "changed",
+      "category": "event",
+      "symbol": "CHAT_MSG_MONEY",
+      "detail": "- SecretInChatMessagingLockdown"
+    },
+    {
+      "direction": "changed",
+      "category": "event",
+      "symbol": "CHAT_MSG_RESTRICTED",
+      "detail": "- SecretInChatMessagingLockdown"
+    },
+    {
+      "direction": "changed",
+      "category": "event",
+      "symbol": "CLUB_MEMBER_ADDED",
+      "detail": "[2].Type number -> ClubMemberOpaqueId"
+    },
+    {
+      "direction": "changed",
+      "category": "event",
+      "symbol": "CLUB_MEMBER_PRESENCE_UPDATED",
+      "detail": "[2].Type number -> ClubMemberOpaqueId"
+    },
+    {
+      "direction": "changed",
+      "category": "event",
+      "symbol": "CLUB_MEMBER_REMOVED",
+      "detail": "[2].Type number -> ClubMemberOpaqueId"
+    },
+    {
+      "direction": "changed",
+      "category": "event",
+      "symbol": "CLUB_MEMBER_ROLE_UPDATED",
+      "detail": "[2].Type number -> ClubMemberOpaqueId"
+    },
+    {
+      "direction": "changed",
+      "category": "event",
+      "symbol": "CLUB_MEMBER_UPDATED",
+      "detail": "[2].Type number -> ClubMemberOpaqueId"
+    },
+    {
+      "direction": "changed",
+      "category": "event",
+      "symbol": "ENCOUNTER_END",
+      "detail": "+ encounterUnitStatus"
+    },
+    {
+      "direction": "removed",
+      "category": "global-api",
+      "symbol": "BNInviteFriend"
+    },
+    {
+      "direction": "removed",
+      "category": "global-api",
+      "symbol": "C_ClickBindings.GetStringFromModifiers"
+    },
+    {
+      "direction": "removed",
+      "category": "global-api",
+      "symbol": "C_ClickBindings.MakeModifiers"
+    },
+    {
+      "direction": "removed",
+      "category": "global-api",
+      "symbol": "C_Spell.GetMawPowerBorderAtlasBySpellID"
+    },
+    {
+      "direction": "removed",
+      "category": "global-api",
+      "symbol": "ConfirmReadyCheck"
+    },
+    {
+      "direction": "removed",
+      "category": "global-api",
+      "symbol": "DemoteAssistant"
+    },
+    {
+      "direction": "removed",
+      "category": "global-api",
+      "symbol": "DoReadyCheck"
+    },
+    {
+      "direction": "removed",
+      "category": "global-api",
+      "symbol": "GetMerchantCurrencies"
+    },
+    {
+      "direction": "removed",
+      "category": "global-api",
+      "symbol": "IsGUIDInGroup"
+    },
+    {
+      "direction": "removed",
+      "category": "global-api",
+      "symbol": "PromoteToAssistant"
+    },
+    {
+      "direction": "removed",
+      "category": "global-api",
+      "symbol": "PromoteToLeader"
+    },
+    {
+      "direction": "removed",
+      "category": "global-api",
+      "symbol": "SetEveryoneIsAssistant"
+    },
+    {
+      "direction": "removed",
+      "category": "global-api",
+      "symbol": "UninviteUnit"
+    },
+    {
+      "direction": "removed",
+      "category": "global-api",
+      "symbol": "GetAutoCompletePresenceID"
+    },
+    {
+      "direction": "removed",
+      "category": "global-api",
+      "symbol": "GetAutoCompleteResults"
+    },
+    {
+      "direction": "removed",
+      "category": "global-api",
+      "symbol": "GetAutoCompleteRealms"
+    },
+    {
+      "direction": "removed",
+      "category": "global-api",
+      "symbol": "IsRecognizedName"
+    },
+    {
+      "direction": "removed",
+      "category": "widget-method",
+      "symbol": "Minimap.SetBlipTexture"
+    },
+    {
+      "direction": "removed",
+      "category": "widget-method",
+      "symbol": "Minimap.SetCorpsePOIArrowTexture"
+    },
+    {
+      "direction": "removed",
+      "category": "widget-method",
+      "symbol": "Minimap.SetIconTexture"
+    },
+    {
+      "direction": "removed",
+      "category": "widget-method",
+      "symbol": "Minimap.SetPOIArrowTexture"
+    },
+    {
+      "direction": "removed",
+      "category": "widget-method",
+      "symbol": "Minimap.SetPlayerTexture"
+    },
+    {
+      "direction": "removed",
+      "category": "widget-method",
+      "symbol": "Minimap.SetStaticPOIArrowTexture"
+    }
+  ]
+}

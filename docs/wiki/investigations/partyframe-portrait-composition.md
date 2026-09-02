@@ -1,6 +1,6 @@
 # PartyFrame portrait composition
 
-The party member class icon is a standalone `Portrait` texture sized `37x37`. The visible surround is not a second ring widget. It comes from the larger `Texture` frame-art atlas `UI-HUD-UnitFrame-Party-PortraitOn`, which renders at `120x49` and already contains the portrait border artwork.
+The party member class icon is a standalone `Portrait` texture sized `37x37`. In the current retail runtime, it reports no atlas, exposes numeric fileDataID `237669` through `GetTexture()`, and resolves to the authored path `Interface\\TargetingFrame\\UI-Classes-Circles` through `GetTextureFilePath()`. The visible surround is not a second ring widget: it comes from the larger `Texture` frame-art atlas `UI-HUD-UnitFrame-Party-PortraitOn`, which renders at `120x49` and already contains the portrait border artwork.
 
 ## Content
 
@@ -12,6 +12,9 @@ When the live party frame shows a circular class icon with a ring around it, is 
 
 - `PartyFrame.MemberFrame1.Portrait` is `37x37`
 - `PartyFrame.MemberFrame1.PortraitMask` is also `37x37`
+- `Portrait:GetAtlas()` is nil
+- `Portrait:GetTexture()` is the numeric fileDataID `237669`
+- `Portrait:GetTextureFilePath()` resolves to `Interface\\TargetingFrame\\UI-Classes-Circles`
 - there is no separate portrait-ring child in the `PartyMemberFrameTemplate`
 - the visible surround is part of `PartyFrame.MemberFrame1.Texture`
 - that frame-art texture uses atlas `UI-HUD-UnitFrame-Party-PortraitOn`
@@ -23,7 +26,7 @@ So the portrait ring should be treated as part of the full party-member frame ar
 
 ### XML template structure
 
-`Interface/BlizzardUI/Blizzard_UnitFrame/Mainline/PartyFrameTemplates.xml` defines:
+The current retail cache file `~/.cache/wow-ui-sim/blizzard-ui/retail/AddOns/Blizzard_UnitFrame/Mainline/PartyFrameTemplates.xml` defines:
 
 - `Portrait` as a `37x37` texture anchored at `TOPLEFT (7, -6)`
 - `PortraitMask` anchored directly to `Portrait`
@@ -50,15 +53,17 @@ and the adjacent frame-art node:
 
 The connected master CLI only supports `--filter`, not `--filter-key`, so the portrait lines were extracted from the `PartyFrame` dump via `wow-cli dump-tree --filter Portrait` and `wow-cli dump-tree --filter PartyFrame`.
 
-### Current worktree live query
+### Current retail runtime query
 
-The running `rilua` client reported the same icon size through direct Lua evaluation:
+The settled current-retail probe in `tests/party_frame_tree.rs` reports this identity for both `PlayerFrame...PlayerPortrait` and `PartyFrame.MemberFrame1.Portrait`:
 
 ```text
-portrait 37 37 classicon-PALADIN
+GetAtlas()          -> nil
+GetTexture()        -> 237669
+GetTextureFilePath()-> Interface\\TargetingFrame\\UI-Classes-Circles
 ```
 
-That matches the master GUI tree and the Blizzard XML template.
+The simulator's runtime source is the profile-scoped cache at `~/.cache/wow-ui-sim/blizzard-ui/retail/AddOns/Blizzard_UnitFrame/Mainline/UnitFrame.lua`. The current source contains no literal `UI-Classes-Circles`; that path is the authored texture resolved from fileDataID `237669`. This is why the path must be asserted through `GetTextureFilePath()`, not `GetTexture()`.
 
 ## Implication
 
@@ -66,9 +71,10 @@ If a future bug looks like "the ring is the wrong size" or "the ring is offset f
 
 ## Sources
 
-- [PartyFrameTemplates.xml](../../../Interface/BlizzardUI/Blizzard_UnitFrame/Mainline/PartyFrameTemplates.xml) — template structure for `Portrait`, `PortraitMask`, and `Texture`
-- [party_frame_tree.rs](../../../tests/party_frame_tree.rs) — existing party portrait atlas probe
-- [PartyMemberFrame.lua](../../../Interface/BlizzardUI/Blizzard_UnitFrame/Mainline/PartyMemberFrame.lua) — runtime use of `self.Portrait`
+- Current retail runtime template: `~/.cache/wow-ui-sim/blizzard-ui/retail/AddOns/Blizzard_UnitFrame/Mainline/PartyFrameTemplates.xml` — structure for `Portrait`, `PortraitMask`, and `Texture`
+- [party_frame_tree.rs](../../../tests/party_frame_tree.rs) — current retail portrait identity probe
+- [atlas.rs](../../../src/lua_api/frame/methods/widgets/texture/atlas.rs) — `GetTexture()` and `GetTextureFilePath()` resolution
+- Current retail runtime logic: `~/.cache/wow-ui-sim/blizzard-ui/retail/AddOns/Blizzard_UnitFrame/Mainline/UnitFrame.lua` — portrait update path
 
 ## See Also
 

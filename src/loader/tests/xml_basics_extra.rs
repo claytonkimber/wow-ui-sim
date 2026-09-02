@@ -241,6 +241,129 @@ fn layer_fontstring_without_anchors_uses_justify_h_default_point() {
 }
 
 #[test]
+fn layer_fontstring_size_variants_keep_justify_h_default_points() {
+    let ctx = load_test_xml(
+        "layer-fontstring-size-variants",
+        r#"
+        <Ui xmlns="http://www.blizzard.com/wow/ui/">
+            <Frame name="FontStringSizeVariantParent" parent="UIParent" hidden="true">
+                <Layers>
+                    <Layer level="ARTWORK">
+                        <FontString name="$parentNoSize" inherits="GameFontNormal" text="NoSize" justifyH="LEFT"/>
+                        <FontString name="$parentWidthOnly" inherits="GameFontNormal" text="WidthOnly" justifyH="RIGHT">
+                            <Size x="160"/>
+                        </FontString>
+                        <FontString name="$parentHeightOnly" inherits="GameFontNormal" text="HeightOnly" justifyH="CENTER">
+                            <Size y="36"/>
+                        </FontString>
+                        <FontString name="$parentWidthHeight" inherits="GameFontNormal" text="WidthHeight" justifyH="LEFT">
+                            <Size x="180" y="40"/>
+                        </FontString>
+                    </Layer>
+                </Layers>
+            </Frame>
+        </Ui>
+        "#,
+    );
+
+    ctx.assert_lua_str(
+        r#"
+        return (function()
+            local cases = {
+                { FontStringSizeVariantParentNoSize, "LEFT", nil, nil },
+                { FontStringSizeVariantParentWidthOnly, "RIGHT", 160, nil },
+                { FontStringSizeVariantParentHeightOnly, "CENTER", nil, 36 },
+                { FontStringSizeVariantParentWidthHeight, "LEFT", 180, 40 },
+            }
+
+            local results = {}
+            for index, case in ipairs(cases) do
+                local region, expectedPoint, expectedWidth, expectedHeight =
+                    case[1], case[2], case[3], case[4]
+                local point, relativeTo, relativePoint = region:GetPoint(1)
+                local widthMatches = expectedWidth == nil or region:GetWidth() == expectedWidth
+                local heightMatches = expectedHeight == nil or region:GetHeight() == expectedHeight
+                results[index] = tostring(
+                    region:GetNumPoints() == 1
+                        and point == expectedPoint
+                        and relativeTo == FontStringSizeVariantParent
+                        and relativePoint == expectedPoint
+                        and widthMatches
+                        and heightMatches
+                )
+            end
+
+            return table.concat(results, "|")
+        end)()
+        "#,
+        "true|true|true|true",
+    );
+}
+
+#[test]
+fn layer_fontstring_explicit_anchors_remain_authoritative() {
+    let ctx = load_test_xml(
+        "layer-fontstring-explicit-anchors",
+        r#"
+        <Ui xmlns="http://www.blizzard.com/wow/ui/">
+            <Frame name="FontStringExplicitAnchorParent" parent="UIParent" hidden="true">
+                <Layers>
+                    <Layer level="ARTWORK">
+                        <FontString name="$parentTop" inherits="GameFontNormal" text="Top" justifyH="RIGHT">
+                            <Anchors><Anchor point="TOP"/></Anchors>
+                        </FontString>
+                        <FontString name="$parentBottom" inherits="GameFontNormal" text="Bottom" justifyH="LEFT">
+                            <Anchors><Anchor point="BOTTOM"/></Anchors>
+                        </FontString>
+                        <FontString name="$parentLeft" inherits="GameFontNormal" text="Left" justifyH="RIGHT">
+                            <Anchors><Anchor point="LEFT"/></Anchors>
+                        </FontString>
+                        <FontString name="$parentRight" inherits="GameFontNormal" text="Right" justifyH="LEFT">
+                            <Anchors><Anchor point="RIGHT"/></Anchors>
+                        </FontString>
+                        <FontString name="$parentTopLeft" inherits="GameFontNormal" text="TopLeft" justifyH="RIGHT">
+                            <Anchors><Anchor point="TOPLEFT"/></Anchors>
+                        </FontString>
+                    </Layer>
+                </Layers>
+            </Frame>
+        </Ui>
+        "#,
+    );
+
+    ctx.assert_lua_str(
+        r#"
+        return (function()
+            local cases = {
+                { FontStringExplicitAnchorParentTop, "TOP" },
+                { FontStringExplicitAnchorParentBottom, "BOTTOM" },
+                { FontStringExplicitAnchorParentLeft, "LEFT" },
+                { FontStringExplicitAnchorParentRight, "RIGHT" },
+                { FontStringExplicitAnchorParentTopLeft, "TOPLEFT" },
+            }
+
+            local results = {}
+            for index, case in ipairs(cases) do
+                local region, expected = case[1], case[2]
+                local point, relativeTo, relativePoint, x, y = region:GetPoint(1)
+                results[index] = tostring(
+                    region:GetNumPoints() == 1
+                        and point == expected
+                        and relativeTo == FontStringExplicitAnchorParent
+                        and relativePoint == expected
+                        and x == 0
+                        and y == 0
+                )
+            end
+
+            return table.concat(results, "|")
+        end)()
+        "#,
+        "true|true|true|true|true",
+    );
+}
+
+#[test]
 fn test_xml_font_redefinition_keeps_font_object_metatable_methods() {
     let ctx = load_test_xml(
         "font-object-redefinition-methods",

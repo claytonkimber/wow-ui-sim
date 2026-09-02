@@ -14,7 +14,6 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DEFAULT_MISTS_CARGO_TARGET_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/wow-ui-sim/cargo-targets/mists-panel-parity"
 CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-${MISTS_CARGO_TARGET_DIR:-$DEFAULT_MISTS_CARGO_TARGET_DIR}}"
-CARGO_INCREMENTAL="${CARGO_INCREMENTAL:-0}"
 MANIFEST="$REPO_ROOT/tools/classic-addon-manifest.tsv"
 COMPAT_ROOT="$REPO_ROOT/tools/classic-addon-compat"
 ADDONS_DIR="$REPO_ROOT/Interface/AddOns"
@@ -22,7 +21,6 @@ OUT_DIR="$REPO_ROOT/target/mists-addon-panel-parity"
 WOW_SIM_BIN="${WOW_SIM_BIN:-$CARGO_TARGET_DIR/debug/wow-sim}"
 PANEL_VISUAL_METRICS_BIN="${PANEL_VISUAL_METRICS_BIN:-$CARGO_TARGET_DIR/debug/panel-visual-metrics}"
 
-export CARGO_INCREMENTAL
 export CARGO_TARGET_DIR
 
 source "$REPO_ROOT/scripts/classic-addon-sources.sh"

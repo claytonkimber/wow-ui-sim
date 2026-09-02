@@ -37,9 +37,8 @@ fn load_full_game_ui() -> WowLuaEnv {
     env
 }
 
-#[test]
-fn blizzard_catalog_shop_shared_templates_mixins_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_catalog_shop_shared_templates_mixins_are_defined(env: &WowLuaEnv) {
 
     let mixins_present: bool = env
         .eval(
@@ -60,10 +59,10 @@ fn blizzard_catalog_shop_shared_templates_mixins_are_defined() {
         "CatalogShopSharedTemplates mixin tables should be defined after load"
     );
 }
+}
 
-#[test]
-fn blizzard_catalog_shop_shared_templates_virtual_frames_resolve() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_catalog_shop_shared_templates_virtual_frames_resolve(env: &WowLuaEnv) {
 
     let templates_resolve: bool = env
         .eval(
@@ -118,4 +117,5 @@ fn blizzard_catalog_shop_shared_templates_virtual_frames_resolve() {
         "instantiating shared template emitted unexpected Lua errors:\n  {}",
         unexpected_errors.join("\n  ")
     );
+}
 }

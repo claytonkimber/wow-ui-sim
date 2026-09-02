@@ -76,9 +76,8 @@ fn blizzard_combat_log_processor_appears_in_game_discovery() {
     );
 }
 
-#[test]
-fn blizzard_combat_log_processor_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_combat_log_processor_loads_without_errors(env: &WowLuaEnv) {
 
     let processor_errors: Vec<String> = env
         .state()
@@ -94,10 +93,28 @@ fn blizzard_combat_log_processor_loads_without_errors() {
         processor_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_combat_log_processor_table_and_methods_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_combat_log_base_replays_util_into_secure_environment(env: &WowLuaEnv) {
+
+    let util_replayed: bool = env
+        .eval(
+            "local secureUtil = rawget(__secureenv, 'CombatLogUtil'); \
+             return type(_G.CombatLogUtil) == 'table' \
+                and type(secureUtil) == 'table' \
+                and type(secureUtil.GenerateDamageResultString) == 'function'",
+        )
+        .expect("CombatLogUtil secure replay query should succeed");
+    assert!(
+        util_replayed,
+        "Blizzard_CombatLogBase should publish CombatLogUtil in both _G and __secureenv"
+    );
+}
+}
+
+prefork_full_ui_case! {
+fn blizzard_combat_log_processor_table_and_methods_are_defined(env: &WowLuaEnv) {
 
     let processor_present: bool = env
         .eval(
@@ -127,10 +144,10 @@ fn blizzard_combat_log_processor_table_and_methods_are_defined() {
          ApplyFilterSettings/GenerateMessage) should be defined after load"
     );
 }
+}
 
-#[test]
-fn blizzard_combat_log_processor_inbound_namespace_is_in_global_env() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_combat_log_processor_inbound_namespace_is_in_global_env(env: &WowLuaEnv) {
 
     let inbound_present: bool = env
         .eval(
@@ -146,10 +163,10 @@ fn blizzard_combat_log_processor_inbound_namespace_is_in_global_env() {
          the secure environment"
     );
 }
+}
 
-#[test]
-fn blizzard_combat_log_processor_outbound_namespace_is_securecall_wrapped() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_combat_log_processor_outbound_namespace_is_securecall_wrapped(env: &WowLuaEnv) {
 
     let outbound_present: bool = env
         .eval(
@@ -170,10 +187,10 @@ fn blizzard_combat_log_processor_outbound_namespace_is_securecall_wrapped() {
          SignalRefilter* helpers after load"
     );
 }
+}
 
-#[test]
-fn blizzard_combat_log_processor_outbound_functions_run_without_error() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_combat_log_processor_outbound_functions_run_without_error(env: &WowLuaEnv) {
 
     let invocation_ok: bool = env
         .eval(
@@ -193,4 +210,5 @@ fn blizzard_combat_log_processor_outbound_functions_run_without_error() {
          error — each is a securecallfunction wrapper around an EventRegistry:TriggerEvent call \
          on an event that EventRegistry has accepted via SetUndefinedEventsAllowed(true)"
     );
+}
 }

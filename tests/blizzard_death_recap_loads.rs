@@ -74,9 +74,8 @@ fn blizzard_death_recap_is_absent_from_game_auto_discovery() {
     );
 }
 
-#[test]
-fn blizzard_death_recap_loads_via_load_addon_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_death_recap_loads_via_load_addon_without_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -95,10 +94,10 @@ fn blizzard_death_recap_loads_via_load_addon_without_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_death_recap_toplevel_frame_is_created_after_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_death_recap_toplevel_frame_is_created_after_load(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &death_recap_toc())
         .expect("Blizzard_DeathRecap should load via Rust loader");
 
@@ -120,10 +119,10 @@ fn blizzard_death_recap_toplevel_frame_is_created_after_load() {
          called by OpenDeathRecap chat-link clicks"
     );
 }
+}
 
-#[test]
-fn blizzard_death_recap_main_mixin_methods_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_death_recap_main_mixin_methods_are_defined(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &death_recap_toc())
         .expect("Blizzard_DeathRecap should load via Rust loader");
 
@@ -160,10 +159,10 @@ fn blizzard_death_recap_main_mixin_methods_are_defined() {
          causedDeath fields"
     );
 }
+}
 
-#[test]
-fn blizzard_death_recap_entry_mixin_methods_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_death_recap_entry_mixin_methods_are_defined(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &death_recap_toc())
         .expect("Blizzard_DeathRecap should load via Rust loader");
 
@@ -203,10 +202,10 @@ fn blizzard_death_recap_entry_mixin_methods_are_defined() {
          the entry"
     );
 }
+}
 
-#[test]
-fn blizzard_death_recap_xml_template_is_registered() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_death_recap_xml_template_is_registered(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &death_recap_toc())
         .expect("Blizzard_DeathRecap should load via Rust loader");
 
@@ -219,10 +218,10 @@ fn blizzard_death_recap_xml_template_is_registered() {
          the recap list"
     );
 }
+}
 
-#[test]
-fn blizzard_death_recap_c_namespace_is_available() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_death_recap_c_namespace_is_available(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &death_recap_toc())
         .expect("Blizzard_DeathRecap should load via Rust loader");
 
@@ -243,10 +242,10 @@ fn blizzard_death_recap_c_namespace_is_available() {
          so the addon load itself does not require those probes to be present"
     );
 }
+}
 
-#[test]
-fn blizzard_death_recap_open_recap_is_safe_with_no_recapped_data() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_death_recap_open_recap_is_safe_with_no_recapped_data(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &death_recap_toc())
         .expect("Blizzard_DeathRecap should load via Rust loader");
 
@@ -278,4 +277,5 @@ fn blizzard_death_recap_open_recap_is_safe_with_no_recapped_data() {
          BuildDataProvider tolerates an empty events list):\n  {}",
         post_open_errors.join("\n  ")
     );
+}
 }

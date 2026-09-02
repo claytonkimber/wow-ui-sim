@@ -100,7 +100,8 @@ fn build_conditional_self_get_text_non_empty_then_parent_method_with_self_get_te
             return function(self, ...)
                 local text = self:GetText()
                 if text and #text > 0 then
-                    self:GetParent()[method_name](self:GetParent(), self:GetText())
+                    local parent = self:GetParent()
+                    __wow_bind_xml_method(parent, method_name)(parent, self:GetText())
                     return self:SetText("")
                 end
             end
@@ -125,7 +126,7 @@ fn build_conditional_not_self_noargs_method_then_handler(
         r#"
             local method_name, then_handler = ...
             return function(self, ...)
-                if not self[method_name](self) then
+                if not __wow_bind_xml_method(self, method_name)(self) then
                     if then_handler then
                         return then_handler(self, ...)
                     end
@@ -165,7 +166,7 @@ fn build_method_then_unchecked_parent_field_clear_and_show_text_handler(
 const TEMPLATE_METHOD_UNCHECKED_PARENT_FIELD_CLEAR_SHOW_TEXT: &str = r#"
     local method_name, field_name = ...
     return function(self, ...)
-        self[method_name](self, ...)
+        __wow_bind_xml_method(self, method_name)(self, ...)
         if self:GetChecked() then
             return
         end
@@ -194,7 +195,7 @@ fn build_method_with_value_arg_handler(
         r#"
             local method_name, value = ...
             return function(self, ...)
-                return self[method_name](self, value)
+                return __wow_bind_xml_method(self, method_name)(self, value)
             end
         "#,
         "template-method-value-arg",
@@ -218,7 +219,7 @@ fn build_method_with_two_number_args_handler(
         r#"
             local method_name, first, second = ...
             return function(self, ...)
-                return self[method_name](self, first, second)
+                return __wow_bind_xml_method(self, method_name)(self, first, second)
             end
         "#,
         "template-method-two-number-args",
@@ -237,7 +238,7 @@ fn build_method_handler(state: &mut LuaState, method_name: &str) -> LuaResult<Va
         r#"
             local method_name = ...
             return function(self, ...)
-                return self[method_name](self, ...)
+                return __wow_bind_xml_method(self, method_name)(self, ...)
             end
         "#,
         "template-method-handler",
@@ -260,7 +261,7 @@ fn build_method_with_string_arg_handler(
         r#"
             local method_name, literal_arg = ...
             return function(self, ...)
-                return self[method_name](self, literal_arg)
+                return __wow_bind_xml_method(self, method_name)(self, literal_arg)
             end
         "#,
         "template-method-string-handler",

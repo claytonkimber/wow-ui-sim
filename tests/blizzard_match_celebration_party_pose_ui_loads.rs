@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, find_toc_file, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
-use wow_ui_sim::startup::fire_startup_events_for_screen;
 use wow_ui_sim::toc::TocFile;
 
 fn blizzard_ui_dir() -> PathBuf {
@@ -40,34 +39,11 @@ const MIXIN_OVERRIDE_METHODS: &[&str] = &[
 
 const PARENT_KEY_CHILDREN: &[&str] = &["OverlayElements", "ModelScene", "Score", "ButtonContainer"];
 
-fn load_full_game_ui_with_match_celebration_lod() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-
-    wow_ui_sim::xml::register_intrinsic_templates();
-
-    let ui = blizzard_ui_dir();
-    let addons = discover_blizzard_addons_for_screen(&ui, ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    env.apply_post_load_workarounds();
-    fire_startup_events_for_screen(&env, ScreenKind::Game);
-
+fn load_match_celebration_party_pose_ui_with_dependency(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &party_pose_toc())
         .expect("Blizzard_PartyPoseUI should load via explicit Rust loader call");
     load_addon(&env.loader_env(), &match_celebration_toc())
         .expect("Blizzard_MatchCelebrationPartyPoseUI should load via explicit Rust loader call");
-
-    env
 }
 
 #[test]
@@ -214,9 +190,9 @@ fn blizzard_match_celebration_excluded_from_every_screen_auto_discovery() {
     }
 }
 
-#[test]
-fn blizzard_match_celebration_loads_with_only_known_blizzard_source_bug() {
-    let env = load_full_game_ui_with_match_celebration_lod();
+prefork_full_ui_case! {
+fn blizzard_match_celebration_loads_with_only_known_blizzard_source_bug(env: &WowLuaEnv) {
+    load_match_celebration_party_pose_ui_with_dependency(env);
 
     let known_self_leave_button_bug =
         "Blizzard_PartyPoseUI.lua:452: attempt to index local 'button' (a nil value)";
@@ -243,10 +219,11 @@ fn blizzard_match_celebration_loads_with_only_known_blizzard_source_bug() {
         unexpected_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_match_celebration_onload_emits_known_self_leave_button_bug() {
-    let env = load_full_game_ui_with_match_celebration_lod();
+prefork_full_ui_case! {
+fn blizzard_match_celebration_onload_emits_known_self_leave_button_bug(env: &WowLuaEnv) {
+    load_match_celebration_party_pose_ui_with_dependency(env);
 
     let bug_message = "Blizzard_PartyPoseUI.lua:452: attempt to index local 'button' (a nil value)";
 
@@ -270,10 +247,11 @@ fn blizzard_match_celebration_onload_emits_known_self_leave_button_bug() {
          behavior"
     );
 }
+}
 
-#[test]
-fn blizzard_match_celebration_is_addon_loaded_after_explicit_lod_with_dep() {
-    let env = load_full_game_ui_with_match_celebration_lod();
+prefork_full_ui_case! {
+fn blizzard_match_celebration_is_addon_loaded_after_explicit_lod_with_dep(env: &WowLuaEnv) {
+    load_match_celebration_party_pose_ui_with_dependency(env);
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_MatchCelebrationPartyPoseUI')")
@@ -293,10 +271,11 @@ fn blizzard_match_celebration_is_addon_loaded_after_explicit_lod_with_dep() {
          the PartyPoseMixin parent and PartyPoseFrameTemplate the celebration frame consumes"
     );
 }
+}
 
-#[test]
-fn blizzard_match_celebration_mixin_publishes_with_partypose_inherited_methods() {
-    let env = load_full_game_ui_with_match_celebration_lod();
+prefork_full_ui_case! {
+fn blizzard_match_celebration_mixin_publishes_with_partypose_inherited_methods(env: &WowLuaEnv) {
+    load_match_celebration_party_pose_ui_with_dependency(env);
 
     let kind: String = env
         .eval("return type(MatchCelebrationPartyPoseMixin)")
@@ -338,10 +317,11 @@ fn blizzard_match_celebration_mixin_publishes_with_partypose_inherited_methods()
          mixin doesn't override AddReward — it consumes the parent implementation directly"
     );
 }
+}
 
-#[test]
-fn blizzard_match_celebration_extra_button_mixin_publishes_with_onclick() {
-    let env = load_full_game_ui_with_match_celebration_lod();
+prefork_full_ui_case! {
+fn blizzard_match_celebration_extra_button_mixin_publishes_with_onclick(env: &WowLuaEnv) {
+    load_match_celebration_party_pose_ui_with_dependency(env);
 
     let kind: String = env
         .eval("return type(MatchCelebrationExtraButtonMixin)")
@@ -366,10 +346,11 @@ fn blizzard_match_celebration_extra_button_mixin_publishes_with_onclick() {
          click both kicks off the server-side extra action AND closes the celebration panel"
     );
 }
+}
 
-#[test]
-fn blizzard_match_celebration_named_frame_publishes_with_inherits_and_mixin_chain() {
-    let env = load_full_game_ui_with_match_celebration_lod();
+prefork_full_ui_case! {
+fn blizzard_match_celebration_named_frame_publishes_with_inherits_and_mixin_chain(env: &WowLuaEnv) {
+    load_match_celebration_party_pose_ui_with_dependency(env);
 
     let kind: String = env
         .eval("return type(MatchCelebrationPartyPoseFrame)")
@@ -388,10 +369,11 @@ fn blizzard_match_celebration_named_frame_publishes_with_inherits_and_mixin_chai
         .expect("MatchCelebrationPartyPoseFrame:GetName() probe should succeed");
     assert_eq!(name, "MatchCelebrationPartyPoseFrame");
 }
+}
 
-#[test]
-fn blizzard_match_celebration_named_frame_carries_four_parent_key_children() {
-    let env = load_full_game_ui_with_match_celebration_lod();
+prefork_full_ui_case! {
+fn blizzard_match_celebration_named_frame_carries_four_parent_key_children(env: &WowLuaEnv) {
+    load_match_celebration_party_pose_ui_with_dependency(env);
 
     for parent_key in PARENT_KEY_CHILDREN {
         let kind: String = env
@@ -417,10 +399,11 @@ fn blizzard_match_celebration_named_frame_carries_four_parent_key_children() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_match_celebration_overlay_elements_carries_topper_texture() {
-    let env = load_full_game_ui_with_match_celebration_lod();
+prefork_full_ui_case! {
+fn blizzard_match_celebration_overlay_elements_carries_topper_texture(env: &WowLuaEnv) {
+    load_match_celebration_party_pose_ui_with_dependency(env);
 
     let kind: String = env
         .eval("return type(MatchCelebrationPartyPoseFrame.OverlayElements.Topper)")
@@ -435,10 +418,11 @@ fn blizzard_match_celebration_overlay_elements_carries_topper_texture() {
          match-mode-driven at runtime, not baked into the XML"
     );
 }
+}
 
-#[test]
-fn blizzard_match_celebration_modelscene_publishes_as_modelscene_subtype() {
-    let env = load_full_game_ui_with_match_celebration_lod();
+prefork_full_ui_case! {
+fn blizzard_match_celebration_modelscene_publishes_as_modelscene_subtype(env: &WowLuaEnv) {
+    load_match_celebration_party_pose_ui_with_dependency(env);
 
     let object_type: String = env
         .eval("return MatchCelebrationPartyPoseFrame.ModelScene:GetObjectType()")
@@ -451,10 +435,11 @@ fn blizzard_match_celebration_modelscene_publishes_as_modelscene_subtype() {
          3D-pose-backdrop widget type, not a plain Frame"
     );
 }
+}
 
-#[test]
-fn blizzard_match_celebration_score_widget_container_keeps_register_visibility_off() {
-    let env = load_full_game_ui_with_match_celebration_lod();
+prefork_full_ui_case! {
+fn blizzard_match_celebration_score_widget_container_keeps_register_visibility_off(env: &WowLuaEnv) {
+    load_match_celebration_party_pose_ui_with_dependency(env);
 
     let kv: bool = env
         .eval("return MatchCelebrationPartyPoseFrame.Score.showAndHideOnWidgetSetRegistration")
@@ -469,10 +454,11 @@ fn blizzard_match_celebration_score_widget_container_keeps_register_visibility_o
          set registers / unregisters"
     );
 }
+}
 
-#[test]
-fn blizzard_match_celebration_button_container_carries_leave_and_extra_buttons() {
-    let env = load_full_game_ui_with_match_celebration_lod();
+prefork_full_ui_case! {
+fn blizzard_match_celebration_button_container_carries_leave_and_extra_buttons(env: &WowLuaEnv) {
+    load_match_celebration_party_pose_ui_with_dependency(env);
 
     let leave_kind: String = env
         .eval("return type(MatchCelebrationPartyPoseFrame.ButtonContainer.LeaveButton)")
@@ -501,10 +487,11 @@ fn blizzard_match_celebration_button_container_carries_leave_and_extra_buttons()
          C_PartyPose.ExtraAction(partyPoseID) then HideUIPanel(MatchCelebrationPartyPoseFrame)"
     );
 }
+}
 
-#[test]
-fn blizzard_match_celebration_button_container_layout_keeps_spacing_keyvalue() {
-    let env = load_full_game_ui_with_match_celebration_lod();
+prefork_full_ui_case! {
+fn blizzard_match_celebration_button_container_layout_keeps_spacing_keyvalue(env: &WowLuaEnv) {
+    load_match_celebration_party_pose_ui_with_dependency(env);
 
     let spacing: f64 = env
         .eval("return MatchCelebrationPartyPoseFrame.ButtonContainer.spacing")
@@ -519,10 +506,11 @@ fn blizzard_match_celebration_button_container_layout_keeps_spacing_keyvalue() {
          visible gap regardless of locale-specific button-text width"
     );
 }
+}
 
-#[test]
-fn blizzard_match_celebration_extra_button_minimum_width_keeps_keyvalue() {
-    let env = load_full_game_ui_with_match_celebration_lod();
+prefork_full_ui_case! {
+fn blizzard_match_celebration_extra_button_minimum_width_keeps_keyvalue(env: &WowLuaEnv) {
+    load_match_celebration_party_pose_ui_with_dependency(env);
 
     let min_width: f64 = env
         .eval("return MatchCelebrationPartyPoseFrame.ButtonContainer.ExtraButton.minimumWidth")
@@ -536,4 +524,5 @@ fn blizzard_match_celebration_extra_button_minimum_width_keeps_keyvalue() {
          partyPoseInfo.extraButtonText (or CLOSE fallback) so the button never collapses below \
          164px regardless of locale"
     );
+}
 }

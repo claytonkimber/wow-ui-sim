@@ -41,9 +41,8 @@ fn load_full_game_ui() -> WowLuaEnv {
     env
 }
 
-#[test]
-fn blizzard_challenges_ui_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_challenges_ui_loads_without_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -93,10 +92,10 @@ fn blizzard_challenges_ui_loads_without_errors() {
         "Blizzard_ChallengesUI mixins should be defined after load"
     );
 }
+}
 
-#[test]
-fn challenges_keystone_frame_show_and_hide_run_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn challenges_keystone_frame_show_and_hide_run_without_errors(env: &WowLuaEnv) {
 
     load_addon(&env.loader_env(), &challenges_ui_toc()).expect("Blizzard_ChallengesUI should load");
 
@@ -116,4 +115,5 @@ fn challenges_keystone_frame_show_and_hide_run_without_errors() {
         "ChallengesKeystoneFrame Show/Hide emitted Lua errors:\n  {}",
         unexpected_errors.join("\n  ")
     );
+}
 }

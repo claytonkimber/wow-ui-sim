@@ -1,3 +1,4 @@
+use crate::lua_api::SimState;
 use crate::lua_api::methods::{create_table, table_get};
 use rilua::Val;
 use rilua::vm::state::LuaState;
@@ -295,6 +296,17 @@ pub(crate) fn global_table(state: &mut LuaState, name: &str) -> Val {
     }
     state.gc.barrier_back(global);
     table
+}
+
+pub(crate) fn unit_is_reachable(state: &SimState, unit: &str) -> bool {
+    match unit {
+        "" => false,
+        "player" | "pet" | "vehicle" => true,
+        "target" => state.current_target.is_some(),
+        "focus" => state.current_focus.is_some(),
+        other => crate::lua_api::globals::unit_api::parse_party_index(other)
+            .is_some_and(|index| state.party_group_active && index < state.party_members.len()),
+    }
 }
 
 pub(crate) fn current_item_upgrade_location(state: &mut LuaState) -> Option<(i32, i32)> {

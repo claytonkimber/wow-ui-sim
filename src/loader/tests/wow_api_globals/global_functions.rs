@@ -13,6 +13,21 @@ fn test_get_build_info() {
     assert!(toc > 0);
 }
 
+#[cfg(feature = "retail-12-1-0")]
+#[test]
+fn test_get_build_option_restricted_aura_api() {
+    let env = WowLuaEnv::new().unwrap();
+    let (function_type, restricted_aura_api, unknown): (String, bool, Option<bool>) = env
+        .eval(
+            "return type(GetBuildOption), GetBuildOption('RestrictedAuraAPI'), GetBuildOption('UnknownOption')",
+        )
+        .unwrap();
+
+    assert_eq!(function_type, "function");
+    assert!(restricted_aura_api);
+    assert_eq!(unknown, None);
+}
+
 #[test]
 fn test_get_locale() {
     let env = WowLuaEnv::new().unwrap();

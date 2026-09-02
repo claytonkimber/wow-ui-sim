@@ -189,9 +189,10 @@ fn toc_lists_only_xml_with_two_lua_files_loaded_via_script_directives() {
          Blizzard_SecureTransferUI.lua) load via `<Script file=\"...\"/>` directives \
          embedded at the top of the XML root, dispatched through \
          `process_include` / `process_script` at src/loader/xml_file.rs. The XML-driven \
-         load order is significant: Outbound loads first (it calls \
-         SwapToGlobalEnvironment to push helpers into the global env so the secure \
-         main file can call back via SecureTransferOutbound.*), then the main file"
+         load order is significant: Outbound loads first, captures __secureenv, swaps \
+         its chunk to the global environment for outbound method definitions, then \
+         exports the namespace through the saved secure-env reference so the secure \
+         main file can call SecureTransferOutbound.*; the main file loads second"
     );
 }
 
@@ -264,9 +265,8 @@ fn xml_wraps_frames_in_scoped_modifier_with_forbidden_attribute() {
     assert!(raw.contains("<Script file=\"Blizzard_SecureTransferUI.lua\"/>"));
 }
 
-#[test]
-fn loads_without_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn loads_without_lua_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -286,10 +286,10 @@ fn loads_without_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn is_addon_loaded_after_eager_sweep() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn is_addon_loaded_after_eager_sweep(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_SecureTransferUI')")
@@ -300,10 +300,10 @@ fn is_addon_loaded_after_eager_sweep() {
          the eager Game-screen sweep"
     );
 }
+}
 
-#[test]
-fn publishes_ten_dialog_global_functions_into_secure_environment() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn publishes_ten_dialog_global_functions_into_secure_environment(env: &WowLuaEnv) {
 
     for func in PUBLIC_GLOBAL_FUNCTIONS {
         let kind: String = env
@@ -338,10 +338,10 @@ fn publishes_ten_dialog_global_functions_into_secure_environment() {
         );
     }
 }
+}
 
-#[test]
-fn secure_transfer_dialog_publishes_as_named_global_hidden_by_default() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn secure_transfer_dialog_publishes_as_named_global_hidden_by_default(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(_G.SecureTransferDialog)")
@@ -374,10 +374,10 @@ fn secure_transfer_dialog_publishes_as_named_global_hidden_by_default() {
          CatalogShop TopUpFrame which itself uses FULLSCREEN_DIALOG)"
     );
 }
+}
 
-#[test]
-fn secure_transfer_dialog_publishes_nine_named_child_keys() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn secure_transfer_dialog_publishes_nine_named_child_keys(env: &WowLuaEnv) {
 
     for child_key in DIALOG_CHILD_KEYS {
         let child_kind: String = env
@@ -401,10 +401,10 @@ fn secure_transfer_dialog_publishes_nine_named_child_keys() {
         );
     }
 }
+}
 
-#[test]
-fn secure_transfer_dialog_registers_six_events_at_onload() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn secure_transfer_dialog_registers_six_events_at_onload(env: &WowLuaEnv) {
 
     for event in REGISTERED_EVENTS {
         let registered: bool = env
@@ -425,22 +425,28 @@ fn secure_transfer_dialog_registers_six_events_at_onload() {
         );
     }
 }
+}
 
-#[test]
-fn secure_transfer_outbound_publishes_with_five_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn secure_transfer_outbound_publishes_only_in_secure_env_with_five_methods(env: &WowLuaEnv) {
 
-    let kind: String = env
-        .eval("return type(_G.SecureTransferOutbound)")
-        .expect("SecureTransferOutbound probe succeeds");
+    let global_kind: String = env
+        .eval("return type(rawget(_G, 'SecureTransferOutbound'))")
+        .expect("global SecureTransferOutbound probe succeeds");
     assert_eq!(
-        kind, "table",
-        "_G.SecureTransferOutbound must publish as a table — Outbound.lua line 4 \
-         declares `local SecureTransferOutbound = {{}}` then writes \
-         `secureEnv.SecureTransferOutbound = SecureTransferOutbound` to expose it. \
-         The simulator's secure-env shim has `GetCurrentEnvironment` / \
-         `SwapToGlobalEnvironment` returning `_G` (shared_bootstrap.lua:1157-1167) \
-         so secureEnv == _G and the assignment publishes the table globally"
+        global_kind, "nil",
+        "rawget(_G, 'SecureTransferOutbound') must be nil — the outbound namespace is \
+         deliberately exported into the secure environment, not the public global table"
+    );
+
+    let secure_kind: String = env
+        .eval("return type(rawget(__secureenv, 'SecureTransferOutbound'))")
+        .expect("secure SecureTransferOutbound probe succeeds");
+    assert_eq!(
+        secure_kind, "table",
+        "rawget(__secureenv, 'SecureTransferOutbound') must be a table — Outbound.lua \
+         saves the current secure environment before SwapToGlobalEnvironment, then \
+         exports its local namespace through that saved secure-env reference"
     );
 
     for method in [
@@ -451,29 +457,26 @@ fn secure_transfer_outbound_publishes_with_five_methods() {
         "HideCatalogShopTopUpFrame",
     ] {
         let method_kind: String = env
-            .eval(&format!("return type(SecureTransferOutbound.{method})"))
+            .eval(&format!(
+                "return type(__secureenv.SecureTransferOutbound.{method})"
+            ))
             .unwrap_or_else(|err| {
-                panic!("type(SecureTransferOutbound.{method}) probe failed: {err}")
+                panic!("type(__secureenv.SecureTransferOutbound.{method}) probe failed: {err}")
             });
         assert_eq!(
             method_kind, "function",
-            "SecureTransferOutbound.{method} must be a function — the Outbound \
-             namespace exposes 5 callbacks the secure environment uses to reach \
-             into the global environment: UpdateSendMailButton (securecall to \
-             SendMailFrame_EnableSendMailButton on dialog hide); \
-             GetAppropriateTopLevelParent (securecall returning the proper \
-             FrameStrata parent); GetCatalogShopTopUpFrame / \
-             HideCatalogShopTopUpFrame (CatalogShopTopUpFrame integration for the \
-             Hearthsteel housing-VC flow); GetHearthsteelVirtualCurrencyCode \
-             (returns Constants.CatalogShopVirtualCurrencyConstants.HEARTHSTEEL_VC_CURRENCY_CODE \
-             via securecallfunction)"
+            "__secureenv.SecureTransferOutbound.{method} must be a function — the \
+             namespace exposes 5 callbacks secure transfer code uses to reach global \
+             UI behavior: UpdateSendMailButton; GetAppropriateTopLevelParent; \
+             GetCatalogShopTopUpFrame; GetHearthsteelVirtualCurrencyCode; and \
+             HideCatalogShopTopUpFrame"
         );
     }
 }
+}
 
-#[test]
-fn get_secure_money_string_formats_copper_into_gold_silver_copper_segments() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn get_secure_money_string_formats_copper_into_gold_silver_copper_segments(env: &WowLuaEnv) {
 
     let formatted: String = env
         .eval("return __secureenv.GetSecureMoneyString(123456)")
@@ -499,10 +502,10 @@ fn get_secure_money_string_formats_copper_into_gold_silver_copper_segments() {
          calling code would have to special-case the zero amount"
     );
 }
+}
 
-#[test]
-fn secure_transfer_dialogs_registry_includes_eight_keys_after_copytable_extension() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn secure_transfer_dialogs_registry_includes_eight_keys_after_copytable_extension(env: &WowLuaEnv) {
 
     let exists: bool = env
         .eval(
@@ -537,4 +540,5 @@ fn secure_transfer_dialogs_registry_includes_eight_keys_after_copytable_extensio
          the early-return at line 210 protects against typos and keeps the dialog \
          from being shown without a registered configuration"
     );
+}
 }

@@ -306,9 +306,8 @@ fn xml_files_embed_lua_via_script_directive_at_top_of_ui_root() {
     }
 }
 
-#[test]
-fn loads_without_lua_errors_when_explicitly_loaded() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn loads_without_lua_errors_when_explicitly_loaded(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -327,10 +326,10 @@ fn loads_without_lua_errors_when_explicitly_loaded() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn is_addon_loaded_after_explicit_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn is_addon_loaded_after_explicit_load(env: &WowLuaEnv) {
 
     let loaded_before: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_RuneforgeUI')")
@@ -355,10 +354,10 @@ fn is_addon_loaded_after_explicit_load() {
          `sim.addons[].loaded` (src/c_api/c_addons.rs:336)"
     );
 }
+}
 
-#[test]
-fn publishes_full_mixin_surface() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn publishes_full_mixin_surface(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &runeforge_toc()).expect("RuneforgeUI loads");
 
     for mixin in PUBLIC_MIXINS {
@@ -389,10 +388,10 @@ fn publishes_full_mixin_surface() {
         );
     }
 }
+}
 
-#[test]
-fn does_not_leak_virtual_templates_to_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn does_not_leak_virtual_templates_to_globals(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &runeforge_toc()).expect("RuneforgeUI loads");
 
     for template in VIRTUAL_TEMPLATES {
@@ -407,10 +406,10 @@ fn does_not_leak_virtual_templates_to_globals() {
         );
     }
 }
+}
 
-#[test]
-fn registers_runeforge_frame_in_uipanelwindows_table() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn registers_runeforge_frame_in_uipanelwindows_table(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &runeforge_toc()).expect("RuneforgeUI loads");
 
     let area: String = env
@@ -446,10 +445,10 @@ fn registers_runeforge_frame_in_uipanelwindows_table() {
          dangling NPC state"
     );
 }
+}
 
-#[test]
-fn publishes_named_non_virtual_frames_at_global_scope() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn publishes_named_non_virtual_frames_at_global_scope(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &runeforge_toc()).expect("RuneforgeUI loads");
 
     let frame_kind: String = env
@@ -486,10 +485,10 @@ fn publishes_named_non_virtual_frames_at_global_scope() {
          UIPanelWindows-managed visibility (only ShowUIPanel(RuneforgeFrame) opens it)"
     );
 }
+}
 
-#[test]
-fn callback_registry_mixin_publishes_eight_runeforge_events() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn callback_registry_mixin_publishes_eight_runeforge_events(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &runeforge_toc()).expect("RuneforgeUI loads");
 
     let event_count: f64 = env
@@ -509,4 +508,5 @@ fn callback_registry_mixin_publishes_eight_runeforge_events() {
          CallbackRegistryMixin.GenerateCallbackEvents stamps Event[name]=name on the \
          mixin so child mixins can register without typo-ing the keys at the call site"
     );
+}
 }

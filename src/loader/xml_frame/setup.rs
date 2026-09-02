@@ -412,7 +412,8 @@ fn apply_fast_frame_mixins_and_scripts(
         state,
         frame_id,
         setup.frame.combined_mixin().as_deref(),
-    );
+    )
+    .map_err(|error| crate::Error::Other(error.to_string()))?;
     if let Some(mixins) = setup.frame.mixins() {
         for mixin in &mixins.entries {
             crate::lua_api::globals::create_frame::apply_frame_mixin(
@@ -420,7 +421,8 @@ fn apply_fast_frame_mixins_and_scripts(
                 frame_id,
                 &mixin.key,
                 mixin.source.as_deref(),
-            );
+            )
+            .map_err(|error| crate::Error::Other(error.to_string()))?;
         }
     }
 

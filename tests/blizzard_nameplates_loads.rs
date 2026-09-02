@@ -150,43 +150,29 @@ fn blizzard_nameplates_find_toc_resolves_bare_variant() {
 }
 
 #[test]
-fn blizzard_nameplates_toc_declares_eager_load_with_three_optional_deps() {
+fn blizzard_nameplates_toc_declares_eager_load_with_two_required_deps() {
     let toc = TocFile::from_file(&nameplates_toc()).expect("Blizzard_NamePlates TOC parses");
     assert!(
         !toc.is_load_on_demand(),
-        "TOC declares `## LoadOnDemand: 0` — the unit-nameplate driver eager-loads. \
+        "TOC omits `## LoadOnDemand`, so the unit-nameplate driver eager-loads. \
          NAME_PLATE_CREATED / NAME_PLATE_UNIT_ADDED events fire during world entry; the \
-         driver mixin's OnLoad must be wired before PLAYER_ENTERING_WORLD or the first wave of \
-         visible units would have no driver to register against"
+         driver mixin's OnLoad must be wired before PLAYER_ENTERING_WORLD"
     );
     assert!(!toc.is_load_first());
     assert!(!toc.is_secure_env());
-    assert!(
-        toc.dependencies().is_empty(),
-        "Zero `## Dependencies:` — NamePlates does not require any sibling addon. The driver \
-         resolves UnitFrame templates by name at frame-pool creation time (via the \
-         BaseNamePlateUnitFrameTemplate inheritance chain owned by Blizzard_UnitFrame), but \
-         that wiring is structured as an OptionalDep, not a hard Dependency — NamePlates can \
-         load without it and the unit frames simply remain unstyled"
+    assert_eq!(
+        toc.dependencies(),
+        vec![
+            "Blizzard_UIWidgets".to_string(),
+            "Blizzard_UnitFrame".to_string(),
+        ],
+        "Repeated `## Dep:` lines declare UIWidgets and UnitFrame as hard \
+         dependencies in source order"
     );
-
-    let optional_deps_owned = toc.optional_deps();
-    let optional: Vec<&str> = optional_deps_owned.iter().map(String::as_str).collect();
-    let optional_set: std::collections::HashSet<&str> = optional.iter().copied().collect();
-    for expected in &[
-        "Blizzard_UIWidgets",
-        "Blizzard_UIWidgets_WoWLabs",
-        "Blizzard_UnitFrame",
-    ] {
-        assert!(
-            optional_set.contains(expected),
-            "TOC must list `{expected}` in `## OptionalDeps:`. The full optional-dep set is \
-             [Blizzard_UIWidgets, Blizzard_UIWidgets_WoWLabs, Blizzard_UnitFrame] — three \
-             siblings the driver leans on but does not require. UIWidgets supplies status-bar \
-             chrome, UIWidgets_WoWLabs supplies WoW-Labs-only widget bindings, and UnitFrame \
-             supplies the BaseNamePlateUnitFrameTemplate inheritance chain. Got: {optional:?}"
-        );
-    }
+    assert!(
+        toc.optional_deps().is_empty(),
+        "Current retail TOC declares no optional dependencies"
+    );
 
     assert!(
         toc.saved_variables().is_empty(),
@@ -233,16 +219,13 @@ fn blizzard_nameplates_toc_filters_wowhack_files_during_retail_parse() {
 }
 
 #[test]
-fn blizzard_nameplates_toc_declares_explicit_eager_load_in_raw_bytes() {
+fn blizzard_nameplates_toc_omits_load_on_demand_in_raw_bytes() {
     let raw =
         std::fs::read_to_string(nameplates_toc()).expect("Blizzard_NamePlates TOC reads as utf-8");
     assert!(
-        raw.contains("## LoadOnDemand: 0"),
-        "TOC must declare `## LoadOnDemand: 0` exactly. The explicit `0` (rather than omitting \
-         the directive) is a load-author signal: the addon definitely eager-loads, and any \
-         tool scanning for LOD addons via `## LoadOnDemand:` substring matching must read the \
-         value, not assume presence-means-true. `is_load_on_demand()` at src/toc.rs returns \
-         false when the value parses to anything other than `1`"
+        !raw.contains("## LoadOnDemand"),
+        "TOC must omit `## LoadOnDemand`; omission is the current retail eager-load \
+         spelling for Blizzard_NamePlates"
     );
     assert!(
         raw.contains("[AllowLoadGameType wowhack]"),
@@ -303,9 +286,8 @@ fn blizzard_nameplates_appears_in_discover_all_blizzard_addons() {
     );
 }
 
-#[test]
-fn blizzard_nameplates_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_nameplates_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -327,10 +309,10 @@ fn blizzard_nameplates_loads_without_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_nameplates_is_addon_loaded_after_auto_discovery() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_nameplates_is_addon_loaded_after_auto_discovery(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_NamePlates')")
@@ -342,10 +324,10 @@ fn blizzard_nameplates_is_addon_loaded_after_auto_discovery() {
          during the standard Game-screen boot pipeline, no explicit load_addon call required"
     );
 }
+}
 
-#[test]
-fn blizzard_nameplates_publishes_driver_frame_and_constants_table() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_nameplates_publishes_driver_frame_and_constants_table(env: &WowLuaEnv) {
 
     let driver_kind: String = env
         .eval("return type(NamePlateDriverFrame)")
@@ -381,10 +363,10 @@ fn blizzard_nameplates_publishes_driver_frame_and_constants_table() {
          OnNamePlateResized to compute the per-plate scale"
     );
 }
+}
 
-#[test]
-fn blizzard_nameplates_publishes_all_driver_and_base_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_nameplates_publishes_all_driver_and_base_mixins(env: &WowLuaEnv) {
 
     for mixin in PUBLIC_DRIVER_AND_BASE_MIXINS {
         let kind: String = env
@@ -400,10 +382,10 @@ fn blizzard_nameplates_publishes_all_driver_and_base_mixins() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_nameplates_publishes_all_class_bar_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_nameplates_publishes_all_class_bar_globals(env: &WowLuaEnv) {
 
     for global in PUBLIC_CLASS_BAR_GLOBALS {
         let kind: String = env
@@ -419,10 +401,10 @@ fn blizzard_nameplates_publishes_all_class_bar_globals() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_nameplates_does_not_leak_wowhack_only_mixin() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_nameplates_does_not_leak_wowhack_only_mixin(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval(&format!("return type(_G.{WOWHACK_ONLY_GLOBAL})"))
@@ -437,10 +419,10 @@ fn blizzard_nameplates_does_not_leak_wowhack_only_mixin() {
          the per-file gate is wired through to runtime visibility"
     );
 }
+}
 
-#[test]
-fn blizzard_nameplates_does_not_leak_file_local_helpers_to_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_nameplates_does_not_leak_file_local_helpers_to_globals(env: &WowLuaEnv) {
 
     for symbol in FILE_PRIVATE_LOCALS_THAT_MUST_NOT_LEAK {
         let kind: String = env
@@ -454,4 +436,5 @@ fn blizzard_nameplates_does_not_leak_file_local_helpers_to_globals() {
              addon namespaces and break the file-encapsulation contract"
         );
     }
+}
 }

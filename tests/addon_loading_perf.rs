@@ -34,8 +34,7 @@ const KNOWN_HEAVY_ADDON_BUDGETS: &[(&str, Duration)] = &[
 
 #[test]
 fn blizzard_addon_loading_reports_phase_breakdown_under_budget() {
-    test_timeout! {
-        common::with_perf_lock(|| {
+    perf_test_timeout! {
             let loaded = load_timed_game_addons_with_saved_vars();
             let env = &loaded.env;
             let timing = &loaded.addon_timing;
@@ -87,14 +86,12 @@ fn blizzard_addon_loading_reports_phase_breakdown_under_budget() {
                 loaded.addon_elapsed,
                 ADDON_LOADING_BUDGET
             );
-        });
     }
 }
 
 #[test]
 fn loading_phase_breakdown_stays_within_budgets() {
-    test_timeout! {
-        common::with_perf_lock(|| {
+    perf_test_timeout! {
             let loaded = load_timed_game_addons_with_saved_vars();
             let timing = &loaded.addon_timing;
 
@@ -114,14 +111,12 @@ fn loading_phase_breakdown_stays_within_budgets() {
                 timing.frame_lifecycle_time,
                 LIFECYCLE_BUDGET,
             );
-        });
     }
 }
 
 #[test]
 fn no_saved_vars_loader_hotspots_stay_within_budgets() {
-    test_timeout! {
-        common::with_perf_lock(|| {
+    perf_test_timeout! {
             let loaded = load_timed_game_addons_without_saved_vars();
             let timing = &loaded.addon_timing;
 
@@ -148,14 +143,12 @@ fn no_saved_vars_loader_hotspots_stay_within_budgets() {
                 timing.frame_exec_lua_time,
                 NO_SAVED_VARS_EXEC_LUA_BUDGET,
             );
-        });
     }
 }
 
 #[test]
 fn heaviest_blizzard_addons_stay_within_per_addon_load_budgets() {
-    test_timeout! {
-        common::with_perf_lock(|| {
+    perf_test_timeout! {
             let loaded = load_timed_game_addons_with_saved_vars();
             let heaviest = heaviest_addons(&loaded.per_addon_timings, HEAVIEST_ADDON_COUNT);
             assert_eq!(
@@ -177,7 +170,6 @@ fn heaviest_blizzard_addons_stay_within_per_addon_load_budgets() {
                 regressions.join("\n"),
                 heaviest_report
             );
-        });
     }
 }
 

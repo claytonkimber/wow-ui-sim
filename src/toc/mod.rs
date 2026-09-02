@@ -68,7 +68,9 @@ fn is_allowed_game_type(line: &str) -> bool {
             &["vanilla", "classic_anniversary", "classic"]
         }
     };
-    types.split(',').any(|t| allowed.contains(&t.trim()))
+    types
+        .split(|character: char| character == ',' || character.is_whitespace())
+        .any(|game_type| allowed.contains(&game_type))
 }
 
 fn is_mists_game_menu_shared_file(addon_dir: &Path, line: &str) -> bool {

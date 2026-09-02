@@ -98,9 +98,8 @@ fn blizzard_deprecated_action_bar_appears_in_game_discovery_only() {
     );
 }
 
-#[test]
-fn blizzard_deprecated_action_bar_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_action_bar_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -118,10 +117,10 @@ fn blizzard_deprecated_action_bar_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_action_bar_installs_action_state_query_shims() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_action_bar_installs_action_state_query_shims(env: &WowLuaEnv) {
 
     let installed: bool = env
         .eval(
@@ -161,10 +160,10 @@ fn blizzard_deprecated_action_bar_installs_action_state_query_shims() {
          C_ActionBar.RegisterActionUIButton)"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_action_bar_installs_bar_index_shims() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_action_bar_installs_bar_index_shims(env: &WowLuaEnv) {
 
     let installed: bool = env
         .eval(
@@ -188,10 +187,10 @@ fn blizzard_deprecated_action_bar_installs_bar_index_shims() {
          GetActionBarPage / ChangeActionBarPage (renamed to C_ActionBar.SetActionBarPage)"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_action_bar_installs_bar_visibility_shims() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_action_bar_installs_bar_visibility_shims(env: &WowLuaEnv) {
 
     let installed: bool = env
         .eval(
@@ -210,10 +209,10 @@ fn blizzard_deprecated_action_bar_installs_bar_visibility_shims() {
          HasVehicleActionBar / IsPossessBarVisible — all 1:1 forwarders to C_ActionBar.*"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_action_bar_overrides_loss_of_control_method_on_namespace() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_action_bar_overrides_loss_of_control_method_on_namespace(env: &WowLuaEnv) {
 
     let overridden: bool = env
         .eval(
@@ -232,10 +231,10 @@ fn blizzard_deprecated_action_bar_overrides_loss_of_control_method_on_namespace(
          method available alongside it"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_action_bar_load_deprecation_fallbacks_cvar_is_default_on() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_action_bar_load_deprecation_fallbacks_cvar_is_default_on(env: &WowLuaEnv) {
 
     let cvar_on: bool = env
         .eval("return GetCVarBool('loadDeprecationFallbacks')")
@@ -248,6 +247,7 @@ fn blizzard_deprecated_action_bar_load_deprecation_fallbacks_cvar_is_default_on(
          are skipped and any legacy addon calling them blows up with `attempt to call a nil \
          value`"
     );
+}
 }
 
 #[test]

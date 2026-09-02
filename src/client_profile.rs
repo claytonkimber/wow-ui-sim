@@ -1,7 +1,8 @@
 //! WoW client profile selection — retail, PTR, wrath, mists, era, anniversary.
 //!
-//! Exactly one `client-*` cargo feature must be enabled. The active profile
-//! determines which profile-scoped Blizzard UI cache the addon loader reads.
+//! Exactly one client profile marker must be enabled. The active profile
+//! determines which profile-scoped Blizzard UI cache the addon loader reads;
+//! cumulative retail epoch features select the exposed API version separately.
 
 use std::path::{Path, PathBuf};
 
@@ -15,13 +16,43 @@ pub enum ClientProfile {
     Anniversary,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RetailApiEpoch {
+    Retail12_0_0,
+    Retail12_0_5,
+    Retail12_0_7,
+    Retail12_1_0,
+}
+
+impl RetailApiEpoch {
+    pub const fn interface_version(self) -> u32 {
+        match self {
+            RetailApiEpoch::Retail12_0_0 => 120000,
+            RetailApiEpoch::Retail12_0_5 => 120005,
+            RetailApiEpoch::Retail12_0_7 => 120007,
+            RetailApiEpoch::Retail12_1_0 => 120100,
+        }
+    }
+}
+
 #[cfg(feature = "retail-12-1-0")]
-pub const RETAIL_API_INTERFACE_VERSION: u32 = 120100;
+pub const ACTIVE_RETAIL_API_EPOCH: RetailApiEpoch = RetailApiEpoch::Retail12_1_0;
 
-#[cfg(not(feature = "retail-12-1-0"))]
-pub const RETAIL_API_INTERFACE_VERSION: u32 = 120007;
+#[cfg(all(not(feature = "retail-12-1-0"), feature = "retail-12-0-7"))]
+pub const ACTIVE_RETAIL_API_EPOCH: RetailApiEpoch = RetailApiEpoch::Retail12_0_7;
 
-#[cfg(any(feature = "client-retail", feature = "client-ptr"))]
+#[cfg(all(not(feature = "retail-12-0-7"), feature = "retail-12-0-5"))]
+pub const ACTIVE_RETAIL_API_EPOCH: RetailApiEpoch = RetailApiEpoch::Retail12_0_5;
+
+#[cfg(all(not(feature = "retail-12-0-5"), feature = "retail-12-0-0"))]
+pub const ACTIVE_RETAIL_API_EPOCH: RetailApiEpoch = RetailApiEpoch::Retail12_0_0;
+
+#[cfg(not(feature = "retail-12-0-0"))]
+pub const ACTIVE_RETAIL_API_EPOCH: RetailApiEpoch = RetailApiEpoch::Retail12_0_7;
+
+pub const RETAIL_API_INTERFACE_VERSION: u32 = ACTIVE_RETAIL_API_EPOCH.interface_version();
+
+#[cfg(any(feature = "profile-retail", feature = "client-ptr"))]
 pub const ACTIVE_INTERFACE_VERSION: u32 = RETAIL_API_INTERFACE_VERSION;
 
 #[cfg(feature = "client-wrath")]
@@ -72,12 +103,12 @@ impl ClientProfile {
     not(feature = "client-era"),
     not(feature = "client-anniversary"),
     not(feature = "client-ptr"),
-    feature = "client-retail",
+    feature = "profile-retail",
 ))]
 pub const ACTIVE: ClientProfile = ClientProfile::Retail;
 
 #[cfg(all(
-    not(feature = "client-retail"),
+    not(feature = "profile-retail"),
     not(feature = "client-wrath"),
     not(feature = "client-mists"),
     not(feature = "client-era"),
@@ -87,7 +118,7 @@ pub const ACTIVE: ClientProfile = ClientProfile::Retail;
 pub const ACTIVE: ClientProfile = ClientProfile::Ptr;
 
 #[cfg(all(
-    not(feature = "client-retail"),
+    not(feature = "profile-retail"),
     not(feature = "client-ptr"),
     not(feature = "client-mists"),
     not(feature = "client-era"),
@@ -97,7 +128,7 @@ pub const ACTIVE: ClientProfile = ClientProfile::Ptr;
 pub const ACTIVE: ClientProfile = ClientProfile::Wrath;
 
 #[cfg(all(
-    not(feature = "client-retail"),
+    not(feature = "profile-retail"),
     not(feature = "client-ptr"),
     not(feature = "client-wrath"),
     not(feature = "client-era"),
@@ -107,7 +138,7 @@ pub const ACTIVE: ClientProfile = ClientProfile::Wrath;
 pub const ACTIVE: ClientProfile = ClientProfile::Mists;
 
 #[cfg(all(
-    not(feature = "client-retail"),
+    not(feature = "profile-retail"),
     not(feature = "client-ptr"),
     not(feature = "client-wrath"),
     not(feature = "client-mists"),
@@ -117,7 +148,7 @@ pub const ACTIVE: ClientProfile = ClientProfile::Mists;
 pub const ACTIVE: ClientProfile = ClientProfile::Era;
 
 #[cfg(all(
-    not(feature = "client-retail"),
+    not(feature = "profile-retail"),
     not(feature = "client-ptr"),
     not(feature = "client-wrath"),
     not(feature = "client-mists"),
@@ -127,11 +158,11 @@ pub const ACTIVE: ClientProfile = ClientProfile::Era;
 pub const ACTIVE: ClientProfile = ClientProfile::Anniversary;
 
 #[cfg(any(
-    all(feature = "client-retail", feature = "client-wrath"),
-    all(feature = "client-retail", feature = "client-mists"),
-    all(feature = "client-retail", feature = "client-era"),
-    all(feature = "client-retail", feature = "client-anniversary"),
-    all(feature = "client-retail", feature = "client-ptr"),
+    all(feature = "profile-retail", feature = "client-wrath"),
+    all(feature = "profile-retail", feature = "client-mists"),
+    all(feature = "profile-retail", feature = "client-era"),
+    all(feature = "profile-retail", feature = "client-anniversary"),
+    all(feature = "profile-retail", feature = "client-ptr"),
     all(feature = "client-ptr", feature = "client-wrath"),
     all(feature = "client-ptr", feature = "client-mists"),
     all(feature = "client-ptr", feature = "client-era"),
@@ -144,11 +175,11 @@ pub const ACTIVE: ClientProfile = ClientProfile::Anniversary;
     all(feature = "client-era", feature = "client-anniversary"),
 ))]
 compile_error!(
-    "Exactly one of client-retail, client-ptr, client-wrath, client-mists, client-era, client-anniversary must be enabled"
+    "Exactly one profile marker must be enabled: profile-retail (normally via client-retail), client-ptr, client-wrath, client-mists, client-era, or client-anniversary"
 );
 
 #[cfg(not(any(
-    feature = "client-retail",
+    feature = "profile-retail",
     feature = "client-ptr",
     feature = "client-wrath",
     feature = "client-mists",
@@ -156,7 +187,7 @@ compile_error!(
     feature = "client-anniversary",
 )))]
 compile_error!(
-    "Exactly one of client-retail, client-ptr, client-wrath, client-mists, client-era, client-anniversary must be enabled"
+    "Exactly one profile marker must be enabled: profile-retail (normally via client-retail), client-ptr, client-wrath, client-mists, client-era, or client-anniversary"
 );
 
 #[cfg(all(feature = "client-ptr", not(feature = "retail-12-1-0")))]
@@ -169,9 +200,9 @@ compile_error!("client-ptr must enable the retail-12-1-0 API epoch");
         feature = "retail-12-0-7",
         feature = "retail-12-1-0"
     ),
-    not(any(feature = "client-retail", feature = "client-ptr"))
+    not(any(feature = "profile-retail", feature = "client-ptr"))
 ))]
-compile_error!("retail API epoch features require client-retail or client-ptr");
+compile_error!("retail API epoch features require profile-retail or client-ptr");
 
 /// Path to the AddOns directory for the active profile.
 ///
@@ -234,15 +265,43 @@ mod tests {
     use super::*;
 
     #[test]
-    #[cfg(all(feature = "client-retail", not(feature = "retail-12-1-0")))]
-    fn retail_client_points_at_current_retail_api_epoch() {
-        assert_eq!(ACTIVE, ClientProfile::Retail);
-        assert_eq!(ACTIVE_INTERFACE_VERSION, 120007);
-        assert!(cfg!(feature = "retail-12-0-7"));
+    fn retail_api_epoch_maps_to_interface_versions() {
+        let expected = [
+            (RetailApiEpoch::Retail12_0_0, 120000),
+            (RetailApiEpoch::Retail12_0_5, 120005),
+            (RetailApiEpoch::Retail12_0_7, 120007),
+            (RetailApiEpoch::Retail12_1_0, 120100),
+        ];
+
+        for (epoch, interface_version) in expected {
+            assert_eq!(epoch.interface_version(), interface_version);
+        }
     }
 
     #[test]
-    #[cfg(all(feature = "client-retail", feature = "retail-12-1-0"))]
+    #[cfg(all(
+        feature = "profile-retail",
+        feature = "retail-12-0-0",
+        not(feature = "retail-12-0-5"),
+        not(feature = "retail-12-0-7"),
+        not(feature = "retail-12-1-0"),
+    ))]
+    fn historical_retail_profile_uses_12_0_0_epoch() {
+        assert_eq!(ACTIVE, ClientProfile::Retail);
+        assert_eq!(ACTIVE.cache_subdir(), "retail");
+        assert_eq!(ACTIVE.interface_version(), 120000);
+    }
+
+    #[test]
+    #[cfg(feature = "client-retail")]
+    fn retail_client_points_at_current_retail_api_epoch() {
+        assert_eq!(ACTIVE, ClientProfile::Retail);
+        assert_eq!(ACTIVE_INTERFACE_VERSION, 120100);
+        assert!(cfg!(feature = "retail-12-1-0"));
+    }
+
+    #[test]
+    #[cfg(all(feature = "profile-retail", feature = "retail-12-1-0"))]
     fn retail_client_can_point_at_patch_12_1_api_epoch() {
         assert_eq!(ACTIVE, ClientProfile::Retail);
         assert_eq!(ACTIVE_INTERFACE_VERSION, 120100);
@@ -281,8 +340,9 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "client-retail")]
     fn retail_interface_matches_current_live_build() {
-        assert_eq!(ClientProfile::Retail.interface_version(), 120007);
+        assert_eq!(ClientProfile::Retail.interface_version(), 120100);
     }
 
     #[test]

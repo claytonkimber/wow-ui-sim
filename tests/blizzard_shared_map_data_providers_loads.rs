@@ -1,10 +1,22 @@
 use std::path::PathBuf;
 
-use wow_ui_sim::loader::load_addon;
-use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, find_toc_file};
+use crate::common::blizzard_addon_harness::{
+    build_blizzard_addon_closure_env, load_blizzard_addon_closure_into_env,
+    new_blizzard_addon_env,
+};
+use wow_ui_sim::loader::{
+    BlizzardAddonOverride, discover_blizzard_addons_for_screen, find_toc_file,
+};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
 use wow_ui_sim::toc::TocFile;
+
+const ROOT_ADDON: &str = "Blizzard_SharedMapDataProviders";
+const IMPLICIT_DEPENDENCIES: &[&str] = &["Blizzard_SharedXML", "Blizzard_MapCanvas"];
+const ADDON_OVERRIDES: &[BlizzardAddonOverride<'static>] = &[BlizzardAddonOverride {
+    addon: ROOT_ADDON,
+    extra_roots: IMPLICIT_DEPENDENCIES,
+}];
 
 fn blizzard_ui_dir() -> PathBuf {
     wow_ui_sim::paths::default_blizzard_ui_addons_path().expect("Blizzard UI cache should be available")
@@ -98,30 +110,9 @@ const SHARED_PIN_MIXINS: &[&str] = &[
     "WorldQuestPinMixin",
 ];
 
-fn fresh_env() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-    wow_ui_sim::xml::register_intrinsic_templates();
-    env
-}
-
-fn load_full_game_ui_with_explicit_lod_load() -> WowLuaEnv {
-    let env = fresh_env();
-
-    let addons = discover_blizzard_addons_for_screen(&blizzard_ui_dir(), ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    load_addon(&env.loader_env(), &map_data_providers_toc())
-        .expect("explicit LoD load_addon for SharedMapDataProviders must succeed");
-
+fn load_map_data_providers_closure() -> WowLuaEnv {
+    let (env, _) =
+        build_blizzard_addon_closure_env(&blizzard_ui_dir(), &[ROOT_ADDON], ADDON_OVERRIDES);
     env.apply_post_load_workarounds();
     env
 }
@@ -353,7 +344,7 @@ fn lod_addon_dragged_into_game_eager_discovery_via_worldmap_required_dep() {
 
 #[test]
 fn explicit_load_emits_no_addon_specific_lua_errors() {
-    let env = load_full_game_ui_with_explicit_lod_load();
+    let env = load_map_data_providers_closure();
 
     let errors: Vec<String> = env.state().borrow().lua_errors.clone();
     let relevant: Vec<&String> = errors
@@ -381,7 +372,8 @@ fn explicit_load_emits_no_addon_specific_lua_errors() {
 
 #[test]
 fn is_addon_loaded_transitions_false_to_true_after_explicit_load() {
-    let env = fresh_env();
+    let ui = blizzard_ui_dir();
+    let env = new_blizzard_addon_env(&ui);
 
     let before: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_SharedMapDataProviders')")
@@ -392,13 +384,7 @@ fn is_addon_loaded_transitions_false_to_true_after_explicit_load() {
          LoadOnDemand=1 keeps the addon out of the eager pool"
     );
 
-    let addons = discover_blizzard_addons_for_screen(&blizzard_ui_dir(), ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-    load_addon(&env.loader_env(), &map_data_providers_toc())
-        .expect("explicit LoD load must succeed");
+    load_blizzard_addon_closure_into_env(&env, &ui, &[ROOT_ADDON], ADDON_OVERRIDES);
 
     let after: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_SharedMapDataProviders')")
@@ -412,7 +398,7 @@ fn is_addon_loaded_transitions_false_to_true_after_explicit_load() {
 
 #[test]
 fn map_pin_tags_enum_published_with_six_canonical_keys() {
-    let env = load_full_game_ui_with_explicit_lod_load();
+    let env = load_map_data_providers_closure();
 
     let kind: String = env
         .eval("return type(MapPinTags)")
@@ -448,7 +434,7 @@ fn map_pin_tags_enum_published_with_six_canonical_keys() {
 
 #[test]
 fn frame_clone_manager_published_as_table_with_init_method() {
-    let env = load_full_game_ui_with_explicit_lod_load();
+    let env = load_map_data_providers_closure();
 
     let kind: String = env
         .eval("return type(FrameCloneManager)")
@@ -475,7 +461,7 @@ fn frame_clone_manager_published_as_table_with_init_method() {
 
 #[test]
 fn publishes_38_data_provider_mixin_tables_for_widget_families() {
-    let env = load_full_game_ui_with_explicit_lod_load();
+    let env = load_map_data_providers_closure();
 
     for mixin in PROVIDER_MIXINS {
         let kind: String = env
@@ -492,7 +478,7 @@ fn publishes_38_data_provider_mixin_tables_for_widget_families() {
 
 #[test]
 fn publishes_pin_mixin_tables_for_per_widget_pins() {
-    let env = load_full_game_ui_with_explicit_lod_load();
+    let env = load_map_data_providers_closure();
 
     for mixin in SHARED_PIN_MIXINS {
         let kind: String = env
@@ -509,7 +495,7 @@ fn publishes_pin_mixin_tables_for_per_widget_pins() {
 
 #[test]
 fn base_map_poi_pin_mixin_create_subpin_helper_returns_table() {
-    let env = load_full_game_ui_with_explicit_lod_load();
+    let env = load_map_data_providers_closure();
 
     let kind: String = env
         .eval("return type(BaseMapPoiPinMixin.CreateSubPin)")
@@ -538,7 +524,7 @@ fn base_map_poi_pin_mixin_create_subpin_helper_returns_table() {
 
 #[test]
 fn quest_data_provider_mixin_inherits_map_canvas_data_provider_mixin() {
-    let env = load_full_game_ui_with_explicit_lod_load();
+    let env = load_map_data_providers_closure();
 
     let inherits: bool = env
         .eval(
@@ -558,7 +544,7 @@ fn quest_data_provider_mixin_inherits_map_canvas_data_provider_mixin() {
 
 #[test]
 fn glow_hub_quests_acknowledged_saved_var_resolves_after_load() {
-    let env = load_full_game_ui_with_explicit_lod_load();
+    let env = load_map_data_providers_closure();
 
     let kind: String = env
         .eval("return type(GLOW_HUB_QUESTS_ACKNOWLEDGED)")
@@ -576,7 +562,7 @@ fn glow_hub_quests_acknowledged_saved_var_resolves_after_load() {
 
 #[test]
 fn shared_map_poi_templates_register_in_template_registry_not_global_frames() {
-    let env = load_full_game_ui_with_explicit_lod_load();
+    let env = load_map_data_providers_closure();
 
     let kind: String = env
         .eval("return type(BaseMapPoiTemplate)")

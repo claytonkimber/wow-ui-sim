@@ -199,12 +199,24 @@ pub struct LuaErrorRecord {
     pub addon_name: Option<String>,
 }
 
+/// Global environment where a missing symbol access originated.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum NilSymbolEnvironment {
+    #[default]
+    Public,
+    Secure,
+}
+
 /// A missing symbol access captured through `_G` or `C_*` namespace `__index` hooks.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct NilSymbolAccess {
+    /// Stable addon index inferred from the loading/executing context.
+    pub addon_index: Option<u16>,
     /// Addon name inferred from the loading/executing context.
     pub addon_name: Option<String>,
-    /// Container table where the miss happened (`_G` or `C_*` namespace name).
+    /// Logical global environment selected by the loading file.
+    pub environment: NilSymbolEnvironment,
+    /// Container table where the miss happened (`_G`, `__secureenv`, or a `C_*` namespace).
     pub container: String,
     /// Missing key that resolved to nil.
     pub key: String,
@@ -212,4 +224,110 @@ pub struct NilSymbolAccess {
     pub source: Option<String>,
     /// 1-based source line where the nil access happened, if available.
     pub line: Option<i32>,
+}
+
+/// Source and owner of one finalized addon-load diagnostic.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct LoadDiagnosticAttribution {
+    pub addon_name: String,
+    pub environment: NilSymbolEnvironment,
+    pub source: Option<String>,
+    pub line: Option<i32>,
+}
+
+/// Non-fatal regular-global nil access retained for inspection.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct NilSymbolObservation {
+    pub kind: NilSymbolObservationKind,
+    pub attribution: LoadDiagnosticAttribution,
+}
+
+/// Regular-global symbol shape observed as nil.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum NilSymbolObservationKind {
+    Global { name: String },
+}
+
+/// Missing `C_*` API requirement retained independently from startup health.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct MissingRequirement {
+    pub kind: MissingRequirementKind,
+    pub attribution: LoadDiagnosticAttribution,
+}
+
+/// Missing `C_*` namespace or namespace member.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum MissingRequirementKind {
+    CNamespace { namespace: String },
+    CMethod { namespace: String, method: String },
+}
+
+/// Diagnostics finalized by one or more addon loads.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct LoadDiagnostics {
+    pub warnings: Vec<String>,
+    pub nil_symbol_observations: Vec<NilSymbolObservation>,
+    pub missing_requirements: Vec<MissingRequirement>,
+}
+
+impl LoadDiagnostics {
+    pub fn is_empty(&self) -> bool {
+        self.warnings.is_empty()
+            && self.nil_symbol_observations.is_empty()
+            && self.missing_requirements.is_empty()
+    }
+
+    pub fn extend(&mut self, other: Self) {
+        self.warnings.extend(other.warnings);
+        self.nil_symbol_observations
+            .extend(other.nil_symbol_observations);
+        self.missing_requirements.extend(other.missing_requirements);
+    }
+}
+
+impl std::fmt::Display for NilSymbolObservation {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let NilSymbolObservationKind::Global { name } = &self.kind;
+        write!(
+            formatter,
+            "{} observed nil global {} in {} environment{}",
+            self.attribution.addon_name,
+            name,
+            environment_name(self.attribution.environment),
+            format_diagnostic_location(&self.attribution)
+        )
+    }
+}
+
+impl std::fmt::Display for MissingRequirement {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let required = match &self.kind {
+            MissingRequirementKind::CNamespace { namespace } => namespace.clone(),
+            MissingRequirementKind::CMethod { namespace, method } => {
+                format!("{namespace}.{method}")
+            }
+        };
+        write!(
+            formatter,
+            "{} needs {} in {} environment{}",
+            self.attribution.addon_name,
+            required,
+            environment_name(self.attribution.environment),
+            format_diagnostic_location(&self.attribution)
+        )
+    }
+}
+
+fn environment_name(environment: NilSymbolEnvironment) -> &'static str {
+    match environment {
+        NilSymbolEnvironment::Public => "public",
+        NilSymbolEnvironment::Secure => "secure",
+    }
+}
+
+fn format_diagnostic_location(attribution: &LoadDiagnosticAttribution) -> String {
+    match (&attribution.source, attribution.line) {
+        (Some(source), Some(line)) => format!(" (accessed at {source}:{line})"),
+        _ => String::new(),
+    }
 }

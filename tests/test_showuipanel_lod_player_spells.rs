@@ -442,18 +442,16 @@ fn player_spells_export_disabled_callback_tracks_unspent_hero_points() {
         common::install_error_collector(&env, "__hero_export_gate_errors");
         clear_recorded_lua_errors(&env);
 
+        open_talents(&env);
+
         let hero_currency_id = {
-            let state = env.state().borrow();
-            match state.talents.active_hero_subtree() {
+            let mut state = env.state().borrow_mut();
+            let hero_currency_id = match state.talents.active_hero_subtree() {
                 Some(48) => 2986,
                 Some(49) => 2987,
                 Some(50) => 2988,
                 other => panic!("unexpected active hero subtree: {other:?}"),
-            }
-        };
-
-        {
-            let mut state = env.state().borrow_mut();
+            };
             let class_currency_ids = TRAIT_TREE_DB
                 .get(&790)
                 .expect("Paladin class tree should exist")
@@ -464,9 +462,8 @@ fn player_spells_export_disabled_callback_tracks_unspent_hero_points() {
                 state.talents.currency_spent.insert(currency_id, max_points);
             }
             state.talents.currency_spent.insert(hero_currency_id, 10);
-        }
-
-        open_talents(&env);
+            hero_currency_id
+        };
 
         let disabled_with_points: bool = env
             .eval(

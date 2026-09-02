@@ -446,7 +446,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "client-retail")]
+    #[cfg(feature = "profile-retail")]
     fn wtf_candidates_prefer_install_root_before_project_mirror_on_linux() {
         let install_root = PathBuf::from("/tmp/wow-install");
 

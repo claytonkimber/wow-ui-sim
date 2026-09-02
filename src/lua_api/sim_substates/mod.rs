@@ -217,7 +217,7 @@ impl PetBattlePet {
     pub fn default_player() -> Self {
         Self {
             name: "Squirrel".into(),
-            species_id: 1,
+            species_id: 39,
             level: 1,
             max_health: 289,
             current_health: 289,
@@ -233,7 +233,7 @@ impl PetBattlePet {
     pub fn default_enemy() -> Self {
         Self {
             name: "Rabbit".into(),
-            species_id: 2,
+            species_id: 87,
             level: 1,
             max_health: 305,
             current_health: 305,

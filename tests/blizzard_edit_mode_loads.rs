@@ -136,9 +136,8 @@ fn blizzard_edit_mode_loads_after_three_declared_dependencies() {
     );
 }
 
-#[test]
-fn blizzard_edit_mode_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_edit_mode_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -154,10 +153,10 @@ fn blizzard_edit_mode_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_edit_mode_is_addon_loaded_returns_true() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_edit_mode_is_addon_loaded_returns_true(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval(
@@ -174,10 +173,10 @@ fn blizzard_edit_mode_is_addon_loaded_returns_true() {
          retail HUD; if this returns false, the loader skipped the TOC silently"
     );
 }
+}
 
-#[test]
-fn blizzard_edit_mode_creates_named_singleton_manager_frame() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_edit_mode_creates_named_singleton_manager_frame(env: &WowLuaEnv) {
 
     let (kind, name): (String, String) = env
         .eval(
@@ -200,10 +199,10 @@ fn blizzard_edit_mode_creates_named_singleton_manager_frame() {
          singleton by name"
     );
 }
+}
 
-#[test]
-fn blizzard_edit_mode_manager_frame_starts_hidden() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_edit_mode_manager_frame_starts_hidden(env: &WowLuaEnv) {
 
     let starts_hidden: bool = env
         .eval("return EditModeManagerFrame:IsShown() == false")
@@ -215,10 +214,10 @@ fn blizzard_edit_mode_manager_frame_starts_hidden() {
          Mode (via `EditModeManagerFrame:EnterEditMode()` from the system menu / hotkey)"
     );
 }
+}
 
-#[test]
-fn blizzard_edit_mode_publishes_core_mixin_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_edit_mode_publishes_core_mixin_globals(env: &WowLuaEnv) {
 
     let kinds: (String, String, String) = env
         .eval(
@@ -240,10 +239,10 @@ fn blizzard_edit_mode_publishes_core_mixin_globals() {
          (Shared/EditModeUtil.lua:1). All must exist as tables after addon load"
     );
 }
+}
 
-#[test]
-fn blizzard_edit_mode_manager_frame_mixin_carries_lifecycle_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_edit_mode_manager_frame_mixin_carries_lifecycle_methods(env: &WowLuaEnv) {
 
     let kinds: (String, String, String, String, String) = env
         .eval(
@@ -269,10 +268,10 @@ fn blizzard_edit_mode_manager_frame_mixin_carries_lifecycle_methods() {
          EditModeManagerFrame:<Method>() once the frame is built"
     );
 }
+}
 
-#[test]
-fn blizzard_edit_mode_publishes_per_system_mixin_globals_for_action_bars_and_unit_frames() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_edit_mode_publishes_per_system_mixin_globals_for_action_bars_and_unit_frames(env: &WowLuaEnv) {
 
     let all_present: bool = env
         .eval(
@@ -297,10 +296,10 @@ fn blizzard_edit_mode_publishes_per_system_mixin_globals_for_action_bars_and_uni
          EditModeAuraFrameSystemMixin, EditModeChatFrameSystemMixin"
     );
 }
+}
 
-#[test]
-fn blizzard_edit_mode_dialog_singletons_exist_as_hidden_frames() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_edit_mode_dialog_singletons_exist_as_hidden_frames(env: &WowLuaEnv) {
 
     let kinds: (String, String, String, String) = env
         .eval(
@@ -340,10 +339,10 @@ fn blizzard_edit_mode_dialog_singletons_exist_as_hidden_frames() {
          Edit-Mode action. Got hidden-states: {hidden_kinds:?}"
     );
 }
+}
 
-#[test]
-fn blizzard_edit_mode_durability_frame_system_template_unblocks_dependent_addon() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_edit_mode_durability_frame_system_template_unblocks_dependent_addon(env: &WowLuaEnv) {
 
     let durability_template_works: bool = env
         .eval(
@@ -364,10 +363,10 @@ fn blizzard_edit_mode_durability_frame_system_template_unblocks_dependent_addon(
          load. Confirms our cross-addon template resolution is intact"
     );
 }
+}
 
-#[test]
-fn blizzard_edit_mode_loads_mainline_overrides_excludes_wrath_only_files() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_edit_mode_loads_mainline_overrides_excludes_wrath_only_files(env: &WowLuaEnv) {
 
     let no_wrath_layouts: bool = env
         .eval(
@@ -388,6 +387,7 @@ fn blizzard_edit_mode_loads_mainline_overrides_excludes_wrath_only_files() {
          existing mainline sources don't declare these names; the assertion just verifies \
          no surprise leakage)"
     );
+}
 }
 
 #[test]

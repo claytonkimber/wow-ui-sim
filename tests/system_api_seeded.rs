@@ -381,10 +381,10 @@ fn test_c_friend_list_returns_seeded_wow_friends() {
         end
         C_FriendList.ShowFriends()
 
-        if C_FriendList.GetNumFriends() ~= 2 then
+        if C_FriendList.GetNumFriends() ~= 3 then
             return "friend_count=" .. tostring(C_FriendList.GetNumFriends())
         end
-        if C_FriendList.GetNumOnlineFriends() ~= 1 then
+        if C_FriendList.GetNumOnlineFriends() ~= 2 then
             return "online_count=" .. tostring(C_FriendList.GetNumOnlineFriends())
         end
         if C_FriendList.GetNumIgnores() ~= 0 then
@@ -398,13 +398,13 @@ fn test_c_friend_list_returns_seeded_wow_friends() {
         if not info then
             return "missing_index_1"
         end
-        if info.name ~= "Alyth" then
+        if info.name ~= "Arthax" then
             return "name=" .. tostring(info.name)
         end
         if not info.connected then
             return "friend_should_be_online"
         end
-        if info.level ~= 80 then
+        if info.level ~= 70 then
             return "level=" .. tostring(info.level)
         end
         if info.className ~= "Paladin" then
@@ -413,25 +413,35 @@ fn test_c_friend_list_returns_seeded_wow_friends() {
         if info.area ~= "Stormwind City" then
             return "area=" .. tostring(info.area)
         end
-        if info.notes ~= "Testing the FriendsFrame list" then
+        if info.notes ~= "" then
             return "notes=" .. tostring(info.notes)
         end
-        if info.guid ~= "Player-11-00000001" then
+        if info.guid ~= "Player-1-0000A001" then
             return "guid=" .. tostring(info.guid)
         end
 
-        local by_name = C_FriendList.GetFriendInfoByName("Alyth")
+        local by_name = C_FriendList.GetFriendInfoByName("Arthax")
         if not by_name or by_name.guid ~= info.guid then
             return "name_lookup_failed"
         end
-        if not C_FriendList.IsFriend("Alyth") then
+        if not C_FriendList.IsFriend("Arthax") then
             return "is_friend_failed"
         end
-        local offline = C_FriendList.GetFriendInfoByIndex(2)
-        if not offline then
+        local second = C_FriendList.GetFriendInfoByIndex(2)
+        if not second then
             return "missing_index_2"
         end
-        if offline.name ~= "Brennor" then
+        if second.name ~= "Sylvara" then
+            return "second_name=" .. tostring(second.name)
+        end
+        if not second.connected then
+            return "second_friend_should_be_online"
+        end
+        local offline = C_FriendList.GetFriendInfoByIndex(3)
+        if not offline then
+            return "missing_index_3"
+        end
+        if offline.name ~= "Durotan" then
             return "offline_name=" .. tostring(offline.name)
         end
         if offline.connected then

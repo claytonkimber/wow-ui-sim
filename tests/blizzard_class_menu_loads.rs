@@ -37,9 +37,8 @@ fn load_full_game_ui() -> WowLuaEnv {
     env
 }
 
-#[test]
-fn blizzard_class_menu_constants_and_helper_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_class_menu_constants_and_helper_are_defined(env: &WowLuaEnv) {
 
     let constants_present: bool = env
         .eval(
@@ -63,10 +62,10 @@ fn blizzard_class_menu_constants_and_helper_are_defined() {
         "ClassMenu.InitClassSpecDropdown should be defined after load"
     );
 }
+}
 
-#[test]
-fn class_menu_init_class_spec_dropdown_runs_against_intrinsic_dropdown() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn class_menu_init_class_spec_dropdown_runs_against_intrinsic_dropdown(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -101,4 +100,5 @@ fn class_menu_init_class_spec_dropdown_runs_against_intrinsic_dropdown() {
         "ClassMenu.InitClassSpecDropdown emitted Lua errors:\n  {}",
         unexpected_errors.join("\n  ")
     );
+}
 }

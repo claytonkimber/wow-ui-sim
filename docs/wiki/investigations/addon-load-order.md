@@ -1,8 +1,8 @@
 # Addon Load Order
 
-Investigation into why `Blizzard_MainMenuBarBagButtons` historically called functions that weren't defined yet at load time.
+Investigation into historical Blizzard addon load-order assumptions affecting bag-button initialization and ItemButton utilities.
 
-> **Status: RESOLVED (verified 2026-06-19).** The symptom no longer reproduces in
+> **Status: RESOLVED (verified 2026-06-19; ItemButton state corrected 2026-08-26).** The symptom no longer reproduces in
 > the current build. `PaperDollItemSlotButton_OnLoad` is defined by the time the
 > bag buttons load, their `OnLoadInternal` runs to completion, and there are no
 > related Lua errors at startup. The old re-run workaround has been removed. The
@@ -17,6 +17,12 @@ Investigation into why `Blizzard_MainMenuBarBagButtons` historically called func
   event registration happens in `OnLoadInternal` **after** the
   `PaperDollItemSlotButton_OnLoad` call, proving OnLoad completed rather than
   erroring partway and being swallowed by `xpcall`.
+
+## Current ItemButton runtime ordering
+
+`WowLuaEnv::new` does not publish `ItemButtonUtil`. Loading `Blizzard_UIParent` instantiates the visible UIParent frame, whose `UIParent_OnShow` calls `C_AddOns.LoadAddOn("Blizzard_AccountStore")`. Runtime `C_AddOns` loads the game foundation lane first, including `Blizzard_FrameXMLUtil`; `ItemUtil.lua` publishes `ItemButtonUtil` before eager discovery reaches `Blizzard_ItemButton`.
+
+Commit `9b1ba9bcd` removed the test that asserted the obsolete intermediate state (`ItemButtonMixin` present while `ItemButtonUtil` remained absent). The production load-order snapshot is unchanged and remains green. The retained contract is the resolved addon snapshot and its runtime behavior, not the transient global state observed by that removed test.
 
 ## Why it works now (root cause)
 
@@ -74,9 +80,11 @@ panel — **not** `_OnLoad`.
 defined in `Blizzard_UIPanels_Game` (line 327), which loaded later. The bag
 buttons' `OnLoadInternal` failed partway through, skipping event registration
 and slot setup. The same pattern applied to `PaperDollItemSlotButton_Update` and
-`PaperDollItemSlotButton_OnShow`. `ItemButtonUtil.*` (from
-`Blizzard_FrameXMLUtil`, line 138) was always fine — it loads before the bag
-buttons.
+`PaperDollItemSlotButton_OnShow`. The old `ItemButtonUtil.*` note was an
+invalid intermediate-state claim: `WowLuaEnv::new` starts without that global,
+but runtime loading of `Blizzard_UIParent` enters the `C_AddOns` foundation
+lane, loads `Blizzard_FrameXMLUtil`, and runs `ItemUtil.lua` before eager
+discovery reaches `Blizzard_ItemButton`.
 
 ## Historical root cause
 
@@ -98,4 +106,9 @@ with alphabetical tiebreaking, producing the same relative order.
 
 ## Sources
 
-- [addon-load-order-investigation.md](../../addon-load-order-investigation.md) — full historical analysis
+- [addon-load-order-investigation.md](../../addon-load-order-investigation.md) — full historical analysis and current ItemButton ordering
+- [load_order.rs](../../../tests/load_order.rs) — retained load-order snapshot and eager-order assertion
+
+## See Also
+
+- [[addon-loading]] — TOC discovery and runtime foundation loading

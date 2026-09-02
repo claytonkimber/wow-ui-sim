@@ -86,7 +86,7 @@ def parse_args() -> argparse.Namespace:
 def load_source(path: Path) -> tuple[dict[str, tuple[int, str]], dict[int, str]]:
     by_path: dict[str, tuple[int, str]] = {}
     by_fdid: dict[int, str] = {}
-    load_listfile_rows(path, by_path, by_fdid)
+    load_listfile_rows(path, by_path, by_fdid, authoritative=False)
     return by_path, by_fdid
 
 
@@ -94,11 +94,15 @@ def load_listfile_overrides(
     by_path: dict[str, tuple[int, str]], by_fdid: dict[int, str]
 ) -> None:
     if LISTFILE_OVERRIDES.exists():
-        load_listfile_rows(LISTFILE_OVERRIDES, by_path, by_fdid)
+        load_listfile_rows(LISTFILE_OVERRIDES, by_path, by_fdid, authoritative=True)
 
 
 def load_listfile_rows(
-    path: Path, by_path: dict[str, tuple[int, str]], by_fdid: dict[int, str]
+    path: Path,
+    by_path: dict[str, tuple[int, str]],
+    by_fdid: dict[int, str],
+    *,
+    authoritative: bool,
 ) -> None:
     with path.open("r", encoding="utf-8", errors="replace", newline="") as handle:
         for raw in handle:
@@ -111,8 +115,12 @@ def load_listfile_rows(
             except ValueError:
                 continue
             normalized = normalize_path(asset_path)
-            by_path[normalized] = (fdid, normalized)
-            by_fdid.setdefault(fdid, normalized)
+            display_path = normalize_slashes(asset_path) if authoritative else normalized
+            by_path[normalized] = (fdid, display_path)
+            if authoritative:
+                by_fdid[fdid] = display_path
+            else:
+                by_fdid.setdefault(fdid, display_path)
 
 
 def collect_requests() -> tuple[set[str], set[int]]:
@@ -197,7 +205,7 @@ def resolve_rows(
     for path in blizzard_files or set():
         if row := resolve_path(by_path, path):
             rows[row[0]] = row[1]
-    return sorted(rows.items(), key=lambda row: row[1])
+    return sorted(rows.items(), key=lambda row: normalize_path(row[1]))
 
 
 def resolve_path(
@@ -222,8 +230,12 @@ def path_candidates(path: str) -> list[str]:
     return [normalize_path(candidate) for candidate in candidates]
 
 
+def normalize_slashes(path: str) -> str:
+    return path.replace("\\", "/")
+
+
 def normalize_path(path: str) -> str:
-    return path.replace("\\", "/").lower()
+    return normalize_slashes(path).lower()
 
 
 def write_rows(path: Path, rows: list[tuple[int, str]]) -> None:

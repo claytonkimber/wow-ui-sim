@@ -171,9 +171,8 @@ fn blizzard_garrison_templates_excluded_from_game_auto_discovery_due_to_lod() {
     );
 }
 
-#[test]
-fn blizzard_garrison_templates_loads_explicitly_via_load_addon_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_garrison_templates_loads_explicitly_via_load_addon_without_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -202,10 +201,10 @@ fn blizzard_garrison_templates_loads_explicitly_via_load_addon_without_errors() 
         templates_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_garrison_templates_is_addon_loaded_returns_true_after_explicit_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_garrison_templates_is_addon_loaded_returns_true_after_explicit_load(env: &WowLuaEnv) {
 
     let before: bool = env
         .eval("return C_AddOns and C_AddOns.IsAddOnLoaded('Blizzard_GarrisonTemplates') or false")
@@ -229,10 +228,10 @@ fn blizzard_garrison_templates_is_addon_loaded_returns_true_after_explicit_load(
          addon-info table that backs IsAddOnLoaded)"
     );
 }
+}
 
-#[test]
-fn blizzard_garrison_templates_publishes_top_level_named_frames() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_garrison_templates_publishes_top_level_named_frames(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &garrison_templates_toc())
         .expect("Blizzard_GarrisonTemplates should load");
 
@@ -270,10 +269,10 @@ fn blizzard_garrison_templates_publishes_top_level_named_frames() {
          confirm popup)"
     );
 }
+}
 
-#[test]
-fn blizzard_garrison_templates_virtual_templates_do_not_leak_as_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_garrison_templates_virtual_templates_do_not_leak_as_globals(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &garrison_templates_toc())
         .expect("Blizzard_GarrisonTemplates should load");
 
@@ -303,10 +302,10 @@ fn blizzard_garrison_templates_virtual_templates_do_not_leak_as_globals() {
          (line 5) — proves the `virtual=\"true\"` contract holds across all 3 XML files"
     );
 }
+}
 
-#[test]
-fn blizzard_garrison_templates_publishes_garrison_shared_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_garrison_templates_publishes_garrison_shared_mixins(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &garrison_templates_toc())
         .expect("Blizzard_GarrisonTemplates should load");
 
@@ -336,10 +335,10 @@ fn blizzard_garrison_templates_publishes_garrison_shared_mixins() {
          GarrisonFollowerList (line 77 — the follower-list namespace, NOT a mixin)"
     );
 }
+}
 
-#[test]
-fn blizzard_garrison_templates_publishes_mission_template_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_garrison_templates_publishes_mission_template_mixins(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &garrison_templates_toc())
         .expect("Blizzard_GarrisonTemplates should load");
 
@@ -366,10 +365,10 @@ fn blizzard_garrison_templates_publishes_mission_template_mixins() {
          via the mixin=... XML attribute)"
     );
 }
+}
 
-#[test]
-fn blizzard_garrison_templates_publishes_covenant_mission_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_garrison_templates_publishes_covenant_mission_mixins(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &garrison_templates_toc())
         .expect("Blizzard_GarrisonTemplates should load");
 
@@ -423,10 +422,10 @@ fn blizzard_garrison_templates_publishes_covenant_mission_mixins() {
          the on-puck health bar inheriting AdventuresPuckHealthBarTemplate)"
     );
 }
+}
 
-#[test]
-fn blizzard_garrison_templates_publishes_garrison_follower_helper_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_garrison_templates_publishes_garrison_follower_helper_globals(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &garrison_templates_toc())
         .expect("Blizzard_GarrisonTemplates should load");
 
@@ -456,10 +455,10 @@ fn blizzard_garrison_templates_publishes_garrison_follower_helper_globals() {
          from a followerID + displayID + showWeapon)"
     );
 }
+}
 
-#[test]
-fn blizzard_garrison_templates_mechanic_tooltips_use_tooltip_strata() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_garrison_templates_mechanic_tooltips_use_tooltip_strata(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &garrison_templates_toc())
         .expect("Blizzard_GarrisonTemplates should load");
 
@@ -488,10 +487,10 @@ fn blizzard_garrison_templates_mechanic_tooltips_use_tooltip_strata() {
          same strata as GameTooltip"
     );
 }
+}
 
-#[test]
-fn blizzard_garrison_templates_follower_placer_uses_uiparent_high_strata() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_garrison_templates_follower_placer_uses_uiparent_high_strata(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &garrison_templates_toc())
         .expect("Blizzard_GarrisonTemplates should load");
 
@@ -512,10 +511,10 @@ fn blizzard_garrison_templates_follower_placer_uses_uiparent_high_strata() {
          GarrisonFollowerPlacerFrame_OnClick cancels the drag and hides the overlay)"
     );
 }
+}
 
-#[test]
-fn blizzard_garrison_templates_publishes_garrison_follower_quality_descriptors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_garrison_templates_publishes_garrison_follower_quality_descriptors(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &garrison_templates_toc())
         .expect("Blizzard_GarrisonTemplates should load");
 
@@ -539,4 +538,5 @@ fn blizzard_garrison_templates_publishes_garrison_follower_quality_descriptors()
          GARRISON_FOLLOWER_BUSY_COLOR (line 1 — RGBA tint for in-mission followers), \
          GARRISON_FOLLOWER_INACTIVE_COLOR (line 2 — RGBA tint for inactive followers)"
     );
+}
 }

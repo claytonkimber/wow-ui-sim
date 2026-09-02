@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, find_toc_file, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
-use wow_ui_sim::startup::fire_startup_events_for_screen;
 use wow_ui_sim::toc::TocFile;
 
 fn blizzard_ui_dir() -> PathBuf {
@@ -21,7 +20,11 @@ fn item_socketing_toc() -> PathBuf {
     item_socketing_dir().join("Blizzard_ItemSocketingUI.toc")
 }
 
-const ITEM_SOCKETING_FILES: &[&str] = &["Blizzard_ItemSocketingUI.xml", "Localization.lua"];
+const ITEM_SOCKETING_FILES: &[&str] = &[
+    "Blizzard_ItemSocketingUI_Bootstrap.lua",
+    "Blizzard_ItemSocketingUI.xml",
+    "Localization.lua",
+];
 
 const SOCKET_BUTTON_METHODS: &[&str] = &[
     "OnLoad",
@@ -59,32 +62,9 @@ const VIRTUAL_TEMPLATE_NAMES: &[&str] = &[
     "GenericItemSocketingFrameTemplate",
 ];
 
-fn load_full_game_ui_with_item_socketing_lod() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-
-    wow_ui_sim::xml::register_intrinsic_templates();
-
-    let ui = blizzard_ui_dir();
-    let addons = discover_blizzard_addons_for_screen(&ui, ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    env.apply_post_load_workarounds();
-    fire_startup_events_for_screen(&env, ScreenKind::Game);
-
+fn load_item_socketing_ui(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &item_socketing_toc())
         .expect("Blizzard_ItemSocketingUI should load via explicit Rust loader call");
-
-    env
 }
 
 #[test]
@@ -100,7 +80,7 @@ fn blizzard_item_socketing_find_toc_resolves_bare_variant() {
 }
 
 #[test]
-fn blizzard_item_socketing_toc_declares_load_on_demand_with_no_dependencies() {
+fn blizzard_item_socketing_toc_declares_load_on_demand_with_animated_shine_dependency() {
     let toc = TocFile::from_file(&item_socketing_toc())
         .expect("Blizzard_ItemSocketingUI TOC should parse");
     assert!(
@@ -111,14 +91,11 @@ fn blizzard_item_socketing_toc_declares_load_on_demand_with_no_dependencies() {
     );
     assert!(!toc.is_load_first());
     assert!(!toc.is_secure_env());
-    assert!(
-        toc.dependencies().is_empty(),
-        "Blizzard_ItemSocketingUI declares ZERO `## Dependencies:` — the gem-socketing UI relies \
-         only on auto-loaded foundational addons (Blizzard_SharedXML for ButtonFrameTemplate / \
-         AnimatedShineTemplate / GameTooltipTemplate, Blizzard_ScrollingMessageFrame for \
-         ScrollFrameTemplate / EventScrollFrame, Blizzard_TextureUtil for SetupTextureKitOnFrame / \
-         TextureKitConstants, the SetItemButtonTexture global helper from Blizzard_ItemButton). \
-         There is no explicit Dependencies declaration in the TOC"
+    assert_eq!(
+        toc.dependencies(),
+        vec!["Blizzard_AnimatedShine".to_string()],
+        "Blizzard_ItemSocketingUI declares Blizzard_AnimatedShine for its socket animation \
+         templates"
     );
     assert!(
         toc.optional_deps().is_empty(),
@@ -179,14 +156,13 @@ fn blizzard_item_socketing_toc_omits_allow_load_metadata() {
          keeps the on-demand panel out of glue-screen sweeps without an explicit allow"
     );
     assert!(
-        !raw.contains("## Dependencies"),
-        "TOC must NOT declare `## Dependencies:` — the gem-socketing UI depends only on \
-         foundational addons that auto-load before any LoD addon. An explicit dep would be redundant"
+        raw.contains("## Dependencies: Blizzard_AnimatedShine"),
+        "TOC must declare its Blizzard_AnimatedShine dependency"
     );
 }
 
 #[test]
-fn blizzard_item_socketing_toc_lists_xml_and_localization_with_lua_loaded_via_script_directive() {
+fn blizzard_item_socketing_toc_lists_bootstrap_xml_and_localization() {
     let toc = TocFile::from_file(&item_socketing_toc())
         .expect("Blizzard_ItemSocketingUI TOC should parse");
     assert_eq!(
@@ -195,8 +171,7 @@ fn blizzard_item_socketing_toc_lists_xml_and_localization_with_lua_loaded_via_sc
             .map(|p| p.to_string_lossy().into_owned())
             .collect::<Vec<_>>(),
         ITEM_SOCKETING_FILES,
-        "TOC body must list exactly 2 files — Blizzard_ItemSocketingUI.xml then Localization.lua. \
-         The .lua sibling Blizzard_ItemSocketingUI.lua is loaded by the XML's \
+        "TOC body lists Bootstrap, XML, and Localization in current retail order. The .lua sibling Blizzard_ItemSocketingUI.lua is loaded by the XML's \
          `<Script file=\"Blizzard_ItemSocketingUI.lua\"/>` directive at xml line 3 BEFORE any \
          frame element is parsed, so both mixin tables (GenericSocketButtonMixin, \
          GenericItemSocketingFrameMixin) and the 4 free helpers (ItemSocketingFrame_OnLoad, \
@@ -210,16 +185,13 @@ fn blizzard_item_socketing_toc_lists_xml_and_localization_with_lua_loaded_via_sc
 }
 
 #[test]
-fn blizzard_item_socketing_directory_holds_four_entries() {
+fn blizzard_item_socketing_directory_holds_five_entries() {
     let entries = std::fs::read_dir(item_socketing_dir())
         .expect("Blizzard_ItemSocketingUI directory should read")
         .count();
     assert_eq!(
-        entries, 4,
-        "Directory must hold exactly 4 entries (1 TOC + 1 lua + 1 xml + 1 Localization.lua) — no \
-         flavor subdirectory. Localization.lua is a stub kept for the convention of running an \
-         end-of-load locale pass; the actual gem-color labels resolve through the global locale \
-         table (BLUE_GEM / RED_GEM / YELLOW_GEM / META_GEM literals)"
+        entries, 5,
+        "Directory holds the TOC, Bootstrap, Lua, XML, and Localization files"
     );
 }
 
@@ -246,9 +218,9 @@ fn blizzard_item_socketing_excluded_from_every_screen_auto_discovery() {
     }
 }
 
-#[test]
-fn blizzard_item_socketing_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui_with_item_socketing_lod();
+prefork_full_ui_case! {
+fn blizzard_item_socketing_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
+    load_item_socketing_ui(env);
 
     let load_errors: Vec<String> = env
         .state()
@@ -272,10 +244,11 @@ fn blizzard_item_socketing_loads_without_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_item_socketing_is_addon_loaded_via_explicit_load() {
-    let env = load_full_game_ui_with_item_socketing_lod();
+prefork_full_ui_case! {
+fn blizzard_item_socketing_is_addon_loaded_via_explicit_load(env: &WowLuaEnv) {
+    load_item_socketing_ui(env);
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_ItemSocketingUI')")
@@ -287,10 +260,11 @@ fn blizzard_item_socketing_is_addon_loaded_via_explicit_load() {
          though the auto-discovery sweep skipped it (LoadOnDemand)"
     );
 }
+}
 
-#[test]
-fn blizzard_item_socketing_socket_button_mixin_carries_eight_methods() {
-    let env = load_full_game_ui_with_item_socketing_lod();
+prefork_full_ui_case! {
+fn blizzard_item_socketing_socket_button_mixin_carries_eight_methods(env: &WowLuaEnv) {
+    load_item_socketing_ui(env);
 
     let kind: String = env
         .eval("return type(GenericSocketButtonMixin)")
@@ -320,10 +294,11 @@ fn blizzard_item_socketing_socket_button_mixin_carries_eight_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_item_socketing_frame_mixin_carries_nine_methods() {
-    let env = load_full_game_ui_with_item_socketing_lod();
+prefork_full_ui_case! {
+fn blizzard_item_socketing_frame_mixin_carries_nine_methods(env: &WowLuaEnv) {
+    load_item_socketing_ui(env);
 
     let kind: String = env
         .eval("return type(GenericItemSocketingFrameMixin)")
@@ -357,10 +332,11 @@ fn blizzard_item_socketing_frame_mixin_carries_nine_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_item_socketing_publishes_four_free_helper_functions() {
-    let env = load_full_game_ui_with_item_socketing_lod();
+prefork_full_ui_case! {
+fn blizzard_item_socketing_publishes_four_free_helper_functions(env: &WowLuaEnv) {
+    load_item_socketing_ui(env);
 
     for helper in FREE_HELPER_FUNCTIONS {
         let kind: String = env
@@ -381,10 +357,11 @@ fn blizzard_item_socketing_publishes_four_free_helper_functions() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_item_socketing_frame_publishes_with_button_frame_template_chain() {
-    let env = load_full_game_ui_with_item_socketing_lod();
+prefork_full_ui_case! {
+fn blizzard_item_socketing_frame_publishes_with_button_frame_template_chain(env: &WowLuaEnv) {
+    load_item_socketing_ui(env);
 
     let kind: String = env
         .eval("return type(ItemSocketingFrame)")
@@ -414,10 +391,11 @@ fn blizzard_item_socketing_frame_publishes_with_button_frame_template_chain() {
          right-clicked gem-bearing item"
     );
 }
+}
 
-#[test]
-fn blizzard_item_socketing_publishes_socketing_container_with_three_sockets() {
-    let env = load_full_game_ui_with_item_socketing_lod();
+prefork_full_ui_case! {
+fn blizzard_item_socketing_publishes_socketing_container_with_three_sockets(env: &WowLuaEnv) {
+    load_item_socketing_ui(env);
 
     let kind: String = env
         .eval("return type(ItemSocketingFrame.SocketingContainer)")
@@ -458,10 +436,11 @@ fn blizzard_item_socketing_publishes_socketing_container_with_three_sockets() {
          GenericItemSocketingFrameMixin:OnLoad assigns its onClickHandler at lua line 162"
     );
 }
+}
 
-#[test]
-fn blizzard_item_socketing_registers_ui_panel_window_entry() {
-    let env = load_full_game_ui_with_item_socketing_lod();
+prefork_full_ui_case! {
+fn blizzard_item_socketing_registers_ui_panel_window_entry(env: &WowLuaEnv) {
+    load_item_socketing_ui(env);
 
     let area: String = env
         .eval("return tostring(UIPanelWindows['ItemSocketingFrame'].area)")
@@ -484,10 +463,11 @@ fn blizzard_item_socketing_registers_ui_panel_window_entry() {
          while socketing closes the socketing frame outright (the socket session is cancelled)"
     );
 }
+}
 
-#[test]
-fn blizzard_item_socketing_publishes_description_min_width_global() {
-    let env = load_full_game_ui_with_item_socketing_lod();
+prefork_full_ui_case! {
+fn blizzard_item_socketing_publishes_description_min_width_global(env: &WowLuaEnv) {
+    load_item_socketing_ui(env);
 
     let value: f64 = env
         .eval("return ITEM_SOCKETING_DESCRIPTION_MIN_WIDTH")
@@ -502,10 +482,11 @@ fn blizzard_item_socketing_publishes_description_min_width_global() {
          narrow socket bonus line"
     );
 }
+}
 
-#[test]
-fn blizzard_item_socketing_virtual_templates_stay_nil_at_global_scope() {
-    let env = load_full_game_ui_with_item_socketing_lod();
+prefork_full_ui_case! {
+fn blizzard_item_socketing_virtual_templates_stay_nil_at_global_scope(env: &WowLuaEnv) {
+    load_item_socketing_ui(env);
 
     for template in VIRTUAL_TEMPLATE_NAMES {
         let kind: String = env
@@ -522,4 +503,5 @@ fn blizzard_item_socketing_virtual_templates_stay_nil_at_global_scope() {
              `inherits=\"...\"` resolution"
         );
     }
+}
 }

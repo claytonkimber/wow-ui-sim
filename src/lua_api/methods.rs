@@ -390,39 +390,8 @@ pub fn call_function(lua: &mut rilua::Lua, func: Val, args: &[Val]) -> LuaResult
 }
 
 pub fn call_function_state(state: &mut LuaState, func: Val, args: &[Val]) -> LuaResult<Val> {
-    let Val::Function(_) = func else {
-        return Err(runtime_error("expected function"));
-    };
-    let func_idx = state.top;
-    state.ensure_stack(func_idx + 1 + args.len());
-    state.stack_set(func_idx, func);
-    state.top = func_idx + 1;
-
-    for arg in args {
-        let top = state.top;
-        state.stack_set(top, *arg);
-        state.top = top + 1;
-    }
-
-    let save_base = state.base;
-    state.base = func_idx + 1;
-
-    let result = match state.precall(func_idx, LUA_MULTRET) {
-        Ok(CallResult::Lua) => execute(state),
-        Ok(CallResult::Rust) => Ok(()),
-        Err(err) => Err(err),
-    };
-
-    let first = if result.is_ok() && state.top > func_idx {
-        state.stack_get(func_idx)
-    } else {
-        Val::Nil
-    };
-
-    state.top = func_idx;
-    state.base = save_base;
-    result?;
-    Ok(first)
+    let results = call_function_state_multi(state, func, args)?;
+    Ok(results.into_iter().next().unwrap_or(Val::Nil))
 }
 
 pub fn call_function_state_multi(
@@ -444,7 +413,8 @@ pub fn call_function_state_multi(
         state.top = top + 1;
     }
 
-    let save_base = state.base;
+    let saved_base = state.base;
+    let saved_ci = state.ci;
     state.base = func_idx + 1;
 
     let result = match state.precall(func_idx, LUA_MULTRET) {
@@ -453,16 +423,21 @@ pub fn call_function_state_multi(
         Err(err) => Err(err),
     };
 
-    let mut results = Vec::new();
-    if result.is_ok() {
-        for idx in func_idx..state.top {
-            results.push(state.stack_get(idx));
+    if let Err(error) = result {
+        state.top = func_idx;
+        state.base = saved_base;
+        state.ci = saved_ci;
+        if state.ci < rilua::vm::state::MAXCALLS {
+            state.ci_overflow = false;
         }
+        return Err(error);
     }
 
+    let results = (func_idx..state.top)
+        .map(|index| state.stack_get(index))
+        .collect();
     state.top = func_idx;
-    state.base = save_base;
-    result?;
+    state.base = saved_base;
     Ok(results)
 }
 

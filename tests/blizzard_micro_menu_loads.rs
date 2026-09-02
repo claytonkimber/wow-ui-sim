@@ -231,9 +231,8 @@ fn blizzard_micro_menu_auto_loads_on_game_screen_absent_from_login() {
     );
 }
 
-#[test]
-fn blizzard_micro_menu_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_micro_menu_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
     let state = env.state().borrow();
     let errors: Vec<&String> = state
         .lua_errors
@@ -260,10 +259,10 @@ fn blizzard_micro_menu_loads_without_addon_specific_lua_errors() {
         errors
     );
 }
+}
 
-#[test]
-fn blizzard_micro_menu_is_addon_loaded_after_game_startup() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_micro_menu_is_addon_loaded_after_game_startup(env: &WowLuaEnv) {
     let loaded: bool = env
         .eval("return IsAddOnLoaded('Blizzard_MicroMenu')")
         .expect("IsAddOnLoaded eval");
@@ -272,10 +271,10 @@ fn blizzard_micro_menu_is_addon_loaded_after_game_startup() {
         "IsAddOnLoaded('Blizzard_MicroMenu') must return true after full Game-screen startup"
     );
 }
+}
 
-#[test]
-fn blizzard_micro_menu_util_publishes_table_and_three_factory_functions() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_micro_menu_util_publishes_table_and_three_factory_functions(env: &WowLuaEnv) {
     let result: String = env
         .eval(
             r#"
@@ -300,10 +299,10 @@ fn blizzard_micro_menu_util_publishes_table_and_three_factory_functions() {
         "MicroMenuUtil should publish as a table with three factory functions: {result}"
     );
 }
+}
 
-#[test]
-fn blizzard_micro_menu_displayed_communities_invitations_is_table() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_micro_menu_displayed_communities_invitations_is_table(env: &WowLuaEnv) {
     let result: String = env
         .eval(
             r#"
@@ -319,10 +318,10 @@ fn blizzard_micro_menu_displayed_communities_invitations_is_table() {
         "DISPLAYED_COMMUNITIES_INVITATIONS must publish as a table (initialized to empty at          module load time; GuildMicroButtonMixin.MarkCommunitiesInvitiationDisplayed writes to it          to track which community invitation popups have been shown in the current session): {result}"
     );
 }
+}
 
-#[test]
-fn blizzard_micro_menu_position_enum_has_four_cardinal_values() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_micro_menu_position_enum_has_four_cardinal_values(env: &WowLuaEnv) {
     let result: String = env
         .eval(
             r#"
@@ -344,10 +343,10 @@ fn blizzard_micro_menu_position_enum_has_four_cardinal_values() {
         "MicroMenuPositionEnum must publish with 4 ordinal values (BottomLeft=1, BottomRight=2,          TopLeft=3, TopRight=4); these are consumed by FramerateFrame:UpdatePosition,          MicroMenuMixin:AnchorToMenuContainer, and UpdateHelpTicketButtonAnchor to decide          which corner of the screen the micro-menu is currently docked to: {result}"
     );
 }
+}
 
-#[test]
-fn blizzard_micro_menu_all_thirteen_button_instances_are_tables() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_micro_menu_all_thirteen_button_instances_are_tables(env: &WowLuaEnv) {
     let errors: Vec<String> = BUTTON_INSTANCES
         .iter()
         .filter_map(|name| {
@@ -366,10 +365,10 @@ fn blizzard_micro_menu_all_thirteen_button_instances_are_tables() {
         errors
     );
 }
+}
 
-#[test]
-fn blizzard_micro_menu_help_micro_button_is_hidden_at_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_micro_menu_help_micro_button_is_hidden_at_load(env: &WowLuaEnv) {
     let hidden: bool = env
         .eval(
             r#"
@@ -382,10 +381,10 @@ fn blizzard_micro_menu_help_micro_button_is_hidden_at_load() {
         "HelpMicroButton is declared with `hidden=\"true\"` in MainMenuBarMicroButtons.xml —          it starts hidden at load time and is conditionally shown based on          HelpMicroButtonMixin:OnLoad (registers OPEN_MASTER_LOOT_LIST, GROUP_ROSTER_UPDATE,          PARTY_LEADER_CHANGED) + game-rule evaluation"
     );
 }
+}
 
-#[test]
-fn blizzard_micro_menu_virtual_templates_do_not_leak_as_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_micro_menu_virtual_templates_do_not_leak_as_globals(env: &WowLuaEnv) {
     let leaks: Vec<String> = VIRTUAL_TEMPLATES_THAT_MUST_NOT_LEAK
         .iter()
         .filter_map(|name| {
@@ -405,10 +404,10 @@ fn blizzard_micro_menu_virtual_templates_do_not_leak_as_globals() {
         leaks
     );
 }
+}
 
-#[test]
-fn blizzard_micro_menu_button_mixins_all_publish_as_tables() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_micro_menu_button_mixins_all_publish_as_tables(env: &WowLuaEnv) {
     let errors: Vec<String> = BUTTON_MIXINS
         .iter()
         .filter_map(|name| {
@@ -428,10 +427,10 @@ fn blizzard_micro_menu_button_mixins_all_publish_as_tables() {
         errors
     );
 }
+}
 
-#[test]
-fn blizzard_micro_menu_container_and_menu_frames_have_correct_parents() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_micro_menu_container_and_menu_frames_have_correct_parents(env: &WowLuaEnv) {
     let result: String = env
         .eval(
             r#"
@@ -466,10 +465,10 @@ fn blizzard_micro_menu_container_and_menu_frames_have_correct_parents() {
         "Frame hierarchy: MicroButtonAndBagsBar(UIParent, 232x80) → MicroMenuContainer(UIParent)          → MicroMenu(MicroMenuContainer). MicroButtonAndBagsBar is the positional anchor for          the container. MicroMenuContainer inherits EditModeMicroMenuSystemTemplate so EditMode          can drag the entire micro-menu group. MicroMenu inherits GridLayoutFrame and holds the          individual buttons: {result}"
     );
 }
+}
 
-#[test]
-fn blizzard_micro_menu_global_helpers_publish_as_functions() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_micro_menu_global_helpers_publish_as_functions(env: &WowLuaEnv) {
     let errors: Vec<String> = GLOBAL_HELPERS
         .iter()
         .filter_map(|name| {
@@ -489,10 +488,10 @@ fn blizzard_micro_menu_global_helpers_publish_as_functions() {
         errors
     );
 }
+}
 
-#[test]
-fn blizzard_micro_menu_container_mixin_methods_are_functions() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_micro_menu_container_mixin_methods_are_functions(env: &WowLuaEnv) {
     let errors: Vec<String> = CONTAINER_MIXIN_METHODS
         .iter()
         .filter_map(|method| {
@@ -512,10 +511,10 @@ fn blizzard_micro_menu_container_mixin_methods_are_functions() {
         errors
     );
 }
+}
 
-#[test]
-fn blizzard_micro_menu_mixin_methods_are_functions() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_micro_menu_mixin_methods_are_functions(env: &WowLuaEnv) {
     let errors: Vec<String> = MENU_MIXIN_METHODS
         .iter()
         .filter_map(|method| {
@@ -534,4 +533,5 @@ fn blizzard_micro_menu_mixin_methods_are_functions() {
         "MicroMenuMixin must publish 18 methods as functions: GenerateButtonInfos (overridden by          MicroMenuContainerOverrides.lua to return the 13 retail button infos),          InitializeButtons (iterates the infos and calls AddButton for each one not gated by a          disabled GameRule), ResetMicroMenuPosition / OverrideMicroMenuPosition (used by          EditMode and the Override Action Bar to reposition the menu). Failed: {:?}",
         errors
     );
+}
 }

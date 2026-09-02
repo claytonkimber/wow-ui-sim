@@ -59,7 +59,17 @@ function GetForbiddenObjectTable(object)
   end
   local forbidden = __wow_forbidden_object_tables[object]
   if forbidden == nil then
-    forbidden = { __wowPublicObject = object }
+    forbidden = setmetatable({ __wowPublicObject = object }, {
+      __index = function(_, key)
+        local method = object[key]
+        if type(method) ~= "function" then
+          return nil
+        end
+        return function(_, ...)
+          return method(object, ...)
+        end
+      end,
+    })
     __wow_forbidden_object_tables[object] = forbidden
   end
   return forbidden

@@ -119,9 +119,8 @@ fn blizzard_flight_map_is_absent_from_auto_discovery() {
     );
 }
 
-#[test]
-fn blizzard_flight_map_loads_via_load_addon_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_flight_map_loads_via_load_addon_without_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -152,10 +151,10 @@ fn blizzard_flight_map_loads_via_load_addon_without_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_flight_map_is_addon_loaded_returns_true_after_explicit_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_flight_map_is_addon_loaded_returns_true_after_explicit_load(env: &WowLuaEnv) {
 
     let pre_load: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_FlightMap') and true or false")
@@ -179,10 +178,10 @@ fn blizzard_flight_map_is_addon_loaded_returns_true_after_explicit_load() {
          in the loaded-set"
     );
 }
+}
 
-#[test]
-fn blizzard_flight_map_singleton_publishes_with_correct_parent() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_flight_map_singleton_publishes_with_correct_parent(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &flight_map_toc())
         .expect("Blizzard_FlightMap should load via Rust loader");
 
@@ -199,10 +198,10 @@ fn blizzard_flight_map_singleton_publishes_with_correct_parent() {
          resolves and the singleton parents under UIParent"
     );
 }
+}
 
-#[test]
-fn blizzard_flight_map_publishes_eight_data_provider_mixin_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_flight_map_publishes_eight_data_provider_mixin_globals(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &flight_map_toc())
         .expect("Blizzard_FlightMap should load via Rust loader");
 
@@ -238,10 +237,10 @@ fn blizzard_flight_map_publishes_eight_data_provider_mixin_globals() {
          icon pin)"
     );
 }
+}
 
-#[test]
-fn blizzard_flight_map_publishes_four_pin_mixin_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_flight_map_publishes_four_pin_mixin_globals(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &flight_map_toc())
         .expect("Blizzard_FlightMap should load via Rust loader");
 
@@ -265,10 +264,10 @@ fn blizzard_flight_map_publishes_four_pin_mixin_globals() {
          (FM_WorldQuestDataProvider.lua:2, extends WorldQuestPinMixin)"
     );
 }
+}
 
-#[test]
-fn blizzard_flight_map_mixin_inherits_map_canvas_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_flight_map_mixin_inherits_map_canvas_methods(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &flight_map_toc())
         .expect("Blizzard_FlightMap should load via Rust loader");
 
@@ -291,10 +290,10 @@ fn blizzard_flight_map_mixin_inherits_map_canvas_methods() {
          GroupMembers + WorldQuest)"
     );
 }
+}
 
-#[test]
-fn blizzard_flight_map_registers_with_ui_panel_windows() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_flight_map_registers_with_ui_panel_windows(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &flight_map_toc())
         .expect("Blizzard_FlightMap should load via Rust loader");
 
@@ -316,10 +315,10 @@ fn blizzard_flight_map_registers_with_ui_panel_windows() {
          the panel (e.g. during cinematics) so the server-side taxi state is released"
     );
 }
+}
 
-#[test]
-fn blizzard_flight_map_singleton_starts_hidden_after_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_flight_map_singleton_starts_hidden_after_load(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &flight_map_toc())
         .expect("Blizzard_FlightMap should load via Rust loader");
 
@@ -334,10 +333,10 @@ fn blizzard_flight_map_singleton_starts_hidden_after_load() {
          from the FrameXML core taxi handler"
     );
 }
+}
 
-#[test]
-fn blizzard_flight_map_border_frame_and_scroll_container_publish() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_flight_map_border_frame_and_scroll_container_publish(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &flight_map_toc())
         .expect("Blizzard_FlightMap should load via Rust loader");
 
@@ -358,4 +357,5 @@ fn blizzard_flight_map_border_frame_and_scroll_container_publish() {
          MapCanvasFrameScrollContainerTemplate — the pannable/zoomable canvas surface \
          that hosts the actual map textures and pins)"
     );
+}
 }

@@ -18,12 +18,6 @@ if rawget(C_StorePublic, "IsEnabled") == nil then
     end
 end
 
-if rawget(C_StorePublic, "IsDisabledByParentalControls") == nil then
-    function C_StorePublic.IsDisabledByParentalControls()
-        return false
-    end
-end
-
 if rawget(C_StorePublic, "DoesGroupHavePurchaseableProducts") == nil then
     function C_StorePublic.DoesGroupHavePurchaseableProducts(groupID)
         if type(C_StoreSecure) ~= "table" or type(C_StoreSecure.GetProducts) ~= "function" then
@@ -73,12 +67,11 @@ mod tests {
     fn installs_store_public_defaults() {
         let env = WowLuaEnv::new().expect("lua env should initialize");
 
-        let result: (bool, bool, bool, bool, String) = env
+        let result: (bool, bool, bool, String) = env
             .eval(
                 r#"
                 C_StorePublic.EventStoreUISetShown(true, "services")
                 return C_StorePublic.IsEnabled(),
-                       C_StorePublic.IsDisabledByParentalControls(),
                        C_StorePublic.DoesGroupHavePurchaseableProducts(501),
                        rawget(C_StorePublic, "_state").shown,
                        rawget(C_StorePublic, "_state").contextKey
@@ -86,6 +79,6 @@ mod tests {
             )
             .expect("C_StorePublic defaults should run");
 
-        assert_eq!(result, (true, false, true, true, "services".to_string()));
+        assert_eq!(result, (true, true, true, "services".to_string()));
     }
 }

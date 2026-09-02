@@ -11,7 +11,7 @@ const GLYPH_TEXT_SHAPING_BUDGET: Duration = Duration::from_millis(40);
 
 #[test]
 fn glyph_text_shaping_for_representative_strings_stays_under_budget() {
-    test_timeout! {
+    perf_test_timeout! {
         let shaping_elapsed = measure_glyph_text_shaping_for_representative_strings();
         eprintln!(
             "glyph text shaping baseline: {:.2?} (budget {:.2?})",

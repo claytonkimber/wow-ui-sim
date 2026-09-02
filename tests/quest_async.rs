@@ -1,7 +1,7 @@
 use crate::common;
 
 use std::path::PathBuf;
-use wow_ui_sim::loader::load_addon;
+use wow_ui_sim::loader::{find_toc_file, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
 
 fn blizzard_ui_dir() -> PathBuf {
@@ -14,10 +14,12 @@ fn env_with_object_api() -> WowLuaEnv {
     let env = common::env_with_shared_xml();
     let ui = blizzard_ui_dir();
 
-    let colors_toc = ui.join("Blizzard_Colors/Blizzard_Colors_Mainline.toc");
+    let colors_toc = find_toc_file(&ui.join("Blizzard_Colors"))
+        .expect("Blizzard_Colors TOC should exist");
     load_addon(&env.loader_env(), &colors_toc).expect("Failed to load Blizzard_Colors");
 
-    let object_api_toc = ui.join("Blizzard_ObjectAPI/Blizzard_ObjectAPI_Mainline.toc");
+    let object_api_toc = find_toc_file(&ui.join("Blizzard_ObjectAPI"))
+        .expect("Blizzard_ObjectAPI TOC should exist");
     load_addon(&env.loader_env(), &object_api_toc).expect("Failed to load Blizzard_ObjectAPI");
 
     env

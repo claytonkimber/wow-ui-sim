@@ -430,6 +430,26 @@ fn blizzard_player_spells_creates_named_non_virtual_frames() {
 }
 
 #[test]
+fn class_talent_load_system_inherits_dropdown_template_mixin_methods() {
+    let env = load_full_game_ui_with_player_spells();
+
+    let get_dropdown_types: (String, String) = env
+        .eval(
+            "local direct = CreateFrame('Frame', 'DropdownLoadSystemProbe', UIParent, \
+             'DropdownLoadSystemTemplate'); \
+             return type(direct.GetDropdown), \
+                    type(PlayerSpellsFrame.TalentsFrame.LoadSystem.GetDropdown)",
+        )
+        .expect("ClassTalents LoadSystem GetDropdown probe should succeed");
+    assert_eq!(
+        get_dropdown_types,
+        ("function".to_string(), "function".to_string()),
+        "DropdownLoadSystemTemplate must apply DropdownLoadSystemMixin both to direct \
+         CreateFrame instances and nested XML children such as ClassTalentsFrame.LoadSystem"
+    );
+}
+
+#[test]
 fn blizzard_player_spells_panel_root_is_hidden_after_load() {
     let env = load_full_game_ui_with_player_spells();
 

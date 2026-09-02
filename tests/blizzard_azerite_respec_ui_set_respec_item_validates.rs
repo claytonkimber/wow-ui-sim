@@ -32,14 +32,14 @@ fn blizzard_azerite_respec_ui_set_respec_item_validates_item_and_selected_powers
                         end
 
                         local mixinEnv = debug.getfenv(AzeriteRespecMixin.SetRespecItem)
-                        _G.__azerite_respec_error_messages = {{}}
+                        local errorMessages = {{}}
                         _G.__azerite_respec_locked_location = nil
 
-                        mixinEnv.UIErrorsFrame = {{
-                            AddExternalErrorMessage = function(_, message)
-                                table.insert(_G.__azerite_respec_error_messages, message)
-                            end,
-                        }}
+                        local originalAddMessage = UIErrorsFrame.AddMessage
+                        UIErrorsFrame.AddMessage = function(self, message, ...)
+                            table.insert(errorMessages, message)
+                            return originalAddMessage(self, message, ...)
+                        end
                         mixinEnv.HelpTip = {{ Hide = function() end }}
                         mixinEnv.AzeriteEmpoweredItemDataSource = {{
                             CreateFromItemLocation = function(_, location)
@@ -75,13 +75,13 @@ fn blizzard_azerite_respec_ui_set_respec_item_validates_item_and_selected_powers
                         AzeriteRespecFrame.respecCost = 50000
 
                         AzeriteRespecFrame:SetRespecItem(invalidLoc)
-                        expect(_G.__azerite_respec_error_messages[1] == ITEM_IS_NOT_AZERITE_EMPOWERED,
+                        expect(errorMessages[1] == ITEM_IS_NOT_AZERITE_EMPOWERED,
                             "non-azerite item should report ITEM_IS_NOT_AZERITE_EMPOWERED")
                         expect(AzeriteRespecFrame.respecItemLocation == nil,
                             "invalid item should not set respecItemLocation")
 
                         AzeriteRespecFrame:SetRespecItem(noChoicesLoc)
-                        expect(_G.__azerite_respec_error_messages[2] == AZERITE_EMPOWERED_REFORGE_NO_CHOICES_TO_UNDO,
+                        expect(errorMessages[2] == AZERITE_EMPOWERED_REFORGE_NO_CHOICES_TO_UNDO,
                             "azerite item with no selected powers should report no-choices error")
                         expect(AzeriteRespecFrame.respecItemLocation == nil,
                             "no-choices item should not set respecItemLocation")
@@ -94,6 +94,7 @@ fn blizzard_azerite_respec_ui_set_respec_item_validates_item_and_selected_powers
                         expect(AzeriteRespecFrame.ItemSlot.Icon:IsShown(),
                             "valid item should refresh and show the item icon")
 
+                        UIErrorsFrame.AddMessage = originalAddMessage
                         return table.concat(failures, "\n")
                         "#
                     ))

@@ -217,9 +217,8 @@ fn blizzard_quest_navigation_appears_in_full_addon_inventory() {
     );
 }
 
-#[test]
-fn blizzard_quest_navigation_loads_cleanly_during_eager_game_sweep() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_quest_navigation_loads_cleanly_during_eager_game_sweep(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -240,10 +239,10 @@ fn blizzard_quest_navigation_loads_cleanly_during_eager_game_sweep() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_quest_navigation_publishes_super_tracked_frame_mixin() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_quest_navigation_publishes_super_tracked_frame_mixin(env: &WowLuaEnv) {
 
     let mixin_kind: String = env
         .eval("return type(_G.SuperTrackedFrameMixin)")
@@ -286,10 +285,10 @@ fn blizzard_quest_navigation_publishes_super_tracked_frame_mixin() {
          on NAVIGATION_FRAME_CREATED/DESTROYED)"
     );
 }
+}
 
-#[test]
-fn blizzard_quest_navigation_publishes_super_tracked_frame_global() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_quest_navigation_publishes_super_tracked_frame_global(env: &WowLuaEnv) {
 
     let frame_kind: String = env
         .eval("return type(_G.SuperTrackedFrame)")
@@ -320,10 +319,10 @@ fn blizzard_quest_navigation_publishes_super_tracked_frame_global() {
     assert_eq!(width, 100.0);
     assert_eq!(height, 100.0);
 }
+}
 
-#[test]
-fn blizzard_quest_navigation_super_tracked_frame_has_named_textures() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_quest_navigation_super_tracked_frame_has_named_textures(env: &WowLuaEnv) {
 
     let textures_present: bool = env
         .eval(
@@ -345,10 +344,10 @@ fn blizzard_quest_navigation_super_tracked_frame_has_named_textures() {
          `SyncChildrenKeys` after XML parsing"
     );
 }
+}
 
-#[test]
-fn blizzard_quest_navigation_registers_navigation_events_in_onload() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_quest_navigation_registers_navigation_events_in_onload(env: &WowLuaEnv) {
 
     let registered: bool = env
         .eval(
@@ -368,10 +367,10 @@ fn blizzard_quest_navigation_registers_navigation_events_in_onload() {
          super-tracking via the quest log or map)"
     );
 }
+}
 
-#[test]
-fn blizzard_quest_navigation_consumes_c_super_track_namespace() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_quest_navigation_consumes_c_super_track_namespace(env: &WowLuaEnv) {
 
     let api_present: bool = env
         .eval(
@@ -399,10 +398,10 @@ fn blizzard_quest_navigation_consumes_c_super_track_namespace() {
          OnUpdate-init pipeline"
     );
 }
+}
 
-#[test]
-fn blizzard_quest_navigation_consumes_super_tracking_type_enum() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_quest_navigation_consumes_super_tracking_type_enum(env: &WowLuaEnv) {
 
     let enum_present: bool = env
         .eval(
@@ -427,4 +426,5 @@ fn blizzard_quest_navigation_consumes_super_tracking_type_enum() {
          party-member portrait icon, and falls back to Quest when \
          GetHighestPrioritySuperTrackingType returns nil"
     );
+}
 }

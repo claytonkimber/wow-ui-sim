@@ -1,5 +1,51 @@
 use wow_ui_sim::lua_api::WowLuaEnv;
 
+const HOUSING_CART_SIZE_LIMIT_SCRIPT: &str = r#"
+    local getCartSizeLimit = C_HousingCatalog.GetCartSizeLimit
+    if type(getCartSizeLimit) ~= "function" then
+        return "not_callable"
+    end
+
+    local returnCount, cartSizeLimit = select('#', getCartSizeLimit()), getCartSizeLimit()
+    if returnCount ~= 1 or type(cartSizeLimit) ~= "number" then
+        return "wrong_return_shape"
+    end
+
+    if cartSizeLimit ~= 20 then
+        return "wrong_value:" .. tostring(cartSizeLimit)
+    end
+
+    return "ok"
+"#;
+
+const HOUSING_PREVIEW_CART_SCRIPT: &str = r#"
+    local previewGUID = "Preview-Decor-1001"
+
+    if C_HousingCatalog.IsPreviewCartItemShown(previewGUID) ~= false then
+        return "unknown_preview_should_be_hidden"
+    end
+
+    C_HousingCatalog.SetPreviewCartItemShown(previewGUID, true)
+    if C_HousingCatalog.IsPreviewCartItemShown(previewGUID) ~= true then
+        return "preview_true_not_reflected"
+    end
+
+    C_HousingCatalog.SetPreviewCartItemShown(previewGUID, false)
+    if C_HousingCatalog.IsPreviewCartItemShown(previewGUID) ~= false then
+        return "preview_false_not_reflected"
+    end
+
+    if C_HousingCatalog.PromotePreviewDecor(1001, previewGUID) ~= true then
+        return "preview_promotion_failed"
+    end
+
+    if C_HousingCatalog.IsPreviewCartItemShown(previewGUID) ~= true then
+        return "preview_promotion_not_reflected"
+    end
+
+    return "ok"
+"#;
+
 const HOUSING_CATALOG_SCRIPT: &str = r#"
     local featured = C_HousingCatalog.GetFeaturedSmallProducts()
     if #featured ~= 2 then
@@ -62,9 +108,22 @@ const HOUSING_CATALOG_SCRIPT: &str = r#"
         return "clear_cart_not_reflected"
     end
 
+    local entryInfo = C_HousingCatalog.GetCatalogEntryInfo(1001)
+    if type(entryInfo.itemID) ~= "number" or entryInfo.itemID ~= 1001 then
+        return "wrong_catalog_entry_item_id"
+    end
+
+    if type(entryInfo.isUniqueTrophy) ~= "boolean" or entryInfo.isUniqueTrophy ~= false then
+        return "wrong_catalog_entry_unique_trophy"
+    end
+
     local bundle = C_HousingCatalog.GetBundleInfo(5001)
     if not bundle or bundle.wasViewed ~= false or #bundle.entryIDs ~= 2 then
         return "wrong_initial_bundle_info"
+    end
+
+    if type(bundle.canPreview) ~= "boolean" or bundle.canPreview ~= true then
+        return "wrong_bundle_can_preview"
     end
 
     if C_HousingCatalog.HousingMarketActionViewBundle(5001) ~= true then
@@ -81,6 +140,24 @@ const HOUSING_CATALOG_SCRIPT: &str = r#"
 
 fn env() -> WowLuaEnv {
     WowLuaEnv::new().expect("Failed to create Lua environment")
+}
+
+#[test]
+fn housing_catalog_cart_size_limit_returns_seeded_limit() {
+    let env = env();
+    let result: String = env
+        .eval(HOUSING_CART_SIZE_LIMIT_SCRIPT)
+        .expect("seeded C_HousingCatalog cart size limit should be queryable");
+    assert_eq!(result, "ok");
+}
+
+#[test]
+fn housing_preview_cart_state_round_trips_and_promotes() {
+    let env = env();
+    let result: String = env
+        .eval(HOUSING_PREVIEW_CART_SCRIPT)
+        .expect("seeded C_HousingCatalog preview cart state should be queryable");
+    assert_eq!(result, "ok");
 }
 
 #[test]

@@ -1,15 +1,18 @@
 # Mask Texture
 
-WoW uses MaskTextures to clip child textures to shapes (rounded squares, circles, etc.) using the mask's alpha channel.
+WoW uses MaskTextures to clip child textures to shapes (rounded squares, circles, etc.) using mask coverage. Depending on the asset, coverage comes from the mask alpha channel or RGB intensity.
 
 ## How It Works
 
 1. `MaskTexture` is created with `CreateMaskTexture()` or XML `<MaskTexture>`
 2. `<MaskedTextures>` block calls `icon:AddMaskTexture(mask)` on each referenced child
 3. During rendering, the masked texture's quads carry `mask_tex_index` and `mask_tex_coords` vertex attributes
-4. Fragment shader multiplies output color by `mask_color.a` — where mask alpha=0, the pixel is fully transparent
+4. Primitive preparation resolves the mask path from the RGBA atlas first, then the BC1/BC3 atlas, and remaps UVs into the resolved slot
+5. The fragment shader applies the selected mask coverage mode — where effective coverage is zero, the pixel is fully transparent
 
-## UV Computation
+## Atlas Resolution and UV Computation
+
+Mask paths are deferred texture requests. A resolved RGBA mask uses one of the five RGBA atlas tiers; a compressed mask uses the BC1 or BC3 atlas binding. If neither atlas contains the path, the pending mask index is cleared and no mask is applied. This resolution step is required for CircleMask-style BC assets, which previously rendered unmasked because their pending requests were treated as unresolved.
 
 The mask UV maps the icon's screen position into the mask's screen area. Critical: the mask should be **larger** than the icon it clips, so the icon samples only the opaque center of the mask texture.
 
@@ -41,7 +44,8 @@ For 30×30 small buttons, `SmallActionButtonMixin_OnLoad` explicitly sets IconMa
 ## Key Files
 
 - `src/iced_app/masking.rs` — mask UV computation
-- `src/render/shader/quad.wgsl:148-151` — fragment shader mask sampling
+- `src/render/shader/primitive.rs` — deferred RGBA/BC mask resolution and UV remapping
+- `src/render/shader/quad.wgsl` — fragment shader mask sampling
 - `src/loader/xml_texture.rs` — XML MaskTexture creation
 
 ## Sources

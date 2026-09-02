@@ -18,14 +18,22 @@ fn load_batch_textures(
     batch: &QuadBatch,
     tex_mgr: &mut TextureManager,
 ) -> (Vec<GpuTextureData>, Vec<GpuBcTextureData>) {
+    load_batches_textures(&[batch], tex_mgr)
+}
+
+fn load_batches_textures(
+    batches: &[&QuadBatch],
+    tex_mgr: &mut TextureManager,
+) -> (Vec<GpuTextureData>, Vec<GpuBcTextureData>) {
     let mut textures = Vec::new();
     let mut bc_textures = Vec::new();
     let mut seen = std::collections::HashSet::new();
-    for request in batch
-        .texture_requests
-        .iter()
-        .chain(&batch.mask_texture_requests)
-    {
+    for request in batches.iter().flat_map(|batch| {
+        batch
+            .texture_requests
+            .iter()
+            .chain(&batch.mask_texture_requests)
+    }) {
         if seen.contains(&request.path) {
             continue;
         }
@@ -347,22 +355,99 @@ pub fn render_to_image(
     glyph_atlas_data: Option<(&[u8], u32)>,
 ) -> RgbaImage {
     let mut primitive = build_headless_primitive(batch, tex_mgr, glyph_atlas_data);
-    let (device, queue) = create_headless_device();
-    render_headless_primitive_to_image(&mut primitive, &device, &queue, width, height)
+    let mut context = HeadlessRenderContext::new(width, height);
+    context.render(&mut primitive)
 }
 
-fn render_headless_primitive_to_image(
-    primitive: &mut WowUiPrimitive,
-    device: &wgpu::Device,
-    queue: &wgpu::Queue,
+/// Render multiple batches with one stable GPU texture atlas.
+pub fn render_batches_to_images(
+    batches: &[&QuadBatch],
+    tex_mgr: &mut TextureManager,
     width: u32,
     height: u32,
-) -> RgbaImage {
-    let (mut pipeline, render_texture, render_view) =
-        create_headless_pipeline_and_target(device, queue, width, height);
-    prepare_headless_primitive(primitive, &mut pipeline, device, queue, width, height);
-    let encoder = clear_headless_render_target(device, &mut pipeline, &render_view, width, height);
-    read_back_pixels(device, queue, encoder, &render_texture, width, height)
+    glyph_atlas_data: Option<(&[u8], u32)>,
+) -> Vec<RgbaImage> {
+    let mut context = HeadlessRenderContext::new(width, height);
+    let mut preload = build_headless_texture_preload(batches, tex_mgr, glyph_atlas_data);
+    context.prepare(&mut preload);
+
+    batches
+        .iter()
+        .map(|batch| {
+            let mut primitive = WowUiPrimitive::new_merged(std::sync::Arc::new((*batch).clone()));
+            context.render(&mut primitive)
+        })
+        .collect()
+}
+
+fn build_headless_texture_preload(
+    batches: &[&QuadBatch],
+    tex_mgr: &mut TextureManager,
+    glyph_atlas_data: Option<(&[u8], u32)>,
+) -> WowUiPrimitive {
+    let (textures, bc_textures) = load_batches_textures(batches, tex_mgr);
+    let mut primitive = WowUiPrimitive::empty();
+    primitive.textures = textures;
+    primitive.bc_textures = bc_textures;
+    install_glyph_atlas_data(&mut primitive, glyph_atlas_data);
+    primitive
+}
+
+struct HeadlessRenderContext {
+    device: wgpu::Device,
+    queue: wgpu::Queue,
+    pipeline: super::shader::WowUiPipeline,
+    render_texture: wgpu::Texture,
+    render_view: wgpu::TextureView,
+    width: u32,
+    height: u32,
+}
+
+impl HeadlessRenderContext {
+    fn new(width: u32, height: u32) -> Self {
+        let (device, queue) = create_headless_device();
+        let (pipeline, render_texture, render_view) =
+            create_headless_pipeline_and_target(&device, &queue, width, height);
+        Self {
+            device,
+            queue,
+            pipeline,
+            render_texture,
+            render_view,
+            width,
+            height,
+        }
+    }
+
+    fn prepare(&mut self, primitive: &mut WowUiPrimitive) {
+        prepare_headless_primitive(
+            primitive,
+            &mut self.pipeline,
+            &self.device,
+            &self.queue,
+            self.width,
+            self.height,
+        );
+    }
+
+    fn render(&mut self, primitive: &mut WowUiPrimitive) -> RgbaImage {
+        self.prepare(primitive);
+        let encoder = clear_headless_render_target(
+            &self.device,
+            &mut self.pipeline,
+            &self.render_view,
+            self.width,
+            self.height,
+        );
+        read_back_pixels(
+            &self.device,
+            &self.queue,
+            encoder,
+            &self.render_texture,
+            self.width,
+            self.height,
+        )
+    }
 }
 
 #[cfg(test)]

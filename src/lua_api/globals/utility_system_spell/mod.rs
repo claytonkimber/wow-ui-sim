@@ -15,8 +15,7 @@ mod table_util;
 
 use crate::lua_api::methods::call_function_state_multi;
 use crate::lua_api::script_helpers::{
-    call_error_handler_state, protected_call_state, protected_lua_pcall_state, registry_value,
-    set_registry_value,
+    call_error_handler_state, protected_call_state, registry_value, set_registry_value,
 };
 use crate::lua_bridge::stack_val;
 use rilua::LuaApiMut;
@@ -24,6 +23,27 @@ use rilua::vm::state::LuaState;
 use rilua::{LuaResult, Val, runtime_error};
 
 const BYTE_LOOKUP_SIZE: usize = 256;
+const XPCALL_WRAPPER_FACTORY_LUA: &str = r##"
+    local native_xpcall = ...
+    local unpack_args = unpack
+    local select_args = select
+    return function(func, handler, ...)
+        local argc = select_args("#", ...)
+        local args = { ... }
+        return native_xpcall(function()
+            return func(unpack_args(args, 1, argc))
+        end, function(error)
+            local ok, handled = native_xpcall(
+                function() return handler(error) end,
+                function() return nil end
+            )
+            if ok then
+                return handled
+            end
+            return error
+        end)
+    end
+"##;
 
 // ── Utility API ─────────────────────────────────────────────────────────────
 
@@ -324,6 +344,26 @@ pub fn type_fn(state: &mut LuaState) -> LuaResult<u32> {
     Ok(1)
 }
 
+/// GetBuildOption(name) — return the value of a named client build option.
+pub fn get_build_option(state: &mut LuaState) -> LuaResult<u32> {
+    let is_restricted_aura_api = matches!(
+        stack_val(state, 1),
+        Val::Str(name)
+            if state
+                .gc
+                .string_arena
+                .get(name)
+                .is_some_and(|name| name.data() == b"RestrictedAuraAPI")
+    ) && cfg!(feature = "retail-12-1-0");
+
+    state.push(if is_restricted_aura_api {
+        Val::Bool(true)
+    } else {
+        Val::Nil
+    });
+    Ok(1)
+}
+
 /// IsPublicTestClient() — always false in the simulator.
 pub fn is_public_test_client(state: &mut LuaState) -> LuaResult<u32> {
     state.push(Val::Bool(false));
@@ -393,35 +433,22 @@ pub fn pcall(state: &mut LuaState) -> LuaResult<u32> {
     }
 }
 
-/// xpcall(f, handler, ...) — protected call with error handler.
-pub fn xpcall(state: &mut LuaState) -> LuaResult<u32> {
-    let func = stack_val(state, 1);
-    let handler = stack_val(state, 2);
-    let args: Vec<Val> = ((state.base + 2)..state.top)
-        .map(|index| state.stack_get(index))
-        .collect();
-    match protected_call_state(state, func, &args) {
-        Ok(results) => {
-            state.push(Val::Bool(true));
-            for result in &results {
-                state.push(*result);
-            }
-            Ok(1 + results.len() as u32)
-        }
-        Err(error) => {
-            let handled = if matches!(handler, Val::Function(_)) {
-                protected_call_state(state, handler, &[error])
-                    .ok()
-                    .and_then(|results| results.into_iter().next())
-                    .unwrap_or(error)
-            } else {
-                error
-            };
-            state.push(Val::Bool(false));
-            state.push(handled);
-            Ok(2)
-        }
+fn install_xpcall(lua: &mut rilua::Lua) -> LuaResult<()> {
+    let native_xpcall = LuaApiMut::get_global_val(lua, "xpcall");
+    if !matches!(native_xpcall, Val::Function(_)) {
+        return Err(runtime_error("native xpcall missing"));
     }
+
+    let factory = lua.state_mut().load(XPCALL_WRAPPER_FACTORY_LUA)?;
+    let wrapper = call_function_state_multi(
+        lua.state_mut(),
+        Val::Function(factory.gc_ref()),
+        &[native_xpcall],
+    )?
+    .into_iter()
+    .next()
+    .ok_or_else(|| runtime_error("xpcall wrapper factory returned no function"))?;
+    LuaApiMut::set_global_val(lua, "xpcall", wrapper)
 }
 
 /// securecall(name_or_func, ...) — call a function by name in a secure context.
@@ -463,14 +490,7 @@ fn call_function_with_secure_taint(
     args: &[Val],
 ) -> Result<Vec<Val>, rilua::LuaError> {
     let saved_taints = clear_securecall_taint(state);
-    const DIRECT_CALL_FALLBACK_ERROR: &str = "expected Lua closure in execute";
-    let results = match call_function_state_multi(state, func, args) {
-        Ok(results) => Ok(results),
-        Err(error) if error.to_string().contains(DIRECT_CALL_FALLBACK_ERROR) => {
-            protected_lua_pcall_state(state, func, args).map_err(runtime_error)
-        }
-        Err(error) => Err(error),
-    };
+    let results = call_function_state_multi(state, func, args);
     restore_securecall_taint(state, saved_taints);
     results
 }
@@ -618,6 +638,7 @@ pub fn register_all(lua: &mut rilua::Lua) -> rilua::LuaResult<()> {
     register_utility_globals(lua)?;
     register_system_globals(lua)?;
     spell_api::register_spell_globals(lua)?;
+    crate::lua_api::globals::real::timerunning::register_all(lua)?;
 
     let state = lua.state_mut();
     register_system_tables(state)?;
@@ -661,6 +682,7 @@ fn register_utility_globals(lua: &mut rilua::Lua) -> LuaResult<()> {
 
 fn register_system_globals(lua: &mut rilua::Lua) -> LuaResult<()> {
     LuaApiMut::register_function(lua, "type", type_fn)?;
+    LuaApiMut::register_function(lua, "GetBuildOption", get_build_option)?;
     LuaApiMut::register_function(lua, "IsPublicTestClient", is_public_test_client)?;
     LuaApiMut::register_function(lua, "IsBetaBuild", is_beta_build)?;
     LuaApiMut::register_function(lua, "IsPublicBuild", is_public_build)?;
@@ -674,7 +696,7 @@ fn register_system_globals(lua: &mut rilua::Lua) -> LuaResult<()> {
     LuaApiMut::register_function(lua, "IsGMClient", is_gm_client)?;
     LuaApiMut::register_function(lua, "RegisterStaticConstants", register_static_constants)?;
     LuaApiMut::register_function(lua, "pcall", pcall)?;
-    LuaApiMut::register_function(lua, "xpcall", xpcall)?;
+    install_xpcall(lua)?;
     LuaApiMut::register_function(lua, "securecall", securecall)?;
     LuaApiMut::register_function(lua, "seterrorhandler", seterrorhandler)?;
     LuaApiMut::register_function(lua, "geterrorhandler", geterrorhandler)?;
@@ -684,7 +706,49 @@ fn register_system_globals(lua: &mut rilua::Lua) -> LuaResult<()> {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::lua_api::WowLuaEnv;
+    use rilua::{LuaApi, LuaApiMut};
+
+    #[test]
+    fn secure_taint_call_does_not_retry_matching_lua_error_text() {
+        let mut lua = rilua::Lua::new().expect("lua should initialize");
+        lua.exec("__secure_error_calls = 0")
+            .expect("counter should initialize");
+        let loader = lua
+            .state_mut()
+            .load(
+                r#"
+                    return function()
+                        __secure_error_calls = __secure_error_calls + 1
+                        error("expected Lua closure in execute: genuine secure failure")
+                    end
+                "#,
+            )
+            .expect("failing function source should compile");
+        let failing =
+            call_function_state_multi(lua.state_mut(), Val::Function(loader.gc_ref()), &[])
+                .expect("failing function should load")[0];
+        lua.state_mut().call_stack[0].taint = Some("SecureProbe".to_string());
+
+        let error = call_function_with_secure_taint(lua.state_mut(), failing, &[])
+            .expect_err("genuine Lua failure should be returned");
+        assert!(error.to_string().contains("genuine secure failure"));
+        assert_eq!(
+            lua.state().call_stack[0].taint.as_deref(),
+            Some("SecureProbe"),
+            "securecall must restore caller taint"
+        );
+
+        let counter_loader = lua
+            .state_mut()
+            .load("return __secure_error_calls")
+            .expect("counter source should compile");
+        let calls =
+            call_function_state_multi(lua.state_mut(), Val::Function(counter_loader.gc_ref()), &[])
+                .expect("subsequent direct call should succeed");
+        assert_eq!(calls, vec![Val::Num(1.0)], "failing function must run once");
+    }
 
     #[test]
     fn type_global_returns_wow_type_names() {

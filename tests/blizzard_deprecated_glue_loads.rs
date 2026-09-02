@@ -99,9 +99,8 @@ fn blizzard_deprecated_glue_appears_in_game_discovery_only() {
     );
 }
 
-#[test]
-fn blizzard_deprecated_glue_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_glue_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -117,10 +116,10 @@ fn blizzard_deprecated_glue_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_glue_publishes_is_on_glue_screen_as_boolean_not_function() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_glue_publishes_is_on_glue_screen_as_boolean_not_function(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(IsOnGlueScreen)")
@@ -145,10 +144,10 @@ fn blizzard_deprecated_glue_publishes_is_on_glue_screen_as_boolean_not_function(
          Therefore the materialized `IsOnGlueScreen` boolean must be false in this load context"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_glue_load_deprecation_fallbacks_cvar_is_default_on() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_glue_load_deprecation_fallbacks_cvar_is_default_on(env: &WowLuaEnv) {
 
     let cvar_on: bool = env
         .eval("return GetCVarBool('loadDeprecationFallbacks')")
@@ -161,6 +160,7 @@ fn blizzard_deprecated_glue_load_deprecation_fallbacks_cvar_is_default_on() {
          `if IsOnGlueScreen then` gets `nil` instead of `false`, which is still falsy — but \
          any code doing explicit `IsOnGlueScreen == false` comparisons would break"
     );
+}
 }
 
 #[test]

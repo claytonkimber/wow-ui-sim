@@ -139,7 +139,8 @@ const ACHIEVEMENT_LAYOUT_ASSERTIONS_LUA: &str = r#"
         return "achievement_categories_scrollbox_hidden"
     end
 
-    local summary_rect, summary_err = expect_rect(AchievementFrameSummary, "achievement_summary", 314, 172, 530, 461)
+    -- XML declares Summary at 461px, but its BOTTOM anchor to Categories resolves the runtime height to 425px.
+    local summary_rect, summary_err = expect_rect(AchievementFrameSummary, "achievement_summary", 314, 172, 530, 425)
     if not summary_rect then return summary_err end
     if not AchievementFrameSummary:IsShown() then
         return "achievement_summary_hidden"
@@ -158,7 +159,7 @@ const ACHIEVEMENT_LAYOUT_ASSERTIONS_LUA: &str = r#"
         AchievementFrameSummaryCategoriesStatusBar,
         "achievement_summary_categories_status_bar",
         335,
-        372,
+        380,
         488,
         21
     )

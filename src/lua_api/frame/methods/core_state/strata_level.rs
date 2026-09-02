@@ -156,10 +156,7 @@ pub fn set_toplevel(state: &mut LuaState) -> LuaResult<u32> {
         emit_addon_action_blocked(state, id, "SetToplevel");
         return Ok(0);
     }
-    let mut sim = borrow_state_mut(state)?;
-    if let Some(f) = sim.widgets.get_mut(id) {
-        f.toplevel = toplevel;
-    }
+    borrow_state_mut(state)?.set_frame_toplevel(id, toplevel);
     Ok(0)
 }
 

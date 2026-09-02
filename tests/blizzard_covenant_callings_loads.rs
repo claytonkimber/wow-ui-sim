@@ -77,9 +77,8 @@ fn blizzard_covenant_callings_is_absent_from_game_auto_discovery() {
     );
 }
 
-#[test]
-fn blizzard_covenant_callings_loads_via_load_addon_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_covenant_callings_loads_via_load_addon_without_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -98,10 +97,10 @@ fn blizzard_covenant_callings_loads_via_load_addon_without_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_covenant_callings_quest_mixin_methods_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_covenant_callings_quest_mixin_methods_are_defined(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &covenant_callings_toc())
         .expect("Blizzard_CovenantCallings should load via Rust loader");
 
@@ -132,10 +131,10 @@ fn blizzard_covenant_callings_quest_mixin_methods_are_defined() {
          `CovenantCallingQuestTemplate` script delegation"
     );
 }
+}
 
-#[test]
-fn blizzard_covenant_callings_mixin_methods_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_covenant_callings_mixin_methods_are_defined(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &covenant_callings_toc())
         .expect("Blizzard_CovenantCallings should load via Rust loader");
 
@@ -170,10 +169,10 @@ fn blizzard_covenant_callings_mixin_methods_are_defined() {
          GetDaysUntilNext / CheckDisplayHelpTip for the LE_FRAME_TUTORIAL_9_0 hint)"
     );
 }
+}
 
-#[test]
-fn blizzard_covenant_callings_namespace_create_helper_is_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_covenant_callings_namespace_create_helper_is_defined(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &covenant_callings_toc())
         .expect("Blizzard_CovenantCallings should load via Rust loader");
 
@@ -191,10 +190,10 @@ fn blizzard_covenant_callings_namespace_create_helper_is_defined() {
          is what the Garrison Landing Page calls to spawn the embedded callings widget"
     );
 }
+}
 
-#[test]
-fn blizzard_covenant_callings_xml_templates_are_registered() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_covenant_callings_xml_templates_are_registered(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &covenant_callings_toc())
         .expect("Blizzard_CovenantCallings should load via Rust loader");
 
@@ -206,10 +205,10 @@ fn blizzard_covenant_callings_xml_templates_are_registered() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_covenant_callings_create_helper_returns_a_frame_using_the_template() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_covenant_callings_create_helper_returns_a_frame_using_the_template(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &covenant_callings_toc())
         .expect("Blizzard_CovenantCallings should load via Rust loader");
 
@@ -231,10 +230,10 @@ fn blizzard_covenant_callings_create_helper_returns_a_frame_using_the_template()
          `self.layout` (AnchorUtil.CreateGridLayout with Constants.Callings.MaxCallings=3)"
     );
 }
+}
 
-#[test]
-fn blizzard_covenant_callings_calling_states_enum_matches_expected_values() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_covenant_callings_calling_states_enum_matches_expected_values(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &covenant_callings_toc())
         .expect("Blizzard_CovenantCallings should load via Rust loader");
 
@@ -257,4 +256,5 @@ fn blizzard_covenant_callings_calling_states_enum_matches_expected_values() {
          ProcessCallings iteration bound) — both must be populated by the simulator's \
          missing_enums.lua / constants_values.lua before this addon can drive its widgets"
     );
+}
 }

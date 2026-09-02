@@ -4,7 +4,7 @@
 use crate::common;
 
 use common::env_with_shared_xml;
-use wow_ui_sim::iced_app::{RegistryQuadBatchParams, build_quad_batch_for_registry};
+use wow_ui_sim::iced_app::{build_quad_batch_for_registry, RegistryQuadBatchParams};
 
 // ============================================================================
 // MinimalCheckboxTemplate
@@ -286,14 +286,15 @@ fn minimal_checkbox_quad_batch() {
 fn minimal_checkbox_click_toggles_checked() {
     let env = env_with_shared_xml();
 
-    // Create checkbox with an OnClick handler that toggles checked state
-    // (WoW CheckButtons have no built-in toggle - addons must wire OnClick)
+    // WoW toggles CheckButtons before dispatching OnClick, so the handler observes
+    // the new checked state.
     env.exec(
         r#"
+        TestMinCbClickObserved = {}
         local cb = CreateFrame("CheckButton", "TestMinCbClick", UIParent, "MinimalCheckboxTemplate")
         cb:SetPoint("CENTER")
-        cb:SetScript("OnClick", function(self, button, down)
-            self:SetChecked(not self:GetChecked())
+        cb:SetScript("OnClick", function(self)
+            table.insert(TestMinCbClickObserved, self:GetChecked())
         end)
     "#,
     )
@@ -303,18 +304,24 @@ fn minimal_checkbox_click_toggles_checked() {
     let checked: bool = env.eval("return TestMinCbClick:GetChecked()").unwrap();
     assert!(!checked, "Should start unchecked");
 
-    // Click() fires OnClick -> toggles to checked
+    // Click() toggles to checked before firing OnClick.
     env.exec("TestMinCbClick:Click()").unwrap();
-    let checked: bool = env.eval("return TestMinCbClick:GetChecked()").unwrap();
+    let (checked, observed): (bool, bool) = env
+        .eval("return TestMinCbClick:GetChecked(), TestMinCbClickObserved[1]")
+        .unwrap();
     assert!(checked, "Should be checked after first Click()");
+    assert!(observed, "OnClick should observe the checked state");
 
     // CheckedTexture should now be visible
     assert_checked_texture_visible(&env, "TestMinCbClick", true);
 
-    // Click() again -> toggles to unchecked
+    // Click() again toggles to unchecked before firing OnClick.
     env.exec("TestMinCbClick:Click()").unwrap();
-    let checked: bool = env.eval("return TestMinCbClick:GetChecked()").unwrap();
+    let (checked, observed): (bool, bool) = env
+        .eval("return TestMinCbClick:GetChecked(), TestMinCbClickObserved[2]")
+        .unwrap();
     assert!(!checked, "Should be unchecked after second Click()");
+    assert!(!observed, "OnClick should observe the unchecked state");
 
     // CheckedTexture should be hidden again
     assert_checked_texture_visible(&env, "TestMinCbClick", false);

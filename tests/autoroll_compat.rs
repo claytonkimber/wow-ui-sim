@@ -159,12 +159,18 @@ fn test_pcall_caught_register_event_error_is_not_recorded() {
 fn test_event_utils_rejects_non_event_method_names() {
     let env = WowLuaEnv::new().unwrap();
 
-    let (player_login_valid, trigger_event_valid, player_login_callback): (bool, bool, bool) = env
+    let (player_login_valid, trigger_event_valid, player_login_callback, combat_log_callback): (
+        bool,
+        bool,
+        bool,
+        bool,
+    ) = env
         .eval(
             r#"
         return C_EventUtils.IsEventValid("PLAYER_LOGIN"),
                C_EventUtils.IsEventValid("TriggerEvent"),
-               C_EventUtils.IsCallbackEvent("PLAYER_LOGIN")
+               C_EventUtils.IsCallbackEvent("PLAYER_LOGIN"),
+               C_EventUtils.IsCallbackEvent("COMBAT_LOG_EVENT")
     "#,
         )
         .unwrap();
@@ -177,6 +183,10 @@ fn test_event_utils_rejects_non_event_method_names() {
     assert!(
         !player_login_callback,
         "PLAYER_LOGIN is registerable but not a callback event"
+    );
+    assert!(
+        combat_log_callback,
+        "COMBAT_LOG_EVENT should be recognized as a callback event"
     );
 }
 

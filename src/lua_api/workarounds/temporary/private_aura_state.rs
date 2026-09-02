@@ -245,7 +245,7 @@ mod tests {
                 if C_UnitAurasPrivate._state.warningTextFrame ~= "warning" then
                     return "bad_warning_frame"
                 end
-                if C_UnitAuras.TriggerPrivateAuraShowDispelType ~= nil then
+                if rawget(C_UnitAuras, "TriggerPrivateAuraShowDispelType") ~= nil then
                     C_UnitAurasPrivate.SetShowDispelTypeCallback(function(value)
                         dispel = value
                     end)

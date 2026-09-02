@@ -258,107 +258,35 @@ fn damage_meter_saved_variables_default_with_empty_saved_vars_storage() {
 }
 
 #[test]
-fn startup_chat_config_checkbox_frames_keep_checkbutton_children() {
+fn startup_legacy_dropdown_check_regions_remain_textures() {
     test_timeout! {
         let env = load_and_startup_env();
-        let result: (bool, bool, bool, bool, bool, bool) = env
+        let result: String = env
             .eval(
                 r##"
-                return
-                    type(ChatConfigChatSettingsLeftCheckbox1) == "table",
-                    ChatConfigChatSettingsLeftCheckbox1
-                        and ChatConfigChatSettingsLeftCheckbox1.CheckButton ~= nil
-                        or false,
-                    ChatConfigChatSettingsLeftCheckbox1Check ~= nil,
-                    type(ChatConfigChannelSettingsLeftCheckbox1) == "table",
-                    ChatConfigChannelSettingsLeftCheckbox1
-                        and ChatConfigChannelSettingsLeftCheckbox1.CheckButton ~= nil
-                        or false,
-                    ChatConfigChannelSettingsLeftCheckbox1Check ~= nil
-                "##,
-            )
-            .expect("chat config checkbox probes should run");
-
-        assert_eq!(
-            result,
-            (true, true, true, true, true, true),
-            "Chat config checkbox frames should keep their inherited CheckButton children"
-        );
-    }
-}
-
-#[test]
-fn startup_frames_missing_checkbutton_parent_key() {
-    test_timeout! {
-        let env = load_and_startup_env();
-        let missing: String = env
-            .eval(
-                r##"
-                local missing = {}
-                for key, value in pairs(_G) do
-                    if type(key) == "string" and type(value) == "table" and _G[key .. "Check"] ~= nil then
-                        local ok, objectType = pcall(function()
-                            return type(value.GetObjectType) == "function" and value:GetObjectType() or nil
-                        end)
-                        if ok and type(objectType) == "string" and value.CheckButton == nil then
-                            missing[#missing + 1] = key .. " [" .. objectType .. "]"
-                        end
+                local cases = {
+                    { "DropDownList1Button1", DropDownList1Button1, DropDownList1Button1Check },
+                    { "DropDownList1Button2", DropDownList1Button2, DropDownList1Button2Check },
+                    { "DropDownList2Button1", DropDownList2Button1, DropDownList2Button1Check },
+                    { "DropDownList2Button2", DropDownList2Button2, DropDownList2Button2Check },
+                }
+                for _, case in ipairs(cases) do
+                    local name, button, region = case[1], case[2], case[3]
+                    if region:GetObjectType() ~= "Texture" then
+                        return name .. "_type=" .. tostring(region:GetObjectType())
+                    end
+                    if button.CheckButton ~= nil then
+                        return name .. "_checkbutton=" .. tostring(button.CheckButton:GetObjectType())
                     end
                 end
-                table.sort(missing)
-                return table.concat(missing, "\n")
+                return "ok"
                 "##,
             )
-            .expect("missing CheckButton frame probe should run");
+            .expect("legacy dropdown check-region probe should run");
 
-        assert!(
-            missing.is_empty(),
-            "Startup frames missing CheckButton parent keys:
-    {missing}"
-        );
-    }
-}
-
-#[test]
-fn startup_widget_tree_missing_checkbutton_parent_keys() {
-    test_timeout! {
-        let env = load_and_startup_env();
-        let state = env.state();
-        let sim = state.borrow();
-        let mut missing = Vec::new();
-        for frame_id in sim.widgets.iter_ids() {
-            let Some(frame) = sim.widgets.get(frame_id) else {
-                continue;
-            };
-            if frame.children_keys.contains_key("CheckButton") {
-                continue;
-            }
-            let Some(child_id) = frame.children.iter().copied().find(|child_id| {
-                sim.widgets
-                    .get(*child_id)
-                    .and_then(|child| child.name.as_deref())
-                    .is_some_and(|name| name.ends_with("Check"))
-            }) else {
-                continue;
-            };
-            let child_name = sim
-                .widgets
-                .get(child_id)
-                .and_then(|child| child.name.clone())
-                .unwrap_or_else(|| format!("#{child_id}"));
-            missing.push(format!(
-                "id={frame_id} name={:?} child={child_name}",
-                frame.name
-            ));
-        }
-        missing.sort();
-
-        assert!(
-            missing.is_empty(),
-            "Startup widget tree is missing CheckButton parent keys:
-    {}",
-            missing.join("
-    ")
+        assert_eq!(
+            result, "ok",
+            "legacy dropdown $parentCheck regions are textures, not CheckButton parent-key children"
         );
     }
 }

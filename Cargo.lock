@@ -285,7 +285,7 @@ dependencies = [
 [[package]]
 name = "asset-resolver"
 version = "0.1.0"
-source = "git+https://github.com/world-of-osso/asset-resolver?rev=76f98d44fe332a4d5f0d02ebe1f5f89e37ff5c56#76f98d44fe332a4d5f0d02ebe1f5f89e37ff5c56"
+source = "git+https://github.com/world-of-osso/asset-resolver?rev=292bea963293a8445b58fb80af25ae5f843f1574#292bea963293a8445b58fb80af25ae5f843f1574"
 dependencies = [
  "binrw",
  "cascette-client-storage",
@@ -4831,7 +4831,7 @@ dependencies = [
 [[package]]
 name = "rilua"
 version = "0.1.21"
-source = "git+https://github.com/Osso/rilua.git#e9125785bc12e681eb467ad68b4724170e45e9d2"
+source = "git+https://github.com/Osso/rilua.git#363041959010c6afbeb11716df2e066a54e4b825"
 dependencies = [
  "smallvec",
 ]
@@ -7492,6 +7492,7 @@ dependencies = [
  "phf_codegen",
  "pollster",
  "quick-xml 0.37.5",
+ "quote",
  "regex",
  "reqwest 0.12.28",
  "rilua",
@@ -7500,6 +7501,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "syn",
  "tar",
  "tempfile",
  "thiserror 2.0.17",

@@ -64,7 +64,7 @@ fn blizzard_game_menu_picks_mainline_toc_variant() {
 }
 
 #[test]
-fn blizzard_game_menu_mainline_toc_declares_game_tooltip_dep() {
+fn blizzard_game_menu_mainline_toc_declares_current_dependencies() {
     let toc = TocFile::from_file(&game_menu_mainline_toc())
         .expect("Blizzard_GameMenu Mainline TOC parse");
 
@@ -97,11 +97,13 @@ fn blizzard_game_menu_mainline_toc_declares_game_tooltip_dep() {
     let deps = toc.dependencies();
     assert_eq!(
         deps,
-        vec!["Blizzard_GameTooltip".to_string()],
-        "`## Dependencies: Blizzard_GameTooltip` declares the only required dependency \
-         — the menu's button tooltips (e.g. the disabled `MACROS` button explanation, \
-         the kiosk-mode disabled tooltip on `BLIZZARD_STORE`) need GameTooltip to \
-         render. Got: {:?}",
+        vec![
+            "Blizzard_GameTooltip".to_string(),
+            "Blizzard_GameMenuEsc".to_string(),
+            "Blizzard_StaticPopup".to_string(),
+        ],
+        "Blizzard_GameMenu declares its tooltip, Escape-handler, and static-popup \
+         dependencies in current retail order. Got: {:?}",
         deps
     );
 
@@ -178,9 +180,8 @@ fn blizzard_game_menu_auto_loads_on_game_and_skips_login() {
     );
 }
 
-#[test]
-fn blizzard_game_menu_loads_via_full_game_ui_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_game_menu_loads_via_full_game_ui_without_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -201,10 +202,10 @@ fn blizzard_game_menu_loads_via_full_game_ui_without_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_game_menu_exit_button_requests_quit_after_full_game_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_game_menu_exit_button_requests_quit_after_full_game_load(env: &WowLuaEnv) {
 
     let result: String = env
         .eval(
@@ -239,10 +240,10 @@ fn blizzard_game_menu_exit_button_requests_quit_after_full_game_load() {
 
     assert_eq!(result, "quit-requested");
 }
+}
 
-#[test]
-fn blizzard_game_menu_is_addon_loaded_returns_true_after_full_game_ui_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_game_menu_is_addon_loaded_returns_true_after_full_game_ui_load(env: &WowLuaEnv) {
 
     let post_load: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_GameMenu') and true or false")
@@ -254,10 +255,10 @@ fn blizzard_game_menu_is_addon_loaded_returns_true_after_full_game_ui_load() {
          `mark_addon_loaded` registers it"
     );
 }
+}
 
-#[test]
-fn blizzard_game_menu_publishes_top_level_frame_and_mixin() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_game_menu_publishes_top_level_frame_and_mixin(env: &WowLuaEnv) {
 
     let surface: (bool, bool, String) = env
         .eval(
@@ -278,10 +279,10 @@ fn blizzard_game_menu_publishes_top_level_frame_and_mixin() {
          to recognize that the closing UI panel was the game menu and re-show it"
     );
 }
+}
 
-#[test]
-fn blizzard_game_menu_publishes_named_subframes() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_game_menu_publishes_named_subframes(env: &WowLuaEnv) {
 
     let subframes: (bool, bool, bool) = env
         .eval(
@@ -303,10 +304,10 @@ fn blizzard_game_menu_publishes_named_subframes() {
          EditModeManagerFrame.Tutorial:HasHelptipsToShow())"
     );
 }
+}
 
-#[test]
-fn blizzard_game_menu_uses_dialog_strata_and_main_menu_template() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_game_menu_uses_dialog_strata_and_main_menu_template(env: &WowLuaEnv) {
 
     let frame_props: (String, bool, bool) = env
         .eval(
@@ -325,10 +326,10 @@ fn blizzard_game_menu_uses_dialog_strata_and_main_menu_template() {
          that blocks click-through to underlying UI"
     );
 }
+}
 
-#[test]
-fn blizzard_game_menu_starts_hidden_at_load_time() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_game_menu_starts_hidden_at_load_time(env: &WowLuaEnv) {
 
     let visibility: (bool, bool) = env
         .eval(
@@ -345,10 +346,10 @@ fn blizzard_game_menu_starts_hidden_at_load_time() {
          IsVisible() both report false at load time"
     );
 }
+}
 
-#[test]
-fn blizzard_game_menu_publishes_lifecycle_methods_via_mixin() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_game_menu_publishes_lifecycle_methods_via_mixin(env: &WowLuaEnv) {
 
     let methods: (bool, bool, bool, bool) = env
         .eval(
@@ -372,10 +373,10 @@ fn blizzard_game_menu_publishes_lifecycle_methods_via_mixin() {
          Store button states)"
     );
 }
+}
 
-#[test]
-fn blizzard_game_menu_publishes_button_init_and_callback_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_game_menu_publishes_button_init_and_callback_methods(env: &WowLuaEnv) {
 
     let menu_methods: (bool, bool, bool) = env
         .eval(
@@ -398,10 +399,10 @@ fn blizzard_game_menu_publishes_button_init_and_callback_methods() {
          / AddonList / EditMode / RatingMenu)"
     );
 }
+}
 
-#[test]
-fn blizzard_game_menu_publishes_ratings_and_logout_helpers() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_game_menu_publishes_ratings_and_logout_helpers(env: &WowLuaEnv) {
 
     let ratings_helpers: (bool, bool, bool) = env
         .eval(
@@ -433,4 +434,5 @@ fn blizzard_game_menu_publishes_ratings_and_logout_helpers() {
          consumed by the Account Rewards / Plunderstorm sub-paths that need to dismiss \
          the menu without exiting the game"
     );
+}
 }

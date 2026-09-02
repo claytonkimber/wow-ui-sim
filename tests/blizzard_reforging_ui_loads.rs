@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, find_toc_file, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
-use wow_ui_sim::startup::fire_startup_events_for_screen;
 use wow_ui_sim::toc::TocFile;
 
 fn blizzard_ui_dir() -> PathBuf {
@@ -44,32 +43,9 @@ const FREE_FUNCTION_GLOBALS: &[&str] = &[
     "ReforgeFrame_NewStat_Initialize",
 ];
 
-fn load_full_game_ui_with_reforging_explicit() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-
-    wow_ui_sim::xml::register_intrinsic_templates();
-
-    let ui = blizzard_ui_dir();
-    let addons = discover_blizzard_addons_for_screen(&ui, ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    env.apply_post_load_workarounds();
-    fire_startup_events_for_screen(&env, ScreenKind::Game);
-
+fn load_reforging_ui(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &reforging_ui_toc())
         .expect("Blizzard_ReforgingUI should load via explicit Rust loader call");
-
-    env
 }
 
 #[test]
@@ -207,9 +183,9 @@ fn classic_subdirectory_holds_three_lua_xml_files() {
     );
 }
 
-#[test]
-fn loads_with_only_expected_classic_event_warnings() {
-    let env = load_full_game_ui_with_reforging_explicit();
+prefork_full_ui_case! {
+fn loads_with_only_expected_classic_event_warnings(env: &WowLuaEnv) {
+    load_reforging_ui(env);
 
     let load_errors: Vec<String> = env
         .state()
@@ -245,10 +221,11 @@ fn loads_with_only_expected_classic_event_warnings() {
             .join("\n  ")
     );
 }
+}
 
-#[test]
-fn is_addon_loaded_after_explicit_load() {
-    let env = load_full_game_ui_with_reforging_explicit();
+prefork_full_ui_case! {
+fn is_addon_loaded_after_explicit_load(env: &WowLuaEnv) {
+    load_reforging_ui(env);
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_ReforgingUI')")
@@ -260,10 +237,11 @@ fn is_addon_loaded_after_explicit_load() {
          with the loaded-set even though discover_blizzard_addons_for_screen filtered it out"
     );
 }
+}
 
-#[test]
-fn publishes_named_top_level_frame_under_uiparent() {
-    let env = load_full_game_ui_with_reforging_explicit();
+prefork_full_ui_case! {
+fn publishes_named_top_level_frame_under_uiparent(env: &WowLuaEnv) {
+    load_reforging_ui(env);
 
     let frame_kind: String = env
         .eval("return type(ReforgingFrame)")
@@ -284,10 +262,11 @@ fn publishes_named_top_level_frame_under_uiparent() {
         "ReforgingFrame must be parented to UIParent — `parent=\"UIParent\"` XML attribute"
     );
 }
+}
 
-#[test]
-fn publishes_pre_mixin_global_handler_functions() {
-    let env = load_full_game_ui_with_reforging_explicit();
+prefork_full_ui_case! {
+fn publishes_pre_mixin_global_handler_functions(env: &WowLuaEnv) {
+    load_reforging_ui(env);
 
     for name in FREE_FUNCTION_GLOBALS {
         let kind: String = env
@@ -304,10 +283,11 @@ fn publishes_pre_mixin_global_handler_functions() {
         );
     }
 }
+}
 
-#[test]
-fn publishes_reforge_max_stats_shown_constant() {
-    let env = load_full_game_ui_with_reforging_explicit();
+prefork_full_ui_case! {
+fn publishes_reforge_max_stats_shown_constant(env: &WowLuaEnv) {
+    load_reforging_ui(env);
 
     let value: f64 = env
         .eval("return REFORGE_MAX_STATS_SHOWN")
@@ -320,10 +300,11 @@ fn publishes_reforge_max_stats_shown_constant() {
          clones via CreateFrame(\"CHECKBUTTON\", ..., \"ReforgingStatTemplate\")"
     );
 }
+}
 
-#[test]
-fn registers_panel_window_metadata_for_reforging_frame() {
-    let env = load_full_game_ui_with_reforging_explicit();
+prefork_full_ui_case! {
+fn registers_panel_window_metadata_for_reforging_frame(env: &WowLuaEnv) {
+    load_reforging_ui(env);
 
     let area: String = env
         .eval("return UIPanelWindows.ReforgingFrame.area")
@@ -346,10 +327,11 @@ fn registers_panel_window_metadata_for_reforging_frame() {
          opening a higher-priority window simply hides ReforgingFrame outright"
     );
 }
+}
 
-#[test]
-fn virtual_check_button_template_stays_off_global_scope() {
-    let env = load_full_game_ui_with_reforging_explicit();
+prefork_full_ui_case! {
+fn virtual_check_button_template_stays_off_global_scope(env: &WowLuaEnv) {
+    load_reforging_ui(env);
 
     let kind: String = env
         .eval("return type(_G['ReforgingStatTemplate'])")
@@ -363,10 +345,11 @@ fn virtual_check_button_template_stays_off_global_scope() {
          CreateFrame(..., \"ReforgingStatTemplate\") clone calls; never resolved through `_G`"
     );
 }
+}
 
-#[test]
-fn defines_no_mixin_tables_pre_mixin_pattern() {
-    let env = load_full_game_ui_with_reforging_explicit();
+prefork_full_ui_case! {
+fn defines_no_mixin_tables_pre_mixin_pattern(env: &WowLuaEnv) {
+    load_reforging_ui(env);
 
     let no_mixin_leak: bool = env
         .eval(
@@ -383,6 +366,7 @@ fn defines_no_mixin_tables_pre_mixin_pattern() {
          nil — confirms the addon retains its Cataclysm shape rather than being silently \
          migrated under the loader"
     );
+}
 }
 
 #[test]

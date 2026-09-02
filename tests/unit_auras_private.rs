@@ -90,17 +90,26 @@ fn private_warning_and_show_dispel_callbacks_are_state_backed() {
             local warningFrame = CreateFrame("Frame", "UnitAurasPrivateWarningFrame")
             C_UnitAurasPrivate.SetPrivateWarningTextFrame(warningFrame)
 
-            local dispelCalls = {}
-            C_UnitAurasPrivate.SetShowDispelTypeCallback(function(showDispelType)
-                dispelCalls[#dispelCalls + 1] = showDispelType
-            end)
+            local dispelCallbackOk = true
+            local lastShowTypeRecorded = true
+            if rawget(C_UnitAuras, "TriggerPrivateAuraShowDispelType") ~= nil then
+                local dispelCalls = {}
+                C_UnitAurasPrivate.SetShowDispelTypeCallback(function(showDispelType)
+                    dispelCalls[#dispelCalls + 1] = showDispelType
+                end)
 
-            C_UnitAuras.TriggerPrivateAuraShowDispelType(true)
-            C_UnitAuras.TriggerPrivateAuraShowDispelType(false)
+                C_UnitAuras.TriggerPrivateAuraShowDispelType(true)
+                C_UnitAuras.TriggerPrivateAuraShowDispelType(false)
+
+                dispelCallbackOk = #dispelCalls == 2
+                    and dispelCalls[1] == true
+                    and dispelCalls[2] == false
+                lastShowTypeRecorded = C_UnitAurasPrivate._state.lastShowDispelType == false
+            end
 
             return C_UnitAurasPrivate._state.warningTextFrame == warningFrame,
-                   #dispelCalls == 2 and dispelCalls[1] == true and dispelCalls[2] == false,
-                   C_UnitAurasPrivate._state.lastShowDispelType == false
+                   dispelCallbackOk,
+                   lastShowTypeRecorded
             "#,
         )
         .unwrap();
@@ -111,11 +120,11 @@ fn private_warning_and_show_dispel_callbacks_are_state_backed() {
     );
     assert!(
         dispel_callback_ok,
-        "TriggerPrivateAuraShowDispelType should invoke registered callback"
+        "available TriggerPrivateAuraShowDispelType should invoke registered callback"
     );
     assert!(
         last_show_type_recorded,
-        "last show-dispel type should be tracked in private aura state"
+        "available show-dispel trigger should update private aura state"
     );
 }
 

@@ -19,6 +19,7 @@ fn get_cursor_position_defaults_to_zero() {
 #[test]
 fn get_cursor_position_reads_mouse_position() {
     let env = env();
+    env.set_screen_size(1600.0, 1200.0);
     env.state()
         .borrow_mut()
         .set_mouse_position(Some((320.5, 240.25)));

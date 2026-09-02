@@ -41,6 +41,10 @@ src/
 
 The C API surface is treated as a first-class subsystem at the same architectural level as `lua_api` — it is a compatibility contract exposed to Lua, not a sub-module of it.
 
+### State-backed PTR service models
+
+Patch 12.1 `C_PlayerChoice` is implemented as a deterministic local service model. `SimState.player_choice` owns an optional current choice, documented nested option/reward payloads, query state (`numRerolls`, remaining time, response waiting), and mutator-intent markers for `SendPlayerChoiceResponse`, `RequestRerollPlayerChoice`, and `OnUIClosed`. The model is available only on the PTR retail epoch surface and does not claim retail timing, server validation, reroll economics, or live service values.
+
 ## Design Decisions
 
 - **Lua 5.1 via rilua**. Pure-Rust Lua 5.1 VM matching WoW's Lua version, with Elune-style taint tracking native to the interpreter (no C runtime).

@@ -3,7 +3,7 @@
 ## Addon Discovery & TOC File Parsing
 
 ### Addon Discovery
-**File:** `src/loader/mod.rs:24-54`
+**File:** `src/loader/mod.rs`
 
 ```rust
 pub fn find_toc_file(addon_dir: &Path) -> Option<PathBuf> {
@@ -11,7 +11,7 @@ pub fn find_toc_file(addon_dir: &Path) -> Option<PathBuf> {
 }
 ```
 
-Prefers Mainline variants for retail WoW compatibility.
+Prefers Mainline variants for retail WoW compatibility. Game startup selects eligible non-LoD `Blizzard_*` roots, their hard TOC dependency closure, and explicit LoD startup roots. `Blizzard_Game` depends on `Blizzard_TimeManager`, `Blizzard_CooldownBroadcaster`, `Blizzard_BoostTutorial`, and `Blizzard_CombatLog`; CombatLog's declared base and processor dependencies load first, publishing `CombatLog_LoadUI` before `PLAYER_LOGIN`. `Blizzard_MacroUI` and `Blizzard_TrainerUI` are standalone Game-only LoD roots that publish `MacroFrame_LoadUI` and `ClassTrainerFrame_LoadUI`; they remain LoD and excluded from glue screens. `Blizzard_AchievementUI` is also a standalone Game-only LoD root: its full TOC publishes `AchievementFrame_LoadUI` before `AlertFrame` handles `ACHIEVEMENT_EARNED`, preserving the real achievement-toast queue path while remaining excluded from glue screens. `Blizzard_Transmog` is an explicit Game-only LoD root whose full TOC publishes `Transmog_LoadUI` from `Blizzard_Transmog_Bootstrap.lua` and registers the Transmogrifier interaction; this does not add a bootstrap-only pass. `Blizzard_RaidUI` is selected as an LoD startup root and depends on `Blizzard_RaidFrame`, so RaidFrame loads first. Other LoD addons—including non-Blizzard `Deprecated_PaperDoll`—remain excluded. `[Bootstrap]` remains an inline TOC annotation, not a discovery trigger or file-order override.
 
 ### TOC File Parsing
 **File:** `src/toc.rs:63-120`
@@ -37,7 +37,7 @@ pub struct TocFile {
 **File Processing** (lines 69-104):
 - Skips `#` comment lines
 - Strips `[AllowLoadTextLocale]` annotations (only loads enUS)
-- Skips `[AllowLoadGameType]` files unless "mainline" or "standard"
+- Splits `[AllowLoadGameType]` values on commas or whitespace, then keeps files matching the active profile (for example, `vanilla tbc mainline` includes retail `mainline`)
 - Replaces placeholders: `[Family]` -> "Mainline", `[Game]` -> "Standard"
 - Normalizes backslashes, strips inline annotations
 
@@ -72,6 +72,10 @@ pub struct LoadTiming {
     pub saved_vars_time: Duration,
 }
 ```
+
+### Removed API compatibility
+
+Retail 12.1 removes public `GetInventorySlotInfo`. Current `Blizzard_TransmogShared` calls `C_PaperDollInfo.GetInventorySlotInfo` directly, so its loader needs no legacy-global compatibility scope. The legacy global remains unavailable to general addon code; see [[transmog-inventory-slot-scope]] for the retired stale-source workaround.
 
 ### Addon Context & Internal Loading
 **File:** `src/loader/addon.rs:16-124`
@@ -254,30 +258,16 @@ Default storage: `~/.local/share/wow-sim/SavedVariables/`
 ---
 
 ## Blizzard Addon Loading Order
-**File:** `src/main.rs:229-278`
 
-27 addons in hardcoded dependency order:
+Blizzard startup discovery is root-and-closure based, then topologically sorted from TOC dependencies plus simulator implicit startup dependencies. Eligible non-LoadOnDemand cache addons whose directory names start with `Blizzard_` are roots, subject to screen/profile exclusions. The candidate pool also retains eligible LoadOnDemand Blizzard TOCs and eligible non-Blizzard TOCs so a selected root can pull its transitive hard `## Dependencies:` closure.
 
-```
-Foundation:
-  SharedXMLBase -> Colors -> SharedXML -> SharedXMLGame ->
-  UIPanelTemplates -> FrameXMLBase
+A non-Blizzard cache directory is not an eager root: it loads only when a retained Blizzard root requires it. Current retail `Blizzard_TutorialManager` demonstrates this: its `middleclass` dependency loads before the root. Conversely, unrelated non-Blizzard directories such as `Deprecated_PaperDoll` remain excluded. LoadOnDemand Blizzard addons remain out of the root set unless reached by the closure or named as an implicit startup-dependency key; such LoD keys are selected as startup roots and load complete TOCs in dependency order. `Blizzard_CombatLog` remains LoadOnDemand in TOC metadata, but `Blizzard_Game` selects it to publish `CombatLog_LoadUI` before `PLAYER_LOGIN`; `Blizzard_CombatLogBase` and `Blizzard_CombatLogProcessor` precede it through declared dependencies. Standalone Game-only root `Blizzard_AchievementUI` remains LoadOnDemand and glue-excluded, but its full TOC publishes `AchievementFrame_LoadUI` before `AlertFrame` receives `ACHIEVEMENT_EARNED` and enters the real achievement-toast queue. `[Bootstrap]` neither selects every LoD addon nor changes file order.
 
-Core:
-  LoadLocale -> Fonts_Shared -> HelpPlate -> AccessibilityTemplates ->
-  ObjectAPI -> UIParent -> TextStatusBar -> MoneyFrame -> POIButton ->
-  Flyout -> StoreUI -> MicroMenu -> EditMode -> GarrisonBase ->
-  GameTooltip -> UIParentPanelManager -> Settings_Shared ->
-  SettingsDefinitions_Shared -> SettingsDefinitions_Frame ->
-  FrameXMLUtil -> ItemButton -> QuickKeybind -> FrameXML
+Foundational SharedXML addons are promoted to `LoadFirst` so templates exist before other Blizzard addons instantiate frames. Third-party addons load after this Blizzard startup pass.
 
-UI Panels:
-  UIPanels_Game -> MapCanvasSecureUtil -> MapCanvas ->
-  SharedMapDataProviders -> WorldMap -> ActionBar -> GameMenu ->
-  UIWidgets -> Minimap -> AddOnList -> TimerunningUtil -> Communities
-```
+### Secure-library replay
 
-Third-party addons loaded alphabetically after Blizzard addons.
+`__secureenv` is separate from public `_G`, so selected Blizzard libraries are re-executed there after normal loading instead of generically mirroring globals. The allowlist includes `Blizzard_FrameXMLUtil`: secure `Blizzard_AuraContainer` needs its `AuraUtil.DefaultAuraCompare` and `AuraUtil.UnitFrameDebuffComparator`. Before commit `93761fdb4`, public-only `AuraUtil` left secureenv stale, aborted TargetFrame aura initialization, and prevented subsequent `FocusFrame` creation. Focused coverage: `loader::tests::lua_loading::blizzard_frame_xml_util_replays_aura_comparators_into_secure_environment`.
 
 ---
 
@@ -293,7 +283,19 @@ pub enum LoadError {
 }
 ```
 
-**Non-fatal warnings** returned in `LoadResult.warnings`. **Fatal errors** return `Err(LoadError)`.
+Recoverable loader/XML/Lua failures are returned in `LoadResult.warnings`; fatal loader errors return `Err(LoadError)`. Regular nil-global observations and missing `C_*` requirements use separate typed `LoadResult` fields.
+
+### Nil-Symbol Diagnostic Reconciliation
+
+Implementation: `src/loader/addon/nil_symbol_reports.rs`, `src/lua_api/globals/compat_overrides.rs`, and `src/lua_api/globals/create_frame/helpers_shared.rs`.
+
+Nil-symbol diagnostics remain strict and typed. A missing regular global reached through direct `GETGLOBAL`/slot fallback becomes a `NilSymbolObservation` in `LoadResult.nil_symbol_observations`; every missing `C_*` namespace or member becomes a `MissingRequirement` in `LoadResult.missing_requirements`. Both retain addon, source, line, and public/secure environment attribution and are deduplicated by environment and symbol kind. They remain visible through loader tracing and `WOW_SIM_DEBUG_NIL_GLOBALS`, but do not make otherwise-successful startup unhealthy. `LoadResult.warnings` is reserved for actual loader/XML/Lua/runtime failures.
+
+Explicit `_G.name` and `_G[name]` reads of missing regular globals are ordinary optional probes: they do not create a nil-symbol record or enter the `__wow_logged_nil_symbols` dedup cache. Explicit `_G` access does not relax `C_*` diagnostics; missing `C_*` namespaces and members remain typed requirements through their namespace/member paths. A non-`C_*` global read as nil is reconciled only when that same addon explicitly publishes the name later into the same environment through ordinary Lua assignment or a named XML frame, and the final value is non-nil. Public and secure publications use separate ledgers and final-table checks: secure Lua assignments and Rust secure frame exports record the stable addon index in the secure ledger, so a secure publication cannot resolve a public lookup or vice versa. A nested `C_AddOns.LoadAddOn` publication belongs to the nested addon and does not resolve the outer addon's observation. Globals later cleared remain observations. Both publication ledgers are cleaned up with the `LoadingAddonGuard` transaction lifecycle.
+
+rilua tracks lookup origin in VM execution state. `debug.isglobalindex()` is a read-only query that returns true only while `_G.__index` handles a syntactic global load and false for explicit table reads or calls outside that lookup; the state restores correctly across nested lookups, errors, and coroutine swaps.
+
+Generated lifecycle helpers avoid synthetic observations: precompiled OnLoad/OnShow dispatch snapshots and restores raw `_G.self`, while post-cleanup runtime-surface restoration reads raw `_G.C_StoreSecure` before merging the namespace. This keeps helper state restoration and simulator-owned namespace repair out of client nil-symbol attribution. Nested runtime-addon loads finalize all three diagnostic channels under the nested addon, then forward them exactly once to the immediate parent `LoadResult`; forwarding is transitive for nested-nested loads and does not reprocess raw nil-access records. Top-level runtime addon diagnostics remain in a typed SimState ledger until startup/test collectors drain them exactly once. The publication recorder used by the global assignment hook is captured in a bootstrap-local upvalue and removed from `_G` before addon code runs, so addon Lua cannot forge publication-ledger entries; ordinary Lua assignments, secure assignments, and named XML frame publications remain tracked.
 
 **Path resolution fallback** (helpers.rs:52-79): Tries case-sensitive relative to XML, case-insensitive relative to XML, case-sensitive relative to addon root, case-insensitive relative to addon root.
 
@@ -323,8 +325,8 @@ Accessors: `size()`, `anchors()`, `scripts()`, `layers()`, `all_frame_elements()
 ## Complete Load Sequence
 
 1. **Startup** (`main.rs`): Apply resource limits, create `WowLuaEnv`, set addon base paths, configure SavedVariables
-2. **Blizzard Addons**: Load in hardcoded dependency order
+2. **Blizzard Addons**: Discover eligible `Blizzard_*` non-LoD roots, explicit LoD startup roots, and their transitive hard TOC dependencies from the candidate pool; load every selected TOC in dependency order
 3. **Third-Party Addons**: Scan `./Interface/AddOns`, load alphabetically
-4. **Post-Load Scripts**: Execute global initialization
+4. **Post-Load Scripts**: Execute global initialization and reconcile replacement `_G.SettingsPanel`/`Settings` surfaces before category registration/opening
 5. **Startup Events**: Fire `ADDON_LOADED`, hide runtime-hidden frames
 6. **GUI/Dump/Screenshot**: Launch interactive UI, dump frame tree, or render screenshot

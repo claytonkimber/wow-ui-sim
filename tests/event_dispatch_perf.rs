@@ -11,7 +11,7 @@ const EVENT_DISPATCH_THROUGHPUT_BUDGET: Duration = Duration::from_millis(10);
 
 #[test]
 fn event_dispatch_to_128_registered_frames_stays_under_budget() {
-    test_timeout! {
+    perf_test_timeout! {
         let elapsed = measure_event_dispatch_throughput();
         eprintln!(
             "event dispatch throughput baseline: {:.2?} (budget {:.2?})",

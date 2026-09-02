@@ -203,9 +203,8 @@ fn root_directory_holds_two_files_next_to_toc() {
     );
 }
 
-#[test]
-fn loads_without_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn loads_without_lua_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -224,10 +223,10 @@ fn loads_without_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn is_addon_loaded_after_eager_sweep() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn is_addon_loaded_after_eager_sweep(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_ReportFrame')")
@@ -249,10 +248,10 @@ fn is_addon_loaded_after_eager_sweep() {
          on every screen"
     );
 }
+}
 
-#[test]
-fn publishes_named_top_level_frame_under_uiparent() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn publishes_named_top_level_frame_under_uiparent(env: &WowLuaEnv) {
 
     let frame_kind: String = env
         .eval("return type(ReportFrame)")
@@ -286,10 +285,10 @@ fn publishes_named_top_level_frame_under_uiparent() {
          the loader to the Rust widget Frame strata field"
     );
 }
+}
 
-#[test]
-fn report_frame_mixin_extends_shared_via_create_from_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn report_frame_mixin_extends_shared_via_create_from_mixins(env: &WowLuaEnv) {
 
     let mixin_kind: String = env
         .eval("return type(ReportFrameMixin)")
@@ -315,10 +314,10 @@ fn report_frame_mixin_extends_shared_via_create_from_mixins() {
          frame would nil-error"
     );
 }
+}
 
-#[test]
-fn override_methods_publish_on_report_frame_mixin() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn override_methods_publish_on_report_frame_mixin(env: &WowLuaEnv) {
 
     for method in OVERRIDE_METHODS {
         let kind: String = env
@@ -335,10 +334,10 @@ fn override_methods_publish_on_report_frame_mixin() {
         );
     }
 }
+}
 
-#[test]
-fn inherited_base_methods_carry_through_via_create_from_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn inherited_base_methods_carry_through_via_create_from_mixins(env: &WowLuaEnv) {
 
     for method in INHERITED_BASE_METHODS {
         let kind: String = env
@@ -359,10 +358,10 @@ fn inherited_base_methods_carry_through_via_create_from_mixins() {
         );
     }
 }
+}
 
-#[test]
-fn registers_for_report_lifecycle_events() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn registers_for_report_lifecycle_events(env: &WowLuaEnv) {
 
     let event_count: f64 = env
         .eval(
@@ -383,10 +382,10 @@ fn registers_for_report_lifecycle_events() {
          on the live derived frame"
     );
 }
+}
 
-#[test]
-fn xml_declares_no_virtual_templates_at_global_scope() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn xml_declares_no_virtual_templates_at_global_scope(env: &WowLuaEnv) {
 
     let no_template_leak: bool = env
         .eval(
@@ -402,6 +401,7 @@ fn xml_declares_no_virtual_templates_at_global_scope() {
          live in Blizzard_ReportFrameShared with `virtual=\"true\"` so the loader keeps them in \
          the template registry only, NEVER as globals"
     );
+}
 }
 
 #[test]

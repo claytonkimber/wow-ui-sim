@@ -132,12 +132,12 @@ fn fire_startup_events(env: &WowLuaEnv) {
 fn zone_ability_frame_displays_seeded_active_ability() {
     test_timeout! {
         let env = setup_env();
-        let (frame_shown, container_shown, button_count, spell_id, icon_texture): (
+        let (frame_shown, container_shown, button_count, spell_id, icon_present): (
             bool,
             bool,
             i64,
             i64,
-            String,
+            bool,
         ) = env
             .eval(
                 r#"
@@ -155,18 +155,18 @@ fn zone_ability_frame_displays_seeded_active_ability() {
 
                 local buttonCount = 0
                 local spellID = 0
-                local iconTexture = ""
+                local iconTexture
                 for button in ZoneAbilityFrame.SpellButtonContainer:EnumerateActive() do
                     buttonCount = buttonCount + 1
                     spellID = button:GetSpellID() or 0
-                    iconTexture = button.Icon:GetTexture() or ""
+                    iconTexture = button.Icon:GetTexture()
                 end
 
                 return ZoneAbilityFrame:IsShown() == true,
                     ExtraAbilityContainer:IsShown() == true,
                     buttonCount,
                     spellID,
-                    iconTexture
+                    iconTexture ~= nil and iconTexture ~= ""
                 "#,
             )
             .unwrap();
@@ -179,7 +179,7 @@ fn zone_ability_frame_displays_seeded_active_ability() {
         assert_eq!(button_count, 1, "exactly one zone ability button should be active");
         assert_eq!(spell_id, 372610, "zone ability button should keep the seeded spell ID");
         assert!(
-            !icon_texture.is_empty(),
+            icon_present,
             "zone ability button should resolve a visible icon texture"
         );
     }

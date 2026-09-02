@@ -5,42 +5,7 @@
 //! not the full-screen-wide 1024px layout that the state-dependent sizing bug
 //! produces.
 
-use crate::common;
-
-use std::path::PathBuf;
-use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
-use wow_ui_sim::screen::ScreenKind;
-use wow_ui_sim::startup::fire_startup_events_for_screen;
-
-fn blizzard_ui_dir() -> PathBuf {
-    wow_ui_sim::paths::default_blizzard_ui_addons_path()
-        .expect("Blizzard UI cache should be available")
-}
-
-fn load_full_game_ui() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-
-    wow_ui_sim::xml::register_intrinsic_templates();
-
-    let ui = blizzard_ui_dir();
-    let addons = discover_blizzard_addons_for_screen(&ui, ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    env.apply_post_load_workarounds();
-    fire_startup_events_for_screen(&env, ScreenKind::Game);
-    env
-}
 
 /// Measure the open GuildMemberListDropdown menu frame.
 ///
@@ -108,97 +73,94 @@ fn parse_dimensions(result: &str) -> Option<(f64, f64)> {
     Some((w, h))
 }
 
-#[test]
-fn guild_member_list_dropdown_menu_sizing_is_correct_across_two_opens() {
-    test_timeout! {
-        let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn guild_member_list_dropdown_menu_sizing_is_correct_across_two_opens(env: &WowLuaEnv) {
+    // Show CommunitiesFrame in guild mode so the dropdown is reachable.
+    let setup_result: String = env
+        .eval(r#"
+            if CommunitiesFrame == nil then
+                return "error:no_frame"
+            end
+            g_clubIdToSeenApplicants = g_clubIdToSeenApplicants or {}
+            CommunitiesFrame:Show()
+            -- Select the default guild club so guild-mode layout applies.
+            local clubs = C_Club.GetSubscribedClubs()
+            if type(clubs) == "table" and #clubs > 0 then
+                CommunitiesFrame:SelectClub(clubs[1].clubId)
+            end
+            return "ok"
+        "#)
+        .expect("CommunitiesFrame setup should succeed");
 
-        // Show CommunitiesFrame in guild mode so the dropdown is reachable.
-        let setup_result: String = env
-            .eval(r#"
-                if CommunitiesFrame == nil then
-                    return "error:no_frame"
-                end
-                g_clubIdToSeenApplicants = g_clubIdToSeenApplicants or {}
-                CommunitiesFrame:Show()
-                -- Select the default guild club so guild-mode layout applies.
-                local clubs = C_Club.GetSubscribedClubs()
-                if type(clubs) == "table" and #clubs > 0 then
-                    CommunitiesFrame:SelectClub(clubs[1].clubId)
-                end
-                return "ok"
-            "#)
-            .expect("CommunitiesFrame setup should succeed");
+    assert!(
+        !setup_result.starts_with("error:"),
+        "CommunitiesFrame setup failed: {setup_result}"
+    );
 
-        assert!(
-            !setup_result.starts_with("error:"),
-            "CommunitiesFrame setup failed: {setup_result}"
-        );
+    // --- First open ---
+    let first: String = env
+        .eval(MEASURE_LUA)
+        .expect("first measure eval should succeed");
 
-        // --- First open ---
-        let first: String = env
-            .eval(MEASURE_LUA)
-            .expect("first measure eval should succeed");
-
-        if first.starts_with("skip:") {
-            // No guild elements in the dropdown: nothing to test.
-            // This happens when no guild club is configured in the sim state.
-            assert!(true, "skipped: GuildMemberListDropdown has no elements ({first})");
-            return;
-        }
-
-        assert!(
-            !first.starts_with("error:"),
-            "first open produced an error: {first}"
-        );
-
-        let (w1, h1) = parse_dimensions(&first)
-            .unwrap_or_else(|| panic!("unexpected first-open result format: {first}"));
-
-        assert!(
-            w1 <= 300.0,
-            "first open: menu width {w1:.0}px exceeds 300px (expected ~180px); \
-             possible full-screen layout bug"
-        );
-        assert!(
-            h1 <= 200.0,
-            "first open: menu height {h1:.0}px exceeds 200px (expected ~103px)"
-        );
-
-        // --- Close ---
-        let close_result: String =
-            env.eval(CLOSE_LUA).expect("close eval should succeed");
-        assert_eq!(close_result, "ok", "menu close failed: {close_result}");
-
-        // --- Second open ---
-        let second: String = env
-            .eval(MEASURE_LUA)
-            .expect("second measure eval should succeed");
-
-        assert!(
-            !second.starts_with("error:") && !second.starts_with("skip:"),
-            "second open produced unexpected result: {second}"
-        );
-
-        let (w2, h2) = parse_dimensions(&second)
-            .unwrap_or_else(|| panic!("unexpected second-open result format: {second}"));
-
-        assert!(
-            w2 <= 300.0,
-            "second open: menu width {w2:.0}px exceeds 300px (expected ~180px); \
-             possible full-screen layout bug on re-open"
-        );
-        assert!(
-            h2 <= 200.0,
-            "second open: menu height {h2:.0}px exceeds 200px (expected ~103px)"
-        );
-
-        // Both opens should produce identical dimensions.
-        assert_eq!(
-            (w1 as i64, h1 as i64),
-            (w2 as i64, h2 as i64),
-            "menu dimensions changed between first ({first}) and second ({second}) open; \
-             state-dependent sizing bug"
-        );
+    if first.starts_with("skip:") {
+        // No guild elements in the dropdown: nothing to test.
+        // This happens when no guild club is configured in the sim state.
+        assert!(true, "skipped: GuildMemberListDropdown has no elements ({first})");
+        return;
     }
+
+    assert!(
+        !first.starts_with("error:"),
+        "first open produced an error: {first}"
+    );
+
+    let (w1, h1) = parse_dimensions(&first)
+        .unwrap_or_else(|| panic!("unexpected first-open result format: {first}"));
+
+    assert!(
+        w1 <= 300.0,
+        "first open: menu width {w1:.0}px exceeds 300px (expected ~180px); \
+         possible full-screen layout bug"
+    );
+    assert!(
+        h1 <= 200.0,
+        "first open: menu height {h1:.0}px exceeds 200px (expected ~103px)"
+    );
+
+    // --- Close ---
+    let close_result: String =
+        env.eval(CLOSE_LUA).expect("close eval should succeed");
+    assert_eq!(close_result, "ok", "menu close failed: {close_result}");
+
+    // --- Second open ---
+    let second: String = env
+        .eval(MEASURE_LUA)
+        .expect("second measure eval should succeed");
+
+    assert!(
+        !second.starts_with("error:") && !second.starts_with("skip:"),
+        "second open produced unexpected result: {second}"
+    );
+
+    let (w2, h2) = parse_dimensions(&second)
+        .unwrap_or_else(|| panic!("unexpected second-open result format: {second}"));
+
+    assert!(
+        w2 <= 300.0,
+        "second open: menu width {w2:.0}px exceeds 300px (expected ~180px); \
+         possible full-screen layout bug on re-open"
+    );
+    assert!(
+        h2 <= 200.0,
+        "second open: menu height {h2:.0}px exceeds 200px (expected ~103px)"
+    );
+
+    // Both opens should produce identical dimensions.
+    assert_eq!(
+        (w1 as i64, h1 as i64),
+        (w2 as i64, h2 as i64),
+        "menu dimensions changed between first ({first}) and second ({second}) open; \
+         state-dependent sizing bug"
+    );
+}
 }

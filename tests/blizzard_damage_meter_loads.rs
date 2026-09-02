@@ -97,9 +97,8 @@ fn blizzard_damage_meter_appears_in_game_discovery() {
     );
 }
 
-#[test]
-fn blizzard_damage_meter_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_damage_meter_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -122,10 +121,10 @@ fn blizzard_damage_meter_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_damage_meter_toplevel_frame_is_created() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_damage_meter_toplevel_frame_is_created(env: &WowLuaEnv) {
 
     let frame_present: bool = env
         .eval(
@@ -143,10 +142,10 @@ fn blizzard_damage_meter_toplevel_frame_is_created() {
          GetSessionWindow(index) and GetPrimarySessionWindow()"
     );
 }
+}
 
-#[test]
-fn blizzard_damage_meter_main_mixin_methods_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_damage_meter_main_mixin_methods_are_defined(env: &WowLuaEnv) {
 
     let mixin_present: bool = env
         .eval(
@@ -196,10 +195,10 @@ fn blizzard_damage_meter_main_mixin_methods_are_defined() {
          SetBackgroundTransparency)"
     );
 }
+}
 
-#[test]
-fn blizzard_damage_meter_session_window_mixin_is_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_damage_meter_session_window_mixin_is_defined(env: &WowLuaEnv) {
 
     let mixin_present: bool = env
         .eval(
@@ -230,10 +229,10 @@ fn blizzard_damage_meter_session_window_mixin_is_defined() {
          / GetResizeButton)"
     );
 }
+}
 
-#[test]
-fn blizzard_damage_meter_source_window_mixin_is_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_damage_meter_source_window_mixin_is_defined(env: &WowLuaEnv) {
 
     let mixin_present: bool = env
         .eval(
@@ -264,10 +263,10 @@ fn blizzard_damage_meter_source_window_mixin_is_defined() {
          this window LEFT or RIGHT of its parent DamageMeterSessionWindow"
     );
 }
+}
 
-#[test]
-fn blizzard_damage_meter_entry_mixins_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_damage_meter_entry_mixins_are_defined(env: &WowLuaEnv) {
 
     let mixins_present: bool = env
         .eval(
@@ -301,10 +300,10 @@ fn blizzard_damage_meter_entry_mixins_are_defined() {
          (`<Button inherits=\"DamageMeterEntryTemplate\">`)"
     );
 }
+}
 
-#[test]
-fn blizzard_damage_meter_settings_dropdown_button_is_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_damage_meter_settings_dropdown_button_is_defined(env: &WowLuaEnv) {
 
     let dropdown_present: bool = env
         .eval(
@@ -326,6 +325,7 @@ fn blizzard_damage_meter_settings_dropdown_button_is_defined() {
          reused by each session window's settings menu (atlas keys disabled / normal / pressed \
          / hover / hoverPressed / open hold the `common-dropdown-a-button-settings-*` art)"
     );
+}
 }
 
 #[test]
@@ -353,9 +353,8 @@ fn blizzard_damage_meter_xml_templates_are_registered() {
     }
 }
 
-#[test]
-fn blizzard_damage_meter_constants_and_enums_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_damage_meter_constants_and_enums_are_defined(env: &WowLuaEnv) {
 
     let constants_present: bool = env
         .eval(
@@ -382,4 +381,5 @@ fn blizzard_damage_meter_constants_and_enums_are_defined() {
          Enum.DamageMeterType={{DamageDone=0, ..., Deaths=9, EnemyDamageTaken=10}} should be \
          registered (combat_system.rs SeqEnumDef DAMAGE_METER_SESSION_TYPE / DAMAGE_METER_TYPE)"
     );
+}
 }

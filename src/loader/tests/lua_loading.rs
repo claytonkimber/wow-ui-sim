@@ -283,6 +283,94 @@ Normal.lua
 }
 
 #[test]
+fn nested_runtime_addon_cycle_is_guarded() {
+    let env = WowLuaEnv::new().unwrap();
+    let temp_root = std::env::temp_dir().join("wow-sim-nested-runtime-addon-cycle-test");
+    let addon_a_dir = temp_root.join("RuntimeCycleA");
+    let addon_b_dir = temp_root.join("RuntimeCycleB");
+    std::fs::create_dir_all(&addon_a_dir).unwrap();
+    std::fs::create_dir_all(&addon_b_dir).unwrap();
+
+    std::fs::write(
+        addon_a_dir.join("RuntimeCycleA.toc"),
+        r#"
+## Title: RuntimeCycleA
+## LoadOnDemand: 1
+## Dependencies: RuntimeCycleB
+RuntimeCycleA.lua
+"#,
+    )
+    .unwrap();
+    std::fs::write(
+        addon_a_dir.join("RuntimeCycleA.lua"),
+        r#"
+        RuntimeCycleEvents = RuntimeCycleEvents or {}
+        table.insert(RuntimeCycleEvents, "A:start")
+        table.insert(RuntimeCycleEvents, "A:end")
+        "#,
+    )
+    .unwrap();
+    std::fs::write(
+        addon_b_dir.join("RuntimeCycleB.toc"),
+        r#"
+## Title: RuntimeCycleB
+## LoadOnDemand: 1
+RuntimeCycleB.lua
+"#,
+    )
+    .unwrap();
+    std::fs::write(
+        addon_b_dir.join("RuntimeCycleB.lua"),
+        r#"
+        RuntimeCycleEvents = RuntimeCycleEvents or {}
+        table.insert(RuntimeCycleEvents, "B:start")
+        RuntimeCycleAWasLoading, RuntimeCycleAWasLoaded = C_AddOns.IsAddOnLoaded("RuntimeCycleA")
+        local loaded, reason = C_AddOns.LoadAddOn("RuntimeCycleA")
+        table.insert(RuntimeCycleEvents, "B:load-a:" .. tostring(loaded) .. ":" .. tostring(reason))
+        table.insert(RuntimeCycleEvents, "B:end")
+        "#,
+    )
+    .unwrap();
+
+    env.state().borrow_mut().addon_base_paths = vec![temp_root.clone()];
+    let (loaded, reason): (bool, Option<String>) = env
+        .eval(r#"return C_AddOns.LoadAddOn("RuntimeCycleA")"#)
+        .unwrap();
+    assert!(loaded, "outer LoadAddOn should load addon: {reason:?}");
+    assert_eq!(reason, None);
+
+    let (events, addon_a_loaded, addon_b_loaded, a_was_loading, a_was_loaded): (
+        String,
+        bool,
+        bool,
+        bool,
+        bool,
+    ) = env
+        .eval(
+            r#"
+            local _, addonALoaded = C_AddOns.IsAddOnLoaded("RuntimeCycleA")
+            local _, addonBLoaded = C_AddOns.IsAddOnLoaded("RuntimeCycleB")
+            return table.concat(RuntimeCycleEvents, ","), addonALoaded, addonBLoaded,
+                   RuntimeCycleAWasLoading, RuntimeCycleAWasLoaded
+            "#,
+        )
+        .unwrap();
+    assert_eq!(events, "B:start,B:load-a:true:nil,B:end,A:start,A:end");
+    assert!(addon_a_loaded, "RuntimeCycleA should be loaded");
+    assert!(addon_b_loaded, "RuntimeCycleB should be loaded");
+    assert!(
+        a_was_loading,
+        "RuntimeCycleA should report loading inside B"
+    );
+    assert!(
+        !a_was_loaded,
+        "RuntimeCycleA should not report loaded before its outer load commits"
+    );
+
+    std::fs::remove_dir_all(&temp_root).ok();
+}
+
+#[test]
 fn blizzard_lua_files_replay_into_secure_environment() {
     let env = WowLuaEnv::new().unwrap();
     let temp_root = std::env::temp_dir().join("wow-sim-secure-replay-test");
@@ -324,6 +412,58 @@ GlobalOnly.lua [AllowLoadEnvironment Global]
     assert_eq!(global_marker, "shared");
     assert_eq!(secure_marker, "shared");
     assert_eq!(global_only_type, "nil");
+
+    std::fs::remove_dir_all(&temp_root).ok();
+}
+
+#[test]
+fn blizzard_frame_xml_util_replays_aura_comparators_into_secure_environment() {
+    let env = WowLuaEnv::new().unwrap();
+    env.exec("AuraUtil = { bootstrap = true }").unwrap();
+
+    let temp_root = std::env::temp_dir().join("wow-sim-framexmlutil-secure-replay-test");
+    let addon_dir = temp_root.join("Blizzard_FrameXMLUtil");
+    std::fs::create_dir_all(&addon_dir).unwrap();
+    std::fs::write(
+        addon_dir.join("AuraUtil.lua"),
+        r#"
+        AuraUtil = {}
+        AuraUtil.DefaultAuraCompare = function() return "default" end
+        AuraUtil.UnitFrameDebuffComparator = function() return "debuff" end
+        "#,
+    )
+    .unwrap();
+
+    let toc = crate::toc::TocFile::parse(
+        &addon_dir,
+        r#"
+## Title: Blizzard_FrameXMLUtil
+## AllowLoad: Game
+AuraUtil.lua
+"#,
+    );
+
+    load_addon_from_toc(&env.loader_env(), &toc).unwrap();
+
+    let comparator_types: (String, String, String, String) = env
+        .eval(
+            r#"
+            return type(rawget(_G, "AuraUtil").DefaultAuraCompare),
+                   type(rawget(__secureenv, "AuraUtil").DefaultAuraCompare),
+                   type(rawget(_G, "AuraUtil").UnitFrameDebuffComparator),
+                   type(rawget(__secureenv, "AuraUtil").UnitFrameDebuffComparator)
+            "#,
+        )
+        .unwrap();
+    assert_eq!(
+        comparator_types,
+        (
+            "function".into(),
+            "function".into(),
+            "function".into(),
+            "function".into()
+        )
+    );
 
     std::fs::remove_dir_all(&temp_root).ok();
 }
@@ -456,6 +596,38 @@ Inbound.lua [LoadIntoEnvironment global]
     assert_eq!(probe.5, "nil");
 
     std::fs::remove_dir_all(&temp_root).ok();
+}
+
+#[test]
+fn secretunwrap_remains_callable_in_secure_environment_after_global_cleanup() {
+    let env = WowLuaEnv::new().unwrap();
+    let before_cleanup: (String, String, bool, bool) = env
+        .eval(
+            r#"
+            local value = {}
+            return type(_G.secretunwrap),
+                   type(__secureenv.secretunwrap),
+                   __secureenv.secretunwrap(value) == value,
+                   __secureenv.secretunwrap() == nil
+            "#,
+        )
+        .unwrap();
+    assert_eq!(
+        before_cleanup,
+        ("function".into(), "function".into(), true, true)
+    );
+
+    env.exec("secretunwrap = nil").unwrap();
+    let after_cleanup: (String, String, f64) = env
+        .eval(
+            r#"
+            return type(_G.secretunwrap),
+                   type(__secureenv.secretunwrap),
+                   __secureenv.secretunwrap(42)
+            "#,
+        )
+        .unwrap();
+    assert_eq!(after_cleanup, ("nil".into(), "function".into(), 42.0));
 }
 
 #[test]

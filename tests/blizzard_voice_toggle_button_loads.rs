@@ -295,9 +295,8 @@ fn dep_directories_exist_on_disk() {
     }
 }
 
-#[test]
-fn full_game_load_publishes_mixin_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_publishes_mixin_globals(env: &WowLuaEnv) {
 
     for mixin in MIXIN_GLOBALS {
         let kind: String = env
@@ -331,10 +330,10 @@ fn full_game_load_publishes_mixin_globals() {
         );
     }
 }
+}
 
-#[test]
-fn full_game_load_publishes_free_functions() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_publishes_free_functions(env: &WowLuaEnv) {
 
     for func in FREE_FUNCTION_GLOBALS {
         let kind: String = env
@@ -359,10 +358,10 @@ fn full_game_load_publishes_free_functions() {
         );
     }
 }
+}
 
-#[test]
-fn full_game_load_publishes_state_constants() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_publishes_state_constants(env: &WowLuaEnv) {
 
     for (name, expected) in STATE_CONSTANT_VALUES {
         let value: i32 = env
@@ -387,10 +386,10 @@ fn full_game_load_publishes_state_constants() {
         );
     }
 }
+}
 
-#[test]
-fn full_game_load_inheritance_chain_links_propertybuttonmixin() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_inheritance_chain_links_propertybuttonmixin(env: &WowLuaEnv) {
 
     let on_load_kind: String = env
         .eval("return type(VoiceToggleButtonMixin.OnLoad)")
@@ -429,10 +428,11 @@ fn full_game_load_inheritance_chain_links_propertybuttonmixin() {
          top"
     );
 }
+}
 
-#[test]
-fn full_game_load_registers_virtual_templates() {
-    let _env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_registers_virtual_templates(env: &WowLuaEnv) {
+    let _env = env;
 
     for template in VIRTUAL_TEMPLATES {
         let resolved = wow_ui_sim::xml::get_template(template);
@@ -462,10 +462,10 @@ fn full_game_load_registers_virtual_templates() {
         );
     }
 }
+}
 
-#[test]
-fn full_game_load_emits_no_addon_specific_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_emits_no_addon_specific_errors(env: &WowLuaEnv) {
 
     let errors: Vec<String> = env.state().borrow().lua_errors.clone();
     let addon_specific: Vec<&String> = errors
@@ -484,4 +484,5 @@ fn full_game_load_emits_no_addon_specific_errors() {
          chat frame voice buttons and the raid/party roster voice \
          indicators. Found: {addon_specific:?}"
     );
+}
 }

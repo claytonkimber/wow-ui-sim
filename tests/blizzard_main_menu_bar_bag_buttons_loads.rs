@@ -99,7 +99,7 @@ const BAGS_BAR_MIXIN_METHODS: &[&str] = &[
     "IsHorizontal",
     "IsDirectionLeft",
     "IsDirectionUp",
-    "OnUpdateEndCaps",
+    "MainActionBarStateOverridden",
 ];
 
 const NAMED_BAG_FRAMES: &[&str] = &[
@@ -276,9 +276,8 @@ fn blizzard_main_menu_bar_bag_buttons_auto_discovered_on_game_screen_only() {
     }
 }
 
-#[test]
-fn blizzard_main_menu_bar_bag_buttons_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_main_menu_bar_bag_buttons_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -299,10 +298,10 @@ fn blizzard_main_menu_bar_bag_buttons_loads_without_addon_specific_lua_errors() 
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_main_menu_bar_bag_buttons_is_addon_loaded_after_auto_discovery() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_main_menu_bar_bag_buttons_is_addon_loaded_after_auto_discovery(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_MainMenuBarBagButtons')")
@@ -314,10 +313,10 @@ fn blizzard_main_menu_bar_bag_buttons_is_addon_loaded_after_auto_discovery() {
          loaded-set during the standard Game-screen boot pipeline"
     );
 }
+}
 
-#[test]
-fn blizzard_main_menu_bar_bag_manager_publishes_with_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_main_menu_bar_bag_manager_publishes_with_methods(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(MainMenuBarBagManager)")
@@ -343,10 +342,10 @@ fn blizzard_main_menu_bar_bag_manager_publishes_with_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_main_menu_bar_bag_manager_starts_with_empty_button_registry() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_main_menu_bar_bag_manager_starts_with_empty_button_registry(env: &WowLuaEnv) {
 
     let registry_kind: String = env
         .eval("return type(MainMenuBarBagManager.allBagButtons)")
@@ -370,10 +369,10 @@ fn blizzard_main_menu_bar_bag_manager_starts_with_empty_button_registry() {
          on re-OnLoad"
     );
 }
+}
 
-#[test]
-fn blizzard_base_bag_slot_button_mixin_publishes_with_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_base_bag_slot_button_mixin_publishes_with_methods(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(BaseBagSlotButtonMixin)")
@@ -398,10 +397,10 @@ fn blizzard_base_bag_slot_button_mixin_publishes_with_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_main_menu_bar_backpack_mixin_inherits_base_via_create_from_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_main_menu_bar_backpack_mixin_inherits_base_via_create_from_mixins(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(MainMenuBarBackpackMixin)")
@@ -438,10 +437,10 @@ fn blizzard_main_menu_bar_backpack_mixin_inherits_base_via_create_from_mixins() 
          only inherited, never re-defined"
     );
 }
+}
 
-#[test]
-fn blizzard_character_reagent_bag_mixin_publishes_with_overrides() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_character_reagent_bag_mixin_publishes_with_overrides(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(CharacterReagentBagMixin)")
@@ -474,10 +473,10 @@ fn blizzard_character_reagent_bag_mixin_publishes_with_overrides() {
          visible regardless of expand-bar state (no-op override)"
     );
 }
+}
 
-#[test]
-fn blizzard_bag_bar_expand_toggle_mixin_publishes_with_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_bag_bar_expand_toggle_mixin_publishes_with_methods(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(BagBarExpandToggleMixin)")
@@ -501,10 +500,10 @@ fn blizzard_bag_bar_expand_toggle_mixin_publishes_with_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_bag_slot_item_fly_in_mixin_publishes() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_bag_slot_item_fly_in_mixin_publishes(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(BagSlotItemFlyInMixin)")
@@ -535,10 +534,10 @@ fn blizzard_bag_slot_item_fly_in_mixin_publishes() {
          when the fly-in animation ends (line 7-9)"
     );
 }
+}
 
-#[test]
-fn blizzard_bags_bar_mixin_publishes_with_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_bags_bar_mixin_publishes_with_methods(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(BagsBarMixin)")
@@ -561,28 +560,29 @@ fn blizzard_bags_bar_mixin_publishes_with_methods() {
         );
     }
 }
-
-#[test]
-fn blizzard_calculate_total_number_of_free_bag_slots_publishes() {
-    let env = load_full_game_ui();
-
-    let kind: String = env
-        .eval("return type(CalculateTotalNumberOfFreeBagSlots)")
-        .expect("CalculateTotalNumberOfFreeBagSlots probe succeeds");
-    assert_eq!(
-        kind, "function",
-        "CalculateTotalNumberOfFreeBagSlots must publish at `_G` as a function — the only \
-         non-mixin free function exported by Mainline/MainMenuBarBagButtons.lua (line 280). \
-         Iterates BACKPACK_CONTAINER..NUM_TOTAL_EQUIPPED_BAG_SLOTS via \
-         C_Container.GetContainerNumFreeSlots and sums the free slots of bagFamily=0 \
-         containers (excludes profession bags). Consumed by \
-         MainMenuBarBackpackMixin:UpdateFreeSlots to populate the backpack count text"
-    );
 }
 
-#[test]
-fn blizzard_backpack_button_on_modified_click_publishes() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_calculate_total_number_of_free_bag_slots_is_owned_by_c_container(env: &WowLuaEnv) {
+
+    let kinds: (String, String) = env
+        .eval(
+            "return type(C_Container.CalculateTotalNumberOfFreeBagSlots), \
+                    type(CalculateTotalNumberOfFreeBagSlots)",
+        )
+        .expect("free-bag-slot owner probe succeeds");
+    assert_eq!(
+        kinds,
+        ("function".to_string(), "nil".to_string()),
+        "MainMenuBarBackpackMixin:UpdateFreeSlots calls the current \
+         C_Container.CalculateTotalNumberOfFreeBagSlots API. MainMenuBarBagButtons.lua no \
+         longer publishes a same-named global helper"
+    );
+}
+}
+
+prefork_full_ui_case! {
+fn blizzard_backpack_button_on_modified_click_publishes(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(BackpackButton_OnModifiedClick)")
@@ -594,10 +594,10 @@ fn blizzard_backpack_button_on_modified_click_publishes() {
          simultaneously (Shift-click on the backpack)"
     );
 }
+}
 
-#[test]
-fn blizzard_named_bag_frames_resolve_globally() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_named_bag_frames_resolve_globally(env: &WowLuaEnv) {
 
     for name in NAMED_BAG_FRAMES {
         let exists: bool = env
@@ -611,10 +611,10 @@ fn blizzard_named_bag_frames_resolve_globally() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_bags_bar_anchored_to_micro_button_and_bags_bar() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_bags_bar_anchored_to_micro_button_and_bags_bar(env: &WowLuaEnv) {
 
     let parent_name: String = env
         .eval("return BagsBar:GetParent():GetName()")
@@ -635,10 +635,10 @@ fn blizzard_bags_bar_anchored_to_micro_button_and_bags_bar() {
          for Classic / EditMode reflow"
     );
 }
+}
 
-#[test]
-fn blizzard_main_menu_bar_backpack_button_anchored_inside_bags_bar() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_main_menu_bar_backpack_button_anchored_inside_bags_bar(env: &WowLuaEnv) {
 
     let parent_name: String = env
         .eval("return MainMenuBarBackpackButton:GetParent():GetName()")
@@ -660,4 +660,5 @@ fn blizzard_main_menu_bar_backpack_button_anchored_inside_bags_bar() {
          MainMenuBarBagButtons.xml:55. The 0 ID corresponds to Enum.BagIndex.Backpack which \
          GetBagID returns directly (early-out at line 154)"
     );
+}
 }

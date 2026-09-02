@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, find_toc_file, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
-use wow_ui_sim::startup::fire_startup_events_for_screen;
 use wow_ui_sim::toc::TocFile;
 
 fn blizzard_ui_dir() -> PathBuf {
@@ -41,32 +40,9 @@ const VIRTUAL_TEMPLATES: &[&str] = &[
 const NAMED_NON_VIRTUAL_FRAMES: &[&str] =
     &["WeeklyRewardsFrame", "WeeklyRewardExpirationWarningDialog"];
 
-fn load_full_game_ui_with_weekly_rewards_lod() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-
-    wow_ui_sim::xml::register_intrinsic_templates();
-
-    let ui = blizzard_ui_dir();
-    let addons = discover_blizzard_addons_for_screen(&ui, ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    env.apply_post_load_workarounds();
-    fire_startup_events_for_screen(&env, ScreenKind::Game);
-
+fn load_weekly_rewards(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &weekly_rewards_toc())
         .expect("Blizzard_WeeklyRewards should load via explicit Rust loader call");
-
-    env
 }
 
 #[test]
@@ -247,9 +223,9 @@ fn excluded_from_every_screen_auto_discovery() {
     }
 }
 
-#[test]
-fn loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui_with_weekly_rewards_lod();
+prefork_full_ui_case! {
+fn loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
+    load_weekly_rewards(env);
 
     let load_errors: Vec<String> = env
         .state()
@@ -270,10 +246,11 @@ fn loads_without_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn is_addon_loaded_after_explicit_lod() {
-    let env = load_full_game_ui_with_weekly_rewards_lod();
+prefork_full_ui_case! {
+fn is_addon_loaded_after_explicit_lod(env: &WowLuaEnv) {
+    load_weekly_rewards(env);
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_WeeklyRewards')")
@@ -284,10 +261,11 @@ fn is_addon_loaded_after_explicit_lod() {
          load_addon call"
     );
 }
+}
 
-#[test]
-fn loader_function_publishes_in_uiparent() {
-    let env = load_full_game_ui_with_weekly_rewards_lod();
+prefork_full_ui_case! {
+fn loader_function_publishes_in_uiparent(env: &WowLuaEnv) {
+    load_weekly_rewards(env);
 
     for fn_name in ["WeeklyRewards_LoadUI", "WeeklyRewards_ShowUI"] {
         let kind: String = env
@@ -302,10 +280,11 @@ fn loader_function_publishes_in_uiparent() {
         );
     }
 }
+}
 
-#[test]
-fn xml_script_directive_loads_the_lua_file() {
-    let env = load_full_game_ui_with_weekly_rewards_lod();
+prefork_full_ui_case! {
+fn xml_script_directive_loads_the_lua_file(env: &WowLuaEnv) {
+    load_weekly_rewards(env);
 
     let mixin_count: i64 = env
         .eval(
@@ -327,10 +306,11 @@ fn xml_script_directive_loads_the_lua_file() {
          load path)"
     );
 }
+}
 
-#[test]
-fn all_seven_mixins_publish_with_method_signatures() {
-    let env = load_full_game_ui_with_weekly_rewards_lod();
+prefork_full_ui_case! {
+fn all_seven_mixins_publish_with_method_signatures(env: &WowLuaEnv) {
+    load_weekly_rewards(env);
 
     for mixin_name in MIXIN_GLOBALS {
         let kind: String = env
@@ -365,10 +345,11 @@ fn all_seven_mixins_publish_with_method_signatures() {
          to decide whether to show the World row or the PVP row (mutually exclusive)"
     );
 }
+}
 
-#[test]
-fn weekly_rewards_frame_publishes_with_register_ui_panel() {
-    let env = load_full_game_ui_with_weekly_rewards_lod();
+prefork_full_ui_case! {
+fn weekly_rewards_frame_publishes_with_register_ui_panel(env: &WowLuaEnv) {
+    load_weekly_rewards(env);
 
     let kind: String = env
         .eval("return type(WeeklyRewardsFrame)")
@@ -396,10 +377,11 @@ fn weekly_rewards_frame_publishes_with_register_ui_panel() {
          vault flow only ShowUIPanels it on first interaction via WeeklyRewards_ShowUI"
     );
 }
+}
 
-#[test]
-fn expiration_warning_dialog_publishes_with_high_strata() {
-    let env = load_full_game_ui_with_weekly_rewards_lod();
+prefork_full_ui_case! {
+fn expiration_warning_dialog_publishes_with_high_strata(env: &WowLuaEnv) {
+    load_weekly_rewards(env);
 
     let kind: String = env
         .eval("return type(WeeklyRewardExpirationWarningDialog)")
@@ -422,10 +404,11 @@ fn expiration_warning_dialog_publishes_with_high_strata() {
          WeeklyRewardsFrame (which uses the default panel strata)"
     );
 }
+}
 
-#[test]
-fn xml_templates_are_registered() {
-    let env = load_full_game_ui_with_weekly_rewards_lod();
+prefork_full_ui_case! {
+fn xml_templates_are_registered(env: &WowLuaEnv) {
+    load_weekly_rewards(env);
     let _ = env;
 
     for template_name in VIRTUAL_TEMPLATES {
@@ -436,10 +419,11 @@ fn xml_templates_are_registered() {
         );
     }
 }
+}
 
-#[test]
-fn named_non_virtual_frames_publish_at_globals() {
-    let env = load_full_game_ui_with_weekly_rewards_lod();
+prefork_full_ui_case! {
+fn named_non_virtual_frames_publish_at_globals(env: &WowLuaEnv) {
+    load_weekly_rewards(env);
 
     for frame_name in NAMED_NON_VIRTUAL_FRAMES {
         let kind: String = env
@@ -452,10 +436,11 @@ fn named_non_virtual_frames_publish_at_globals() {
         );
     }
 }
+}
 
-#[test]
-fn confirm_select_static_popup_dialog_registers_at_file_scope() {
-    let env = load_full_game_ui_with_weekly_rewards_lod();
+prefork_full_ui_case! {
+fn confirm_select_static_popup_dialog_registers_at_file_scope(env: &WowLuaEnv) {
+    load_weekly_rewards(env);
 
     let registered: bool = env
         .eval(
@@ -479,4 +464,5 @@ fn confirm_select_static_popup_dialog_registers_at_file_scope() {
          registration runs the moment the lua file is loaded via the XML's `<Script file>` \
          directive, NOT lazily on first use"
     );
+}
 }

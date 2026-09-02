@@ -46,8 +46,18 @@ fn load_full_game_ui() -> WowLuaEnv {
     env
 }
 
+fn execute_environment_cleanup_source_without_restore() -> WowLuaEnv {
+    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
+    let source_path = blizzard_ui_dir().join("Blizzard_EnvironmentCleanup/EnvironmentCleanup.lua");
+    let source = std::fs::read_to_string(&source_path)
+        .unwrap_or_else(|err| panic!("{} should read: {err}", source_path.display()));
+    env.exec(&source)
+        .expect("EnvironmentCleanup.lua should execute before simulator restoration");
+    env
+}
+
 #[test]
-fn blizzard_environment_cleanup_mainline_toc_declares_load_first_with_five_deps() {
+fn blizzard_environment_cleanup_mainline_toc_declares_load_first_with_six_deps() {
     let toc = TocFile::from_file(&environment_cleanup_mainline_toc())
         .expect("Blizzard_EnvironmentCleanup_Mainline TOC should parse");
 
@@ -73,11 +83,11 @@ fn blizzard_environment_cleanup_mainline_toc_declares_load_first_with_five_deps(
             "Blizzard_UnitFrame".to_string(),
             "Blizzard_UIPanels_Game".to_string(),
             "Blizzard_ChatFrame".to_string(),
+            "Blizzard_ScriptErrorsFrame".to_string(),
         ],
-        "Mainline TOC declares five hard dependencies in this order: Blizzard_FrameXML, \
-         Blizzard_ActionBar, Blizzard_UnitFrame, Blizzard_UIPanels_Game, Blizzard_ChatFrame — \
-         topological sort must place this addon AFTER all five so the cleanup pass nils out \
-         globals that those addons may have published into the standard environment"
+        "Mainline TOC declares six hard dependencies in this order: Blizzard_FrameXML, \
+         Blizzard_ActionBar, Blizzard_UnitFrame, Blizzard_UIPanels_Game, Blizzard_ChatFrame, \
+         Blizzard_ScriptErrorsFrame"
     );
 
     assert!(
@@ -113,7 +123,7 @@ fn blizzard_environment_cleanup_mainline_toc_declares_load_first_with_five_deps(
 }
 
 #[test]
-fn blizzard_environment_cleanup_classic_toc_declares_three_deps_and_classic_game_type() {
+fn blizzard_environment_cleanup_classic_toc_declares_four_deps_and_classic_game_type() {
     let toc = TocFile::from_file(&environment_cleanup_classic_toc())
         .expect("Blizzard_EnvironmentCleanup_Classic TOC should parse");
 
@@ -124,10 +134,10 @@ fn blizzard_environment_cleanup_classic_toc_declares_three_deps_and_classic_game
             "Blizzard_FrameXML".to_string(),
             "Blizzard_ActionBar".to_string(),
             "Blizzard_UIPanels_Game".to_string(),
+            "Blizzard_ScriptErrorsFrame".to_string(),
         ],
-        "Classic TOC declares only THREE deps (Blizzard_FrameXML, Blizzard_ActionBar, \
-         Blizzard_UIPanels_Game) — Classic-era retail did not ship Blizzard_UnitFrame or \
-         Blizzard_ChatFrame as separate addons, so those drop out of the dep list"
+        "Classic TOC declares four hard dependencies in this order: Blizzard_FrameXML, \
+         Blizzard_ActionBar, Blizzard_UIPanels_Game, Blizzard_ScriptErrorsFrame"
     );
 
     assert!(
@@ -187,7 +197,7 @@ fn blizzard_environment_cleanup_appears_in_game_discovery_only() {
 }
 
 #[test]
-fn blizzard_environment_cleanup_loads_after_all_five_mainline_dependencies() {
+fn blizzard_environment_cleanup_loads_after_all_six_mainline_dependencies() {
     let game_addons = discover_blizzard_addons_for_screen(&blizzard_ui_dir(), ScreenKind::Game);
     let cleanup_index = game_addons
         .iter()
@@ -200,6 +210,7 @@ fn blizzard_environment_cleanup_loads_after_all_five_mainline_dependencies() {
         "Blizzard_UnitFrame",
         "Blizzard_UIPanels_Game",
         "Blizzard_ChatFrame",
+        "Blizzard_ScriptErrorsFrame",
     ];
     for dep_name in dep_names {
         let dep_index = game_addons
@@ -215,9 +226,8 @@ fn blizzard_environment_cleanup_loads_after_all_five_mainline_dependencies() {
     }
 }
 
-#[test]
-fn blizzard_environment_cleanup_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_environment_cleanup_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -233,10 +243,10 @@ fn blizzard_environment_cleanup_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_environment_cleanup_is_addon_loaded_returns_true() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_environment_cleanup_is_addon_loaded_returns_true(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_EnvironmentCleanup') and true or false")
@@ -247,17 +257,13 @@ fn blizzard_environment_cleanup_is_addon_loaded_returns_true() {
          addon auto-loads on the Game screen"
     );
 }
+}
 
-#[test]
-fn blizzard_environment_cleanup_secure_namespaces_get_restored_post_load() {
-    // EnvironmentCleanup.lua nils `C_StoreSecure`/`C_AuthChallenge`/`C_SecureTransfer`/
-    // `C_WowTokenSecure` (lines 3, 5, 6, 224), but the simulator's per-addon post-load hook
-    // `patch_environment_cleanup` (src/loader/addon.rs:169) calls `restore_post_cleanup_globals`
-    // immediately after this addon loads — it re-runs `init_runtime_surface_bootstrap` /
-    // `register_globals` so the simulator's own stubs and downstream Blizzard addons can still
-    // invoke these C_* APIs. Capturing this contract here so the restoration is not silently
-    // dropped: if any of the four falls back to nil, the per-addon hook regressed.
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_environment_cleanup_secure_namespaces_get_restored_post_load(env: &WowLuaEnv) {
+    // EnvironmentCleanup.lua nils these secure-only namespaces. The simulator's per-addon
+    // hook immediately restores its runtime bootstrap surface so later Blizzard addons and
+    // full startup can still invoke them.
 
     let restored: (bool, bool, bool, bool) = env
         .eval(
@@ -270,68 +276,48 @@ fn blizzard_environment_cleanup_secure_namespaces_get_restored_post_load() {
     assert_eq!(
         restored,
         (true, true, true, true),
-        "After Blizzard_EnvironmentCleanup loads, the simulator's `patch_environment_cleanup` \
-         hook (src/loader/addon.rs:169) must restore C_StoreSecure / C_AuthChallenge / \
-         C_SecureTransfer / C_WowTokenSecure so the rest of the runtime keeps working. If any \
-         entry is nil, the restoration regressed and downstream addons calling \
-         `C_StoreSecure.GetProductInfo` (etc.) will throw"
+        "After Blizzard_EnvironmentCleanup loads, the explicit post-load workaround must \
+         restore C_StoreSecure / C_AuthChallenge / C_SecureTransfer / C_WowTokenSecure so \
+         the rest of startup can invoke those namespaces"
     );
 }
+}
 
-#[test]
-fn blizzard_environment_cleanup_create_secure_delegate_gets_restored_post_load() {
-    // EnvironmentCleanup.lua nils a list of secure-factory helpers (CreateForbiddenFrame line
-    // 4, SecureMixin / CreateFromSecureMixins / CreateSecureDelegate / CreateSecureMixinCopy
-    // lines 275-278, loadstring_untainted line 279, secretunwrap line 280). Of those,
-    // `CreateSecureDelegate` is provided by the simulator's temporary debug/environment
-    // workaround and `loadstring_untainted` is provided by the taint bootstrap. Capture the
-    // current restored surface here so EnvironmentCleanup does not silently remove simulator
-    // glue that downstream secure/restricted code depends on.
-    let env = load_full_game_ui();
-
-    let create_secure_delegate_restored: bool = env
-        .eval("return CreateSecureDelegate ~= nil")
-        .expect("CreateSecureDelegate probe should succeed");
-    assert!(
-        create_secure_delegate_restored,
-        "After Blizzard_EnvironmentCleanup loads, `patch_environment_cleanup` (src/loader/\
-         addon.rs:169) must restore CreateSecureDelegate via the temporary debug/environment workaround — \
-         simulator-side glue that wraps insecure functions as secure delegates depends on it"
-    );
-
-    let loadstring_untainted_restored: bool = env
-        .eval("return type(loadstring_untainted) == 'function'")
-        .expect("loadstring_untainted probe should succeed");
-    assert!(
-        loadstring_untainted_restored,
-        "After Blizzard_EnvironmentCleanup loads, loadstring_untainted must still expose the \
-         original untainted compiler function for restricted execution helpers"
-    );
-
-    let unseeded_helpers_remain_nil: (bool, bool, bool, bool, bool) = env
+prefork_full_ui_case! {
+fn blizzard_environment_cleanup_removes_secure_helpers_before_restoring_delegate(env: &WowLuaEnv) {
+    let cleanup_env = execute_environment_cleanup_source_without_restore();
+    let removed: (bool, bool, bool, bool, bool, bool, bool) = cleanup_env
         .eval(
             "return CreateForbiddenFrame == nil, \
                     SecureMixin == nil, \
                     CreateFromSecureMixins == nil, \
+                    CreateSecureDelegate == nil, \
                     CreateSecureMixinCopy == nil, \
+                    loadstring_untainted == nil, \
                     secretunwrap == nil",
         )
-        .expect("unseeded-helper probe should succeed");
+        .expect("secure-helper cleanup probe should succeed");
     assert_eq!(
-        unseeded_helpers_remain_nil,
-        (true, true, true, true, true),
-        "Simulator does not seed CreateForbiddenFrame / SecureMixin / CreateFromSecureMixins / \
-         CreateSecureMixinCopy / secretunwrap (no entries in \
-         runtime_surface_bootstrap.lua / shared_bootstrap.lua / temporary workarounds), so EnvironmentCleanup.lua's \
-         nil assignments are effectively a no-op and the post-load restoration leaves them \
-         nil. If any becomes non-nil, somebody added a simulator stub and this test should \
-         flip to verify the restoration path covers it"
+        removed,
+        (true, true, true, true, true, true, true),
+        "EnvironmentCleanup.lua must remove secure-only helpers before the simulator's \
+         post-load restoration hook runs"
     );
+
+    let create_secure_delegate_restored: bool = env
+        .eval("return type(CreateSecureDelegate) == 'function'")
+        .expect("CreateSecureDelegate probe should succeed");
+    assert!(
+        create_secure_delegate_restored,
+        "Full startup must restore CreateSecureDelegate through the explicit \
+         EnvironmentCleanup post-load workaround"
+    );
+}
 }
 
 #[test]
 fn blizzard_environment_cleanup_nils_out_blizzard_store_localization_strings() {
-    let env = load_full_game_ui();
+    let env = execute_environment_cleanup_source_without_restore();
 
     let store_strings_nil: (bool, bool, bool, bool, bool) = env
         .eval(
@@ -348,13 +334,13 @@ fn blizzard_environment_cleanup_nils_out_blizzard_store_localization_strings() {
         "EnvironmentCleanup.lua nils out 100+ `BLIZZARD_STORE_*` localization strings (lines \
          7-223). Spot-check five spread across the file (BUY @ line 9, CONFIRMATION_TITLE @ \
          16, PAYMENT_METHOD @ 19, VAS_ERROR_OTHER @ 198, BUNDLE_DISCOUNT_BANNER @ 218) — all \
-         must read as nil after load"
+         must read as nil before the simulator's restoration hook runs"
     );
 }
 
 #[test]
 fn blizzard_environment_cleanup_nils_out_vas_and_token_localization_strings() {
-    let env = load_full_game_ui();
+    let env = execute_environment_cleanup_source_without_restore();
 
     let nils: (bool, bool, bool, bool, bool) = env
         .eval(
@@ -377,7 +363,7 @@ fn blizzard_environment_cleanup_nils_out_vas_and_token_localization_strings() {
 
 #[test]
 fn blizzard_environment_cleanup_nils_out_secure_only_enum_namespaces() {
-    let env = load_full_game_ui();
+    let env = execute_environment_cleanup_source_without_restore();
 
     let nils: (bool, bool, bool, bool, bool, bool, bool, bool, bool, bool) = env
         .eval(

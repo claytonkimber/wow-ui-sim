@@ -25,7 +25,7 @@ const PING_UI_TOC_FILES: &[&str] = &[
     "Blizzard_PingUI.xml",
 ];
 
-const REQUIRED_DEPS: &[&str] = &["Blizzard_SharedXML"];
+const REQUIRED_DEPS: &[&str] = &["Blizzard_SharedXML", "Blizzard_FrameXMLUtil"];
 
 const SECURE_ENV_MIXINS: &[&str] = &[
     "PingFrameMixin",
@@ -329,9 +329,8 @@ fn blizzard_ping_ui_appears_in_full_addon_inventory() {
     );
 }
 
-#[test]
-fn blizzard_ping_ui_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_ping_ui_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -354,10 +353,10 @@ fn blizzard_ping_ui_loads_without_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_ping_ui_is_addon_loaded_after_eager_sweep() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_ping_ui_is_addon_loaded_after_eager_sweep(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_PingUI')")
@@ -369,10 +368,10 @@ fn blizzard_ping_ui_is_addon_loaded_after_eager_sweep() {
          it loads in the secure-pass first phase"
     );
 }
+}
 
-#[test]
-fn blizzard_ping_ui_secure_env_redirects_mixins_out_of_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_ping_ui_secure_env_redirects_mixins_out_of_globals(env: &WowLuaEnv) {
 
     for mixin in SECURE_ENV_MIXINS {
         let kind: String = env
@@ -398,10 +397,10 @@ fn blizzard_ping_ui_secure_env_redirects_mixins_out_of_globals() {
          additions surface here on a vendor TAG bump"
     );
 }
+}
 
-#[test]
-fn blizzard_ping_ui_secure_env_redirects_namespace_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_ping_ui_secure_env_redirects_namespace_globals(env: &WowLuaEnv) {
 
     for namespace in SECURE_ENV_NAMESPACES {
         let kind: String = env
@@ -416,10 +415,10 @@ fn blizzard_ping_ui_secure_env_redirects_namespace_globals() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_ping_ui_secure_env_redirects_free_function_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_ping_ui_secure_env_redirects_free_function_globals(env: &WowLuaEnv) {
 
     for func in SECURE_ENV_FREE_FUNCTIONS {
         let kind: String = env
@@ -438,10 +437,10 @@ fn blizzard_ping_ui_secure_env_redirects_free_function_globals() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_ping_ui_creates_named_non_virtual_frames() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_ping_ui_creates_named_non_virtual_frames(env: &WowLuaEnv) {
 
     for frame in PUBLIC_NAMED_FRAMES {
         let kind: String = env
@@ -473,10 +472,10 @@ fn blizzard_ping_ui_creates_named_non_virtual_frames() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_ping_ui_marks_named_frames_as_forbidden() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_ping_ui_marks_named_frames_as_forbidden(env: &WowLuaEnv) {
 
     for frame in PUBLIC_NAMED_FRAMES {
         let forbidden: bool = env
@@ -498,10 +497,10 @@ fn blizzard_ping_ui_marks_named_frames_as_forbidden() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_ping_ui_does_not_leak_virtual_templates_to_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_ping_ui_does_not_leak_virtual_templates_to_globals(env: &WowLuaEnv) {
 
     for template in VIRTUAL_TEMPLATES_NOT_IN_GLOBALS {
         let kind: String = env
@@ -521,10 +520,10 @@ fn blizzard_ping_ui_does_not_leak_virtual_templates_to_globals() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_ping_ui_publishes_c_ping_secure_callback_setters_in_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_ping_ui_publishes_c_ping_secure_callback_setters_in_globals(env: &WowLuaEnv) {
 
     let ns_kind: String = env
         .eval("return type(C_PingSecure)")
@@ -563,10 +562,10 @@ fn blizzard_ping_ui_publishes_c_ping_secure_callback_setters_in_globals() {
          vendor TAG bumps surfaces here"
     );
 }
+}
 
-#[test]
-fn blizzard_ping_ui_publishes_enum_ping_mode_result_subject_type() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_ping_ui_publishes_enum_ping_mode_result_subject_type(env: &WowLuaEnv) {
 
     let ping_mode_kind: String = env
         .eval("return type(Enum.PingMode)")
@@ -614,10 +613,10 @@ fn blizzard_ping_ui_publishes_enum_ping_mode_result_subject_type() {
          wedge-info payload"
     );
 }
+}
 
-#[test]
-fn blizzard_ping_ui_publishes_required_localized_strings() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_ping_ui_publishes_required_localized_strings(env: &WowLuaEnv) {
 
     for key in REQUIRED_LOCALIZED_STRINGS {
         let kind: String = env
@@ -635,10 +634,10 @@ fn blizzard_ping_ui_publishes_required_localized_strings() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_ping_ui_radial_wheel_frame_mixin_is_provided_by_shared_xml() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_ping_ui_radial_wheel_frame_mixin_is_provided_by_shared_xml(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(_G.RadialWheelFrameMixin)")
@@ -654,4 +653,5 @@ fn blizzard_ping_ui_radial_wheel_frame_mixin_is_provided_by_shared_xml() {
          RadialWheelFrameMixin lives in `_G` and is visible from inside Blizzard_PingUI's \
          secureenv via the shared globals lookup chain"
     );
+}
 }

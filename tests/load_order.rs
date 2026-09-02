@@ -101,8 +101,8 @@ fn test_uipanels_game_loads_before_bag_buttons() {
     }
 }
 
-/// Blizzard_ItemButton currently loads before Blizzard_FrameXMLUtil, so
-/// ItemButtonMixin:PostOnShow can run before ItemButtonUtil exists.
+/// Blizzard_ItemButton appears before Blizzard_FrameXMLUtil in eager discovery.
+/// Runtime addon loads may still pull FrameXMLUtil in earlier as a foundation.
 #[test]
 fn test_item_button_loads_before_framexmlutil() {
     test_timeout! {
@@ -132,34 +132,51 @@ fn test_item_button_loads_before_framexmlutil() {
     }
 }
 
-/// When Blizzard_ItemButton has loaded but Blizzard_FrameXMLUtil has not,
-/// ItemButtonMixin exists but ItemButtonUtil still does not.
+/// Startup consumers must pull their load-on-demand publisher addons without
+/// promoting unrelated load-on-demand addons into eager discovery.
 #[test]
-fn test_item_button_mixin_exists_before_item_button_util() {
+fn test_startup_publishers_load_before_consumers() {
     test_timeout! {
-        let env = WowLuaEnv::new().expect("Failed to create Lua environment");
         let ui = blizzard_ui_dir();
         let addons = discover_blizzard_addons(&ui);
+        let names: Vec<&str> = addons.iter().map(|(name, _)| name.as_str()).collect();
 
-        for (name, toc_path) in &addons {
-            load_addon(&env.loader_env(), toc_path).ok();
-            if name == "Blizzard_ItemButton" {
-                break;
-            }
+        for (publisher, consumer) in [
+            ("Blizzard_TimeManager", "Blizzard_Game"),
+            ("Blizzard_CooldownBroadcaster", "Blizzard_Game"),
+            ("Blizzard_BoostTutorial", "Blizzard_Game"),
+            ("Blizzard_CombatLog", "Blizzard_Game"),
+            ("Blizzard_RaidFrame", "Blizzard_RaidUI"),
+        ] {
+            let publisher_position = names
+                .iter()
+                .position(|name| *name == publisher)
+                .unwrap_or_else(|| panic!("{publisher} should be discovered"));
+            let consumer_position = names
+                .iter()
+                .position(|name| *name == consumer)
+                .unwrap_or_else(|| panic!("{consumer} should be discovered"));
+
+            assert!(
+                publisher_position < consumer_position,
+                "{publisher} must load before {consumer}"
+            );
         }
 
-        let (has_item_button_mixin, has_item_button_util): (bool, bool) = env
-            .eval(
-                r#"
-                return type(ItemButtonMixin) == "table",
-                    type(ItemButtonUtil) == "table"
-                "#,
-            )
-            .unwrap();
-        assert!(has_item_button_mixin);
+        for publisher in [
+            "Blizzard_MacroUI",
+            "Blizzard_TrainerUI",
+            "Blizzard_AchievementUI",
+        ] {
+            assert!(
+                names.contains(&publisher),
+                "standalone startup publisher {publisher} should be discovered"
+            );
+        }
+
         assert!(
-            !has_item_button_util,
-            "ItemButtonUtil should still be unavailable when Blizzard_ItemButton finishes loading"
+            !names.contains(&"Deprecated_PaperDoll"),
+            "unrelated load-on-demand addons must remain excluded"
         );
     }
 }
@@ -170,7 +187,7 @@ fn test_item_button_mixin_exists_before_item_button_util() {
 /// catches it. Update the snapshot deliberately when the order changes for a
 /// good reason (e.g. new addon added, wow-ui-source updated, dependency changed).
 ///
-/// To regenerate: `cargo test --test load_order dump_load_order -- --ignored --nocapture`
+/// To regenerate: `cargo test --test integration load_order::dump_load_order -- --ignored --nocapture`
 #[test]
 fn test_blizzard_addon_load_order_snapshot() {
     test_timeout! {
@@ -192,45 +209,45 @@ fn test_blizzard_addon_load_order_snapshot() {
             "Blizzard_AuthChallengeUI",
             "Blizzard_CatalogShopSharedUtil",
             "Blizzard_CatalogShopSharedTemplates",
-            "Blizzard_CatalogShop",
-            "Blizzard_AsyncRequest",
-            "Blizzard_CatalogShopRefundFlow",
-            "Blizzard_CatalogShopTopUpFlow",
-            "Blizzard_ClassTrialSecure",
-            "Blizzard_StoreUI",
-            "Blizzard_Settings_Shared",
-            "Blizzard_TextStatusBar",
-            "Blizzard_AccessibilityTemplates",
-            "Blizzard_SettingsDefinitions_Shared",
-            "Blizzard_SettingsDefinitions_Frame",
-            "Blizzard_QuickKeybind",
             "Blizzard_SharedXMLGame",
             "Blizzard_FrameXMLBase",
             "Blizzard_ObjectAPI",
             "Blizzard_UIParent",
             "Blizzard_UIParentPanelManager",
+            "Blizzard_CatalogShop",
+            "Blizzard_AsyncRequest",
+            "Blizzard_CatalogShopRefundFlow",
+            "Blizzard_CatalogShopTopUpFlow",
+            "Blizzard_ClassTrialSecure",
+            "Blizzard_CombatLogBase",
+            "Blizzard_CombatLogProcessor",
+            "Blizzard_CommunitiesSecure",
+            "Blizzard_StaticPopup",
+            "Blizzard_ItemButton",
+            "Blizzard_AutoComplete",
+            "Blizzard_MoneyFrame",
+            "Blizzard_AccessibilityTemplates",
+            "Blizzard_StaticPopup_Game",
+            "Blizzard_Settings_Shared",
+            "Blizzard_TextStatusBar",
+            "Blizzard_SettingsDefinitions_Shared",
+            "Blizzard_SettingsDefinitions_Frame",
+            "Blizzard_FrameXMLUtil",
             "Blizzard_UIPanelTemplates",
             "Blizzard_EditMode",
-            "Blizzard_ItemButton",
-            "Blizzard_FrameXMLUtil",
             "Blizzard_GarrisonBase",
             "Blizzard_GameTooltip",
-            "Blizzard_MoneyFrame",
-            "Blizzard_StaticPopup",
-            "Blizzard_AutoComplete",
-            "Blizzard_StaticPopup_Game",
             "Blizzard_TransmogShared",
             "Blizzard_FrameXML",
+            "Blizzard_SimpleCheckout",
+            "Blizzard_StoreUI",
+            "Blizzard_QuickKeybind",
             "Blizzard_POIButton",
             "Blizzard_UIPanels_Game",
             "Blizzard_Flyout",
             "Blizzard_MicroMenu",
             "Blizzard_ActionBar",
             "Blizzard_Minimap",
-            "Blizzard_ClassTrial",
-            "Blizzard_CombatLogBase",
-            "Blizzard_CombatLogProcessor",
-            "Blizzard_CommunitiesSecure",
             "Blizzard_BuffFrame",
             "Blizzard_SpellDiminishUI",
             "Blizzard_UnitFrame",
@@ -238,13 +255,13 @@ fn test_blizzard_addon_load_order_snapshot() {
             "Blizzard_ChatFrameBase",
             "Blizzard_VoiceToggleButton",
             "Blizzard_ChatFrame",
+            "Blizzard_ScriptErrorsFrame",
             "Blizzard_RestrictedAddOnEnvironment",
             "Blizzard_EnvironmentCleanup",
             "Blizzard_MapCanvasSecureUtil",
             "Blizzard_PingUI",
             "Blizzard_PrivateAurasUI",
             "Blizzard_SecureTransferUI",
-            "Blizzard_SimpleCheckout",
             "Blizzard_WowTokenUI",
             "Blizzard_OverrideActionBar",
             "Blizzard_ActionBarController",
@@ -257,6 +274,7 @@ fn test_blizzard_addon_load_order_snapshot() {
             "Blizzard_Channels",
             "Blizzard_ChatFrameUtil",
             "Blizzard_ClassMenu",
+            "Blizzard_ClassTrial",
             "Blizzard_ClientSavedVariables",
             "Blizzard_CodeOfConduct",
             "Blizzard_CombatAudioAlerts",
@@ -297,6 +315,7 @@ fn test_blizzard_addon_load_order_snapshot() {
             "Blizzard_DeprecatedItemScript",
             "Blizzard_DeprecatedItemSocketInfo",
             "Blizzard_DeprecatedLFG",
+            "Blizzard_DeprecatedPartyInfo",
             "Blizzard_DeprecatedPetInfo",
             "Blizzard_DeprecatedPvpScript",
             "Blizzard_DeprecatedSoundScript",
@@ -311,6 +330,7 @@ fn test_blizzard_addon_load_order_snapshot() {
             "Blizzard_Dispatcher",
             "Blizzard_EncounterTimeline",
             "Blizzard_EncounterWarnings",
+            "Blizzard_ExpansionLandingPage",
             "Blizzard_FrameEffects",
             "Blizzard_FrameStack",
             "Blizzard_FramerateFrame",
@@ -347,7 +367,6 @@ fn test_blizzard_addon_load_order_snapshot() {
             "Blizzard_ReportFrameShared",
             "Blizzard_ReportFrame",
             "Blizzard_SavedSets",
-            "Blizzard_ScriptErrorsFrame",
             "Blizzard_SharedMapDataProviders",
             "Blizzard_SharedWidgetFrames",
             "Blizzard_StableUI",
@@ -364,7 +383,7 @@ fn test_blizzard_addon_load_order_snapshot() {
         assert_eq!(
             names, expected,
             "Blizzard addon load order changed. If intentional, update the snapshot.\n\
-             To regenerate: cargo test --test load_order dump_load_order -- --ignored --nocapture"
+             To regenerate: cargo test --test integration load_order::dump_load_order -- --ignored --nocapture"
         );
     }
 }

@@ -131,9 +131,8 @@ fn blizzard_encounter_warnings_loads_after_edit_mode_dependency() {
     );
 }
 
-#[test]
-fn blizzard_encounter_warnings_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_encounter_warnings_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -149,10 +148,10 @@ fn blizzard_encounter_warnings_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_encounter_warnings_is_addon_loaded_returns_true() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_encounter_warnings_is_addon_loaded_returns_true(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_EncounterWarnings') and true or false")
@@ -163,10 +162,10 @@ fn blizzard_encounter_warnings_is_addon_loaded_returns_true() {
          auto-loads on the Game screen"
     );
 }
+}
 
-#[test]
-fn blizzard_encounter_warnings_creates_three_severity_singletons() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_encounter_warnings_creates_three_severity_singletons(env: &WowLuaEnv) {
 
     let kinds: (String, String, String) = env
         .eval(
@@ -205,10 +204,10 @@ fn blizzard_encounter_warnings_creates_three_severity_singletons() {
         ":GetName() must echo each XML `name` attribute"
     );
 }
+}
 
-#[test]
-fn blizzard_encounter_warnings_severity_singletons_inherit_view_child_frame() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_encounter_warnings_severity_singletons_inherit_view_child_frame(env: &WowLuaEnv) {
 
     let view_kinds: (String, String, String) = env
         .eval(
@@ -228,10 +227,10 @@ fn blizzard_encounter_warnings_severity_singletons_inherit_view_child_frame() {
          ResizeLayoutMixin)) is attached to that child"
     );
 }
+}
 
-#[test]
-fn blizzard_encounter_warnings_publishes_system_frame_mixin() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_encounter_warnings_publishes_system_frame_mixin(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(EncounterWarningsSystemFrameMixin)")
@@ -261,10 +260,10 @@ fn blizzard_encounter_warnings_publishes_system_frame_mixin() {
          OnShow/OnHide gate ENCOUNTER_WARNING registration via FrameUtil"
     );
 }
+}
 
-#[test]
-fn blizzard_encounter_warnings_publishes_view_and_view_element_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_encounter_warnings_publishes_view_and_view_element_mixins(env: &WowLuaEnv) {
 
     let kinds: (String, String, String, String, String) = env
         .eval(
@@ -291,10 +290,10 @@ fn blizzard_encounter_warnings_publishes_view_and_view_element_mixins() {
          TextElement). All five must publish as global tables"
     );
 }
+}
 
-#[test]
-fn blizzard_encounter_warnings_publishes_settings_and_util_namespaces() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_encounter_warnings_publishes_settings_and_util_namespaces(env: &WowLuaEnv) {
 
     let kinds: (String, String) = env
         .eval(
@@ -311,10 +310,10 @@ fn blizzard_encounter_warnings_publishes_settings_and_util_namespaces() {
          and the util namespace holds shared helpers"
     );
 }
+}
 
-#[test]
-fn blizzard_encounter_warnings_publishes_constants_table() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_encounter_warnings_publishes_constants_table(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(EncounterWarningsConstants)")
@@ -345,10 +344,10 @@ fn blizzard_encounter_warnings_publishes_constants_table() {
          messages mirroring an encounter warning"
     );
 }
+}
 
-#[test]
-fn blizzard_encounter_warnings_publishes_severity_lookup_tables() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_encounter_warnings_publishes_severity_lookup_tables(env: &WowLuaEnv) {
 
     let severity_kinds: (String, String, String) = env
         .eval(
@@ -385,10 +384,10 @@ fn blizzard_encounter_warnings_publishes_severity_lookup_tables() {
          bounds"
     );
 }
+}
 
-#[test]
-fn blizzard_encounter_warnings_publishes_visibility_cvars_array() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_encounter_warnings_publishes_visibility_cvars_array(env: &WowLuaEnv) {
 
     let cvars: (String, String, String, i64) = env
         .eval(
@@ -413,10 +412,10 @@ fn blizzard_encounter_warnings_publishes_visibility_cvars_array() {
          self:UpdateVisibility() when any of them flips"
     );
 }
+}
 
-#[test]
-fn blizzard_encounter_warnings_publishes_dynamic_events_array() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_encounter_warnings_publishes_dynamic_events_array(env: &WowLuaEnv) {
 
     let events: (String, i64) = env
         .eval(
@@ -433,10 +432,10 @@ fn blizzard_encounter_warnings_publishes_dynamic_events_array() {
          observes warnings while it is visible"
     );
 }
+}
 
-#[test]
-fn blizzard_encounter_warnings_setting_defaults_table_is_populated() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_encounter_warnings_setting_defaults_table_is_populated(env: &WowLuaEnv) {
 
     let icon_scale: f64 = env
         .eval("return EncounterWarningsSettingDefaults.IconScale")
@@ -456,4 +455,5 @@ fn blizzard_encounter_warnings_setting_defaults_table_is_populated() {
          Enum.EncounterEventsTooltipAnchor.Default value — confirms the enum is seeded at \
          env init before this constants file evaluates"
     );
+}
 }

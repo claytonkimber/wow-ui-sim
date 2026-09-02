@@ -15,14 +15,14 @@ fn definitions_frame_dir() -> PathBuf {
     blizzard_ui_dir().join("Blizzard_SettingsDefinitions_Frame")
 }
 
-fn definitions_frame_mainline_toc() -> PathBuf {
-    definitions_frame_dir().join("Blizzard_SettingsDefinitions_Frame_Mainline.toc")
+fn definitions_frame_toc() -> PathBuf {
+    definitions_frame_dir().join("Blizzard_SettingsDefinitions_Frame.toc")
 }
 
 const HARD_DEPS: &[&str] = &[
-    "Blizzard_SharedXML",
     "Blizzard_SettingsDefinitions_Shared",
     "Blizzard_Colors",
+    "Blizzard_GameMenuEsc",
 ];
 
 const PUBLIC_GLOBAL_NAMESPACES: &[&str] = &[
@@ -76,24 +76,83 @@ fn load_full_game_ui() -> WowLuaEnv {
 }
 
 #[test]
-fn find_toc_file_prefers_mainline_variant() {
-    let resolved = find_toc_file(&definitions_frame_dir())
-        .expect("Blizzard_SettingsDefinitions_Frame TOC resolves");
+fn retail_12_1_housing_settings_global_strings_match_pinned_export() {
+    const EXPECTED: &[(&str, &str)] = &[
+        ("HOUSING_SETTINGS_LABEL", "Housing"),
+        (
+            "DECOR_LIGHT_RADIUS_INDICATOR_ENABLED",
+            "Light Radius Indicators",
+        ),
+        (
+            "OPTION_TOOLTIP_DECOR_LIGHT_RADIUS_INDICATOR_ENABLED",
+            "Enables Light Radius Indicators to show when placing Decor",
+        ),
+        ("DECOR_LIGHT_RADIUS_INDICATOR_TYPE_ALWAYS", "Always"),
+        (
+            "OPTION_TOOLTIP_DECOR_LIGHT_RADIUS_INDICATOR_TYPE_ALWAYS",
+            "The Indicator is always visible while moving a light.",
+        ),
+        ("DECOR_LIGHT_RADIUS_INDICATOR_TYPE_OVERLAP", "Overlap"),
+        (
+            "OPTION_TOOLTIP_DECOR_LIGHT_RADIUS_INDICATOR_TYPE_OVERLAP",
+            "When two lights are overlapping the indicator will appear.",
+        ),
+        ("DECOR_LIGHT_RADIUS_INDICATOR_TYPE_NEVER", "Never"),
+        (
+            "OPTION_TOOLTIP_DECOR_LIGHT_RADIUS_INDICATOR_TYPE_NEVER",
+            "No indicator will show.",
+        ),
+        (
+            "SELECTED_DECOR_LIGHT_RADIUS_INDICATOR_TYPE",
+            "Selected Decor",
+        ),
+        (
+            "OPTION_TOOLTIP_SELECTED_DECOR_LIGHT_RADIUS_INDICATOR_TYPE",
+            "Controls how the Light Radius Indicator is displayed on selected Decor while decorating.",
+        ),
+        ("OTHER_DECOR_LIGHT_RADIUS_INDICATOR_TYPE", "Other Decor"),
+        (
+            "OPTION_TOOLTIP_OTHER_DECOR_LIGHT_RADIUS_INDICATOR_TYPE",
+            "Controls how the Light Radius Indicator is displayed on non-selected Decor while decorating.",
+        ),
+    ];
+
+    let env = WowLuaEnv::new().expect("failed to create Lua environment");
+    for &(name, expected) in EXPECTED {
+        let (actual_type, actual_value): (String, String) = env
+            .eval(&format!(
+                r#"
+                local value = rawget(_G, {name:?})
+                return type(value), type(value) == "string" and value or tostring(value)
+                "#
+            ))
+            .unwrap_or_else(|error| panic!("failed to read global {name}: {error}"));
+
+        assert_eq!(
+            actual_type, "string",
+            "global {name}: expected string {expected:?}, actual type {actual_type:?} value {actual_value:?}"
+        );
+        assert_eq!(
+            actual_value, expected,
+            "global {name}: expected {expected:?}, actual {actual_value:?}"
+        );
+    }
+}
+
+#[test]
+fn find_toc_file_resolves_bare_variant() {
     assert_eq!(
-        resolved,
-        definitions_frame_mainline_toc(),
-        "find_toc_file must prefer the `_Mainline.toc` variant — there is NO bare \
-         `Blizzard_SettingsDefinitions_Frame.toc`, only the flavor-specific \
-         `_Mainline.toc`. The classic flavor stack uses different override Lua \
-         files (`Mainline\\` subdir is mainline-only) so a separate _Cata/_Wrath \
-         TOC variant in upstream Blizzard source omits the entire Mainline subdir"
+        find_toc_file(&definitions_frame_dir())
+            .expect("Blizzard_SettingsDefinitions_Frame TOC resolves"),
+        definitions_frame_toc(),
+        "Retail ships the bare Blizzard_SettingsDefinitions_Frame.toc."
     );
 }
 
 #[test]
-fn toc_declares_eager_game_only_mainline_with_three_hard_deps() {
-    let toc = TocFile::from_file(&definitions_frame_mainline_toc())
-        .expect("Blizzard_SettingsDefinitions_Frame_Mainline TOC parses");
+fn toc_declares_eager_game_only_with_three_hard_deps() {
+    let toc = TocFile::from_file(&definitions_frame_toc())
+        .expect("Blizzard_SettingsDefinitions_Frame TOC parses");
 
     assert!(
         !toc.is_load_on_demand(),
@@ -155,21 +214,13 @@ fn toc_declares_eager_game_only_mainline_with_three_hard_deps() {
 
 #[test]
 fn toc_raw_bytes_pin_metadata_with_default_state_enabled() {
-    let raw = std::fs::read_to_string(definitions_frame_mainline_toc())
-        .expect("Blizzard_SettingsDefinitions_Frame_Mainline TOC reads utf-8");
+    let raw = std::fs::read_to_string(definitions_frame_toc())
+        .expect("Blizzard_SettingsDefinitions_Frame TOC reads utf-8");
 
     assert!(raw.contains("## Title: Blizzard_SettingsDefinitions_Frame"));
-    assert!(raw.contains("## Author: Blizzard Entertainment"));
-    assert!(
-        raw.contains("## DefaultState: enabled"),
-        "TOC must declare `## DefaultState: enabled` — settings panel categories \
-         must always be available; player-facing addon-management UI must not \
-         offer a way to disable category registration"
-    );
     assert!(raw.contains("## AllowLoad: Game"));
-    assert!(raw.contains("## AllowLoadGameType: mainline"));
     assert!(raw.contains(
-        "## Dependencies: Blizzard_SharedXML, Blizzard_SettingsDefinitions_Shared, Blizzard_Colors"
+        "## Dependencies: Blizzard_SettingsDefinitions_Shared, Blizzard_Colors, Blizzard_GameMenuEsc"
     ));
     assert!(
         !raw.contains("## SavedVariables"),
@@ -181,8 +232,8 @@ fn toc_raw_bytes_pin_metadata_with_default_state_enabled() {
 
 #[test]
 fn toc_body_lists_eight_mainline_overrides_first_then_main_files_with_classic_comment() {
-    let toc = TocFile::from_file(&definitions_frame_mainline_toc())
-        .expect("Blizzard_SettingsDefinitions_Frame_Mainline TOC parses");
+    let toc = TocFile::from_file(&definitions_frame_toc())
+        .expect("Blizzard_SettingsDefinitions_Frame TOC parses");
     let listed: Vec<String> = toc
         .files
         .iter()
@@ -243,8 +294,8 @@ fn toc_body_lists_eight_mainline_overrides_first_then_main_files_with_classic_co
         );
     }
 
-    let raw = std::fs::read_to_string(definitions_frame_mainline_toc())
-        .expect("Blizzard_SettingsDefinitions_Frame_Mainline TOC reads utf-8");
+    let raw = std::fs::read_to_string(definitions_frame_toc())
+        .expect("Blizzard_SettingsDefinitions_Frame TOC reads utf-8");
     assert!(
         raw.contains(
             "# NOTE: Accessibility.lua should be the only file loaded in classic, only \
@@ -320,9 +371,8 @@ fn root_directory_holds_eight_mainline_overrides_in_subdir() {
     }
 }
 
-#[test]
-fn loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -346,10 +396,10 @@ fn loads_without_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn is_addon_loaded_after_eager_sweep() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn is_addon_loaded_after_eager_sweep(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_SettingsDefinitions_Frame')")
@@ -360,10 +410,10 @@ fn is_addon_loaded_after_eager_sweep() {
          return true after the eager Game-screen sweep"
     );
 }
+}
 
-#[test]
-fn publishes_nine_override_namespace_globals_as_tables() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn publishes_nine_override_namespace_globals_as_tables(env: &WowLuaEnv) {
 
     for namespace in PUBLIC_GLOBAL_NAMESPACES {
         let kind: String = env
@@ -382,10 +432,10 @@ fn publishes_nine_override_namespace_globals_as_tables() {
         );
     }
 }
+}
 
-#[test]
-fn publishes_twelve_global_mixin_tables_for_settings_widgets() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn publishes_twelve_global_mixin_tables_for_settings_widgets(env: &WowLuaEnv) {
 
     for mixin in PUBLIC_GLOBAL_MIXINS {
         let kind: String = env
@@ -409,10 +459,10 @@ fn publishes_twelve_global_mixin_tables_for_settings_widgets() {
         );
     }
 }
+}
 
-#[test]
-fn custom_gameplay_settings_order_publishes_with_label_keys() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn custom_gameplay_settings_order_publishes_with_label_keys(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(_G.CUSTOM_GAMEPLAY_SETTINGS_ORDER)")
@@ -431,10 +481,10 @@ fn custom_gameplay_settings_order_publishes_with_label_keys() {
          category file's Register() function reads it"
     );
 }
+}
 
-#[test]
-fn self_cast_setting_values_publishes_four_named_modes_from_combat_lua() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn self_cast_setting_values_publishes_four_named_modes_from_combat_lua(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(_G.SELF_CAST_SETTING_VALUES)")
@@ -465,4 +515,5 @@ fn self_cast_setting_values_publishes_four_named_modes_from_combat_lua() {
              player's saved self-cast preference"
         );
     }
+}
 }

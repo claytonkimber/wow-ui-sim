@@ -47,6 +47,30 @@ fn set_cvar_accepts_boolean_as_one_zero() {
 }
 
 #[test]
+fn set_cvar_fires_cvar_update_after_storing_value() {
+    let env = env();
+    let result: String = env
+        .eval(
+            r#"
+            RegisterCVar("runtimeEventProbe", "old")
+            local observed
+            local frame = CreateFrame("Frame")
+            frame:RegisterEvent("CVAR_UPDATE")
+            frame:SetScript("OnEvent", function(_, event, name, value)
+                if name == "runtimeEventProbe" then
+                    observed = table.concat({ event, name, tostring(value), GetCVar(name) }, ":")
+                end
+            end)
+            SetCVar("runtimeEventProbe", "new")
+            return observed
+            "#,
+        )
+        .unwrap();
+
+    assert_eq!(result, "CVAR_UPDATE:runtimeEventProbe:new:new");
+}
+
+#[test]
 fn set_cvar_empty_name_returns_false() {
     let env = env();
     let ok: bool = env.eval(r#"return SetCVar("", "1")"#).unwrap();

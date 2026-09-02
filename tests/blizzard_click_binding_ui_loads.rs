@@ -59,9 +59,8 @@ fn unexpected_errors(env: &WowLuaEnv) -> Vec<String> {
         .collect()
 }
 
-#[test]
-fn blizzard_click_binding_ui_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_click_binding_ui_loads_without_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -103,10 +102,10 @@ fn blizzard_click_binding_ui_loads_without_errors() {
         "Blizzard_ClickBindingUI mixin tables should be defined after load"
     );
 }
+}
 
-#[test]
-fn click_binding_frame_show_and_hide_run_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn click_binding_frame_show_and_hide_run_without_errors(env: &WowLuaEnv) {
 
     load_addon(&env.loader_env(), &click_binding_ui_toc())
         .expect("Blizzard_ClickBindingUI should load");
@@ -127,4 +126,5 @@ fn click_binding_frame_show_and_hide_run_without_errors() {
         "ClickBindingFrame Show/Hide emitted unexpected Lua errors:\n  {}",
         leftover.join("\n  ")
     );
+}
 }

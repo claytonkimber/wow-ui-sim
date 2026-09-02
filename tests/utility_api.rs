@@ -141,6 +141,35 @@ fn test_table_wipe_alias() {
     assert_eq!(count, 0);
 }
 
+#[test]
+fn test_table_create_returns_empty_mutable_tables_for_capacity_variants() {
+    let env = env();
+    let result: String = env
+        .eval(
+            r#"
+            local tables = {
+                table.create(),
+                table.create(3),
+                table.create(0, 4),
+                table.create(3, 4),
+            }
+            for index, value in ipairs(tables) do
+                if type(value) ~= "table" or next(value) ~= nil then
+                    return "initial:" .. index
+                end
+                value[3] = "array"
+                value.key = "hash"
+                if value[3] ~= "array" or value.key ~= "hash" then
+                    return "mutation:" .. index
+                end
+            end
+            return "ok"
+            "#,
+        )
+        .unwrap();
+    assert_eq!(result, "ok");
+}
+
 // ============================================================================
 // tinsert / tremove
 // ============================================================================
@@ -569,9 +598,7 @@ fn test_strsplittable() {
 #[test]
 fn test_string_split_method() {
     let env = env();
-    let (a, b, c): (String, String, String) = env
-        .eval(r#"return ("a-b-c"):split("-")"#)
-        .unwrap();
+    let (a, b, c): (String, String, String) = env.eval(r#"return ("a-b-c"):split("-")"#).unwrap();
     assert_eq!((a.as_str(), b.as_str(), c.as_str()), ("a", "b", "c"));
 }
 
@@ -584,6 +611,34 @@ fn test_string_split_method_accepts_delimiter_receiver() {
         (major.as_str(), minor.as_str(), build.as_str()),
         ("12", "0", "5")
     );
+}
+
+#[test]
+fn test_string_split_method_accepts_empty_delimiter_receiver_input() {
+    let env = env();
+    let value: String = env.eval(r#"return (" "):split("")"#).unwrap();
+    assert_eq!(value, "");
+}
+
+#[test]
+fn test_string_split_function_accepts_empty_delimiter_receiver_input() {
+    let env = env();
+    let value: String = env.eval(r#"return string.split(" ", "")"#).unwrap();
+    assert_eq!(value, "");
+}
+
+#[test]
+fn test_string_split_method_accepts_equal_length_delimiter_receiver_input() {
+    let env = env();
+    let value: String = env.eval(r#"return (" "):split("?")"#).unwrap();
+    assert_eq!(value, "?");
+}
+
+#[test]
+fn test_string_split_function_accepts_equal_length_delimiter_receiver_input() {
+    let env = env();
+    let value: String = env.eval(r#"return string.split(" ", "?")"#).unwrap();
+    assert_eq!(value, "?");
 }
 
 #[test]

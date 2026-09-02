@@ -4,7 +4,10 @@
 //! addon-visible reads and the `_G_live` shadow-override contract hold
 //! end-to-end.
 
+use std::process::Command;
 use wow_ui_sim::lua_api::WowLuaEnv;
+
+const FREEZE_GLOBALS_CHILD_ENV: &str = "WOW_SIM_FREEZE_GLOBALS_TEST_CHILD";
 
 /// Slot 0 always maps to `_G` regardless of freeze state. The
 /// bootstrap-populated slot vector must reflect that.
@@ -53,21 +56,29 @@ fn whitelisted_global_is_populated_at_bootstrap() {
 /// is the real contract.
 #[test]
 fn g_live_shadow_surfaces_new_whitelisted_global_after_freeze() {
-    // SAFETY: single-threaded test binary (default cargo test harness
-    // runs tests per-binary in parallel threads but each test in its
-    // own binary; `tests/*.rs` each compile to their own binary).
-    // Within this binary this test runs alone before env reads happen.
-    unsafe { std::env::set_var("WOW_SIM_FREEZE_GLOBALS", "1") };
-    let env = WowLuaEnv::new().expect("lua env with freeze gate");
-    unsafe { std::env::remove_var("WOW_SIM_FREEZE_GLOBALS") };
+    if std::env::var_os(FREEZE_GLOBALS_CHILD_ENV).is_some() {
+        assert_frozen_global_shadow();
+        return;
+    }
 
-    // Pick a unique, not-in-whitelist key so the freeze gate routes the
-    // write into `_G_live` via `__newindex`. Then confirm the read
-    // returns the override value through both `_G[...]` and the bare
-    // identifier. The semantic we're pinning is that post-freeze
-    // addon writes to new keys remain Lua-visible — which is the
-    // precondition for slot fast-path reads to surface the shadow on
-    // any name that was Nil at install time.
+    let test_thread = std::thread::current();
+    let test_name = test_thread.name().expect("global-slot test thread name");
+    let output = Command::new(std::env::current_exe().expect("integration test binary"))
+        .args([test_name, "--exact", "--test-threads=1", "--nocapture"])
+        .env(FREEZE_GLOBALS_CHILD_ENV, "1")
+        .env("WOW_SIM_FREEZE_GLOBALS", "1")
+        .output()
+        .expect("run frozen-global child test");
+    assert!(
+        output.status.success(),
+        "frozen-global child failed\nstdout:\n{}\nstderr:\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+fn assert_frozen_global_shadow() {
+    let env = WowLuaEnv::new().expect("lua env with freeze gate");
     let (direct, indexed): (String, String) = env
         .eval(
             r#"

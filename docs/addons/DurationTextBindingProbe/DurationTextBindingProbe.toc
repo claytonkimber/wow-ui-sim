@@ -1,0 +1,8 @@
+## Interface: 120100
+## Title: Duration Text Binding Probe
+## Notes: Captures bounded live-client observations for C_DurationUtil.CreateDurationTextBinding.
+## Author: Alessio
+## Version: 0.1.0
+## SavedVariables: DurationTextBindingProbeDB
+
+DurationTextBindingProbe.lua

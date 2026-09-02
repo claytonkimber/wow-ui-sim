@@ -312,9 +312,8 @@ fn lane_addons_do_not_load_on_glue_screens() {
     }
 }
 
-#[test]
-fn shared_talent_ui_is_loaded_after_eager_sweep_for_full_game_ui() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn shared_talent_ui_is_loaded_after_eager_sweep_for_full_game_ui(env: &WowLuaEnv) {
 
     for startup in STARTUP_LANE_ADDONS {
         let loaded: bool = env
@@ -330,10 +329,10 @@ fn shared_talent_ui_is_loaded_after_eager_sweep_for_full_game_ui() {
         );
     }
 }
+}
 
-#[test]
-fn smoke_lane_addons_remain_unloaded_after_eager_sweep_until_explicitly_triggered() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn smoke_lane_addons_remain_unloaded_after_eager_sweep_until_explicitly_triggered(env: &WowLuaEnv) {
 
     for smoke in SMOKE_LANE_ADDONS {
         let loaded: bool = env
@@ -349,10 +348,10 @@ fn smoke_lane_addons_remain_unloaded_after_eager_sweep_until_explicitly_triggere
         );
     }
 }
+}
 
-#[test]
-fn shared_talent_ui_publishes_talent_button_utility_globals_after_full_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn shared_talent_ui_publishes_talent_button_utility_globals_after_full_load(env: &WowLuaEnv) {
 
     let utility_globals = [
         ("TalentButtonUtil", "table"),
@@ -373,10 +372,10 @@ fn shared_talent_ui_publishes_talent_button_utility_globals_after_full_load() {
         );
     }
 }
+}
 
-#[test]
-fn lane_emits_no_addon_specific_lua_errors_during_full_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn lane_emits_no_addon_specific_lua_errors_during_full_load(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -395,10 +394,10 @@ fn lane_emits_no_addon_specific_lua_errors_during_full_load() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn smoke_lane_addons_can_be_loaded_on_demand_after_eager_sweep_completes() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn smoke_lane_addons_can_be_loaded_on_demand_after_eager_sweep_completes(env: &WowLuaEnv) {
 
     for smoke in SMOKE_LANE_ADDONS {
         let toc_path = blizzard_ui_dir().join(smoke);
@@ -425,6 +424,7 @@ fn smoke_lane_addons_can_be_loaded_on_demand_after_eager_sweep_completes() {
              loader updates the AddonInfo.loaded flag at end-of-load_addon"
         );
     }
+}
 }
 
 #[test]

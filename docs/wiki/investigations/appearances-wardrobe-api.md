@@ -47,3 +47,4 @@ Implementation direction:
 - [[lua-api]] — C API namespace registration and Lua surface conventions
 - [[frame-data-flow]] — Lua/Rust state synchronization model
 - [[addon-loading]] — Blizzard addon loading and startup sequence
+- [[transmog-inventory-slot-scope]] — retail `Blizzard_TransmogShared` loader-only inventory-slot compatibility

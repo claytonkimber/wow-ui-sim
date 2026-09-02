@@ -1,64 +1,45 @@
 # Transparent Wrapper Render Order
 
-Transparent `Frame` / `ScrollFrame` wrappers were creating fake frame-level boundaries in `build_strata_buckets()`. That buried descendant regions under decorative sibling frames in quest-log/world-map layouts, even when the wrappers themselves rendered nothing. The final fix hoists transparent-wrapper regions through those wrappers, but keeps track of wrapper depth so a wrapper's own background regions still render before deeper descendant content like world-map tiles.
+Same-strata child frames retain frame-level ordering. Only regionless `Frame` / `ScrollFrame` containers are transparent to region collection; wrappers that own visible regions remain real render boundaries.
 
-## Symptoms
+## Current Contract
 
-- World map / quest log content could appear underneath decorative border art even though the visible content should sit above it.
-- The existing render-order regression reproduced this with a content icon inside one wrapper frame and a high-level decorative border inside another wrapper frame.
-- The loaded Blizzard world map still needed to keep the actual map visible while real world quest pins stayed above the map tiles.
+`build_strata_buckets()` sorts same-strata child frames by:
 
-## Root Cause
+1. raw frame level
+2. raise order within a frame-level tie
+3. frame ID as the stable final key
 
-`src/lua_api/state_render.rs` built strata buckets with a depth-first walk:
+A frame's textures and font strings render with that owning frame. Draw layer and texture sublevel order regions within the applicable frame/hoisted region group; they do not let a lower-level sibling render above a higher-level sibling.
 
-1. emit the parent frame
-2. emit the parent's direct regions
-3. recurse into child frames
-4. emit deferred font strings
+Regionless `Frame` and `ScrollFrame` children are the exception. Their descendant regions can be hoisted through the otherwise renderless wrapper so grouping-only frames do not create false z-order boundaries. A wrapper with a visible same-strata region is not hoisted because its own region establishes an observable render boundary.
 
-That behavior is fine for real render boundaries, but it treated every child `Frame` as a meaningful z-order boundary. Generic wrappers such as:
+## Quest Log Evidence
 
-- quest log content holders
-- border helper frames
-- POI display subframes
-- scroll child wrappers
+Current retail `Blizzard_UIPanels_Game/Mainline/QuestMapFrame.xml` declares `QuestLogBorderFrameTemplate` with `frameLevel="100"`. Its `Border` texture uses draw layer `BORDER`, and its `TopDetail` texture uses `ARTWORK`. The high frame level intentionally places that border frame after lower-level quest content; the atlas supplies edge/filigree art rather than an opaque full-panel fill.
 
-often have no backdrop, no nine-slice, and no quest blob quads of their own. They only exist to group anchors or hold regions. When those wrappers stayed in the DFS tree as hard boundaries, their descendant textures were emitted too late relative to decorative siblings.
+The earlier generic regression modeled the border as an opaque texture covering the entire panel, then required lower-level content to render after it. That expectation contradicted frame-level semantics. The simulator's observed ordering—lower-level texture first, level-100 texture second—was correct.
 
-The first hoist fix was too aggressive: it flattened every descendant region into one shared region list. That fixed the border/pin ordering bug, but it let `WorldMapFrame.ScrollContainer.Child.TiledBackground` sort after deeper world-map tile textures, which made the map go black.
+## Historical Correction
 
-## Fix
+The first investigation described both the content texture and border texture as peer hoisted regions. That stopped being true when transparent-wrapper handling was restricted to regionless wrappers. Keeping wrappers with owned regions intact prevents their regions from escaping the owning frame's z-order.
 
-`build_strata_buckets()` now tracks quest-blob owners and `dfs_emit()` treats renderless `Frame` / `ScrollFrame` children as transparent containers:
-
-- keep the wrapper frame ID in the bucket
-- hoist descendant regions into the current frame's region ordering
-- record how many transparent-wrapper levels a hoisted region crossed
-- recurse only into non-transparent child frames
-
-The region sort now uses wrapper depth before draw-layer ordering. That preserves the useful flattening for peer transparent wrappers, but keeps a wrapper's own regions ahead of deeper descendants. In practice:
-
-- `TestBorderTex` and `TestIcon` are both depth-2 hoisted regions, so they still sort together and the icon stays above the decorative border.
-- `TiledBackground` is shallower than the real world-map tile textures, so the map art stays visible.
-
-This preserves hit-testing/bookkeeping while removing the false render boundary without flattening away the world map's background/content relationship.
+The corrected regression now asserts that a texture owned by frame level 100 renders after a texture owned by frame level 1, even when the lower-level texture uses `ARTWORK` and the higher-level texture uses `BORDER`.
 
 ## Verification
 
-- `high_level_border_does_not_cover_lower_level_content` now passes.
-- Added `world_map_tiles_render_after_tiled_background` to prove the world map remains visible.
-- Added `world_quest_pin_icon_renders_after_world_map_tiles` to prove the fix does not push real world quest pins behind map art.
-- Button-state rendering still passes after the bucket-builder change.
+- `higher_level_frame_texture_renders_after_lower_level_content` proves region ownership preserves frame-level ordering.
+- `late_set_frame_level_invalidates_cached_strata_buckets` proves a later frame-level change rebuilds that ordering.
+- `world_map_tiles_render_after_tiled_background` and `world_quest_pin_icon_renders_after_world_map_tiles` retain concrete world-map coverage for transparent wrappers and pin ordering.
+- `test_raise_lower_do_not_cross_raw_frame_levels_for_hit_order` independently proves lower raw frame levels do not cross higher levels during hit ordering.
 
 ## Sources
 
-- [src/lua_api/state_render.rs](../../../src/lua_api/state_render.rs) — strata bucket construction and transparent-wrapper fix
-- [tests/render_order.rs](../../../tests/render_order.rs) — generic border/content regression and world-map pin regression
-- [QuestMapFrame.xml](../../../Interface/BlizzardUI/Blizzard_UIPanels_Game/Mainline/QuestMapFrame.xml) — `QuestLogBorderFrameTemplate` uses a high-level decorative border wrapper
-- [WorldQuestDataProvider.xml](../../../Interface/BlizzardUI/Blizzard_SharedMapDataProviders/WorldQuestDataProvider.xml) — world quest pins use wrapper subframes like `Display` / `TimeLowFrame`
+- [state_render_buckets.rs](../../../src/lua_api/state_render_buckets.rs) — strata bucket construction, regionless-wrapper detection, and child-frame sorting
+- [render_order.rs](../../../tests/render_order.rs) — render-order regressions
+- [frame_level.rs](../../../tests/frame_level.rs) — independent raw frame-level hit-order coverage
 
 ## See Also
 
-- [[rendering-pipeline]] — strata buckets feed the quad emission path
-- [[action-bar-spell-icons]] — earlier render-order work on draw-layer/sublevel sorting
+- [[rendering-pipeline]] — strata buckets feed quad emission
+- [[action-bar-spell-icons]] — draw-layer and region-order investigations

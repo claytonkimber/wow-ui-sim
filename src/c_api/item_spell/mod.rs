@@ -13,7 +13,8 @@ pub(crate) use c_container::{
     c_container_get_item_id, c_container_get_item_link, c_container_get_num_slots,
 };
 pub(crate) use c_item::{
-    c_item_get_item_id, item_link_for_id, parse_item_guid, parse_item_id_from_val,
+    c_item_get_item_id, c_item_is_consumable_item, c_item_is_equippable_item,
+    c_item_is_item_in_range, item_link_for_id, parse_item_guid, parse_item_id_from_val,
     parse_prefixed_id, push_item_info, spell_link_for_id,
 };
 pub(crate) use helpers::current_item_upgrade_location;

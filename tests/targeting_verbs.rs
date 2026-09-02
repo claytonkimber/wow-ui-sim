@@ -151,17 +151,24 @@ fn clear_target_removes_current_target() {
 }
 
 #[test]
-fn clear_target_without_target_is_silent_noop() {
+fn clear_target_returns_true_when_existing_target_is_cleared() {
     let env = env();
-    let ok: bool = env
+    let cleared: bool = env
         .eval(
             r#"
-            ClearTarget()
-            return true
+            A_Admin.SetTarget("Boss", 63, 1, true)
+            return ClearTarget()
             "#,
         )
         .unwrap();
-    assert!(ok);
+    assert!(cleared);
+}
+
+#[test]
+fn clear_target_returns_false_when_no_target_exists() {
+    let env = env();
+    let cleared: bool = env.eval("return ClearTarget()").unwrap();
+    assert!(!cleared);
 }
 
 // ── TargetLastTarget ──────────────────────────────────────────────────────────

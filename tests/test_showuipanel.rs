@@ -20,11 +20,11 @@ fn blizzard_ui_dir() -> PathBuf {
 /// Blizzard addons needed for the panel system (dependency order).
 const PANEL_ADDONS: &[(&str, &str)] = &[
     ("Blizzard_SharedXMLBase", "Blizzard_SharedXMLBase.toc"),
-    ("Blizzard_Colors", "Blizzard_Colors_Mainline.toc"),
-    ("Blizzard_SharedXML", "Blizzard_SharedXML_Mainline.toc"),
+    ("Blizzard_Colors", "Blizzard_Colors.toc"),
+    ("Blizzard_SharedXML", "Blizzard_SharedXML.toc"),
     (
         "Blizzard_SharedXMLGame",
-        "Blizzard_SharedXMLGame_Mainline.toc",
+        "Blizzard_SharedXMLGame.toc",
     ),
     (
         "Blizzard_UIPanelTemplates",
@@ -43,23 +43,28 @@ const PANEL_ADDONS: &[(&str, &str)] = &[
         "Blizzard_AccessibilityTemplates.toc",
     ),
     ("Blizzard_ObjectAPI", "Blizzard_ObjectAPI_Mainline.toc"),
-    ("Blizzard_UIParent", "Blizzard_UIParent_Mainline.toc"),
+    ("Blizzard_UIParent", "Blizzard_UIParent.toc"),
     ("Blizzard_TextStatusBar", "Blizzard_TextStatusBar.toc"),
     ("Blizzard_MoneyFrame", "Blizzard_MoneyFrame_Mainline.toc"),
     ("Blizzard_POIButton", "Blizzard_POIButton.toc"),
     ("Blizzard_Flyout", "Blizzard_Flyout.toc"),
-    ("Blizzard_StoreUI", "Blizzard_StoreUI_Mainline.toc"),
+    ("Blizzard_GameMenuEsc", "Blizzard_GameMenuEsc.toc"),
+    ("Blizzard_Communities", "Blizzard_Communities_Mainline.toc"),
+    ("Blizzard_StoreUI", "Blizzard_StoreUI.toc"),
     ("Blizzard_MicroMenu", "Blizzard_MicroMenu_Mainline.toc"),
+    ("Blizzard_ManagedFrameSystem", "Blizzard_ManagedFrameSystem_Mainline.toc"),
     ("Blizzard_EditMode", "Blizzard_EditMode.toc"),
     ("Blizzard_GarrisonBase", "Blizzard_GarrisonBase.toc"),
     ("Blizzard_GameTooltip", "Blizzard_GameTooltip_Mainline.toc"),
+    ("Blizzard_StaticPopup_Game", "Blizzard_StaticPopup_Game.toc"),
+    ("Blizzard_TransmogShared", "Blizzard_TransmogShared.toc"),
     (
         "Blizzard_UIParentPanelManager",
         "Blizzard_UIParentPanelManager_Mainline.toc",
     ),
     (
         "Blizzard_Settings_Shared",
-        "Blizzard_Settings_Shared_Mainline.toc",
+        "Blizzard_Settings_Shared.toc",
     ),
     (
         "Blizzard_SettingsDefinitions_Shared",
@@ -67,19 +72,22 @@ const PANEL_ADDONS: &[(&str, &str)] = &[
     ),
     (
         "Blizzard_SettingsDefinitions_Frame",
-        "Blizzard_SettingsDefinitions_Frame_Mainline.toc",
+        "Blizzard_SettingsDefinitions_Frame.toc",
     ),
     (
         "Blizzard_FrameXMLUtil",
-        "Blizzard_FrameXMLUtil_Mainline.toc",
+        "Blizzard_FrameXMLUtil.toc",
     ),
     ("Blizzard_ItemButton", "Blizzard_ItemButton_Mainline.toc"),
     ("Blizzard_QuickKeybind", "Blizzard_QuickKeybind.toc"),
-    ("Blizzard_FrameXML", "Blizzard_FrameXML_Mainline.toc"),
+    ("Blizzard_FrameXML", "Blizzard_FrameXML.toc"),
     (
         "Blizzard_UIPanels_Game",
         "Blizzard_UIPanels_Game_Mainline.toc",
     ),
+    ("Blizzard_ActionBar", "Blizzard_ActionBar_Mainline.toc"),
+    ("Blizzard_UnitFrame", "Blizzard_UnitFrame_Mainline.toc"),
+    ("Blizzard_TokenUI", "Blizzard_TokenUI.toc"),
 ];
 
 fn setup_env() -> WowLuaEnv {
@@ -294,7 +302,7 @@ fn show_ui_panel_positions_character_frame_at_expected_rect() {
                 if bottom ~= 228 then
                     return "bottom=" .. tostring(bottom)
                 end
-                if width ~= 338 then
+                if width ~= 540 then
                     return "width=" .. tostring(width)
                 end
                 if height ~= 424 then
@@ -356,7 +364,7 @@ fn show_ui_panel_locks_character_frame_layout() {
 
                 if not approx(f.l, 16) then return "frame_left=" .. tostring(f.l) end
                 if not approx(f.b, 228) then return "frame_bottom=" .. tostring(f.b) end
-                if not approx(f.w, 338, 0.1) then return "frame_width=" .. tostring(f.w) end
+                if not approx(f.w, 540, 0.1) then return "frame_width=" .. tostring(f.w) end
                 if not approx(f.h, 424, 0.1) then return "frame_height=" .. tostring(f.h) end
 
                 local closeRect, closeErr = rect("CharacterFrameCloseButton", CharacterFrameCloseButton)
@@ -407,18 +415,18 @@ fn show_ui_panel_locks_character_frame_layout() {
                     return "paperdoll_rect_drift"
                 end
 
-                -- Character frame starts collapsed in default panel mode; lock that state too.
+                -- PaperDollFrame expands CharacterFrame and shows the right-side stats pane.
                 if not CharacterFrameInsetRight then
                     return "inset_right_missing"
                 end
-                if CharacterFrameInsetRight:IsShown() then
-                    return "inset_right_unexpectedly_shown"
+                if not CharacterFrameInsetRight:IsShown() then
+                    return "inset_right_hidden"
                 end
                 if not CharacterStatsPane then
                     return "stats_pane_missing"
                 end
-                if CharacterStatsPane:IsShown() then
-                    return "stats_pane_unexpectedly_shown"
+                if not CharacterStatsPane:IsShown() then
+                    return "stats_pane_hidden"
                 end
 
                 local function expect_slot(name, expected_left, expected_bottom)
@@ -456,7 +464,7 @@ fn show_ui_panel_locks_character_frame_layout() {
                     if not ok then return e end
                 end
 
-                -- Right column slots.
+                -- Right-column slots stay anchored to the expanded frame's right edge.
                 local right_x = f.r - 47
                 local right_rows = {
                     {"CharacterHandsSlot", 553},
@@ -595,6 +603,45 @@ fn show_and_hide_ui_panel_toggle_registered_frame_visibility() {
 }
 
 #[test]
+fn repeated_show_ui_panel_pulse_closes_active_panel_stack() {
+    test_timeout! {
+        let env = setup_env();
+        let result: (bool, bool, bool, bool, bool, bool) = env.eval(r#"
+            local first = CreateFrame("Frame", "AttributeDispatchPanelPulseFirst", UIParent)
+            first:SetSize(300, 400)
+            first:Hide()
+            RegisterUIPanel(first, { area = "center", pushable = 0, whileDead = 1 })
+
+            local second = CreateFrame("Frame", "AttributeDispatchPanelPulseSecond", UIParent)
+            second:SetSize(300, 400)
+            second:Hide()
+            RegisterUIPanel(second, { area = "center", pushable = 0, whileDead = 1 })
+
+            ShowUIPanel(first)
+            local firstShownAfterFirst = first:IsShown()
+            local secondShownAfterFirst = second:IsShown()
+
+            ShowUIPanel(second)
+            local firstShownAfterSecond = first:IsShown()
+            local secondShownAfterSecond = second:IsShown()
+
+            CloseAllWindows()
+            local firstShownAfterCloseAll = first:IsShown()
+            local secondShownAfterCloseAll = second:IsShown()
+
+            return firstShownAfterFirst, secondShownAfterFirst,
+                firstShownAfterSecond, secondShownAfterSecond,
+                firstShownAfterCloseAll, secondShownAfterCloseAll
+        "#).unwrap();
+        assert_eq!(
+            result,
+            (true, false, false, true, false, false),
+            "repeated ShowUIPanel calls should replace the center panel and CloseAllWindows should hide both panels"
+        );
+    }
+}
+
+#[test]
 fn show_ui_panel_is_function() {
     test_timeout! {
         let env = setup_env();
@@ -674,12 +721,28 @@ fn registered_ui_panel_closes_with_escape_stack() {
 fn escape_key_closes_character_frame_before_game_menu() {
     test_timeout! {
         let env = setup_env();
-        let shown: bool = env.eval(r#"
+        let panel_state: String = env.eval(r#"
+            if HelpFrame:IsShown() then
+                return "help_frame_placeholder_shown"
+            end
+
             CHARACTERFRAME_SUBFRAMES = { "PaperDollFrame", "ReputationFrame", "TokenFrame" }
             ToggleCharacter("PaperDollFrame", true)
-            return CharacterFrame:IsShown()
+            if not CharacterFrame:IsShown() then
+                return "not_shown"
+            end
+            local left_panel = GetUIPanel("left")
+            if left_panel ~= CharacterFrame then
+                return "wrong_left_panel:" .. tostring(left_panel and left_panel:GetName())
+                    .. ":manual=" .. tostring(CharacterFrame.editModeManuallyShown)
+            end
+            return "ok"
         "#).unwrap();
-        assert!(shown, "CharacterFrame should be shown before Escape");
+        assert_eq!(
+            panel_state,
+            "ok",
+            "CharacterFrame should enter the active left panel slot without a visible HelpFrame placeholder preempting Escape: {panel_state}"
+        );
 
         env.send_key_press("ESCAPE", None).unwrap();
 

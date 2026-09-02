@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, find_toc_file, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
-use wow_ui_sim::startup::fire_startup_events_for_screen;
 use wow_ui_sim::toc::TocFile;
 
 fn blizzard_ui_dir() -> PathBuf {
@@ -45,34 +44,11 @@ const VIRTUAL_TEMPLATES: &[&str] = &[
     "WorldLootObjectListTemplate",
 ];
 
-fn load_full_game_ui_with_explicit_world_loot() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-
-    wow_ui_sim::xml::register_intrinsic_templates();
-
-    let ui = blizzard_ui_dir();
-    let addons = discover_blizzard_addons_for_screen(&ui, ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    env.apply_post_load_workarounds();
-    fire_startup_events_for_screen(&env, ScreenKind::Game);
-
+fn load_world_loot_object_list(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &world_loot_toc()).expect(
         "Blizzard_WorldLootObjectList should still load when invoked explicitly even though \
          eager discovery skips it on a mainline build (game-type-restricted)",
     );
-
-    env
 }
 
 #[test]
@@ -254,9 +230,9 @@ fn excluded_from_every_screen_auto_discovery_on_mainline() {
     }
 }
 
-#[test]
-fn loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui_with_explicit_world_loot();
+prefork_full_ui_case! {
+fn loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
+    load_world_loot_object_list(env);
 
     let load_errors: Vec<String> = env
         .state()
@@ -277,10 +253,11 @@ fn loads_without_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn is_addon_loaded_after_explicit_call() {
-    let env = load_full_game_ui_with_explicit_world_loot();
+prefork_full_ui_case! {
+fn is_addon_loaded_after_explicit_call(env: &WowLuaEnv) {
+    load_world_loot_object_list(env);
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_WorldLootObjectList')")
@@ -292,10 +269,11 @@ fn is_addon_loaded_after_explicit_call() {
          filter only affects eager discovery, not the loader entry point itself"
     );
 }
+}
 
-#[test]
-fn button_mixin_publishes_with_eight_methods() {
-    let env = load_full_game_ui_with_explicit_world_loot();
+prefork_full_ui_case! {
+fn button_mixin_publishes_with_eight_methods(env: &WowLuaEnv) {
+    load_world_loot_object_list(env);
 
     let kind: String = env
         .eval("return type(WorldLootObjectListButtonMixin)")
@@ -321,10 +299,11 @@ fn button_mixin_publishes_with_eight_methods() {
         );
     }
 }
+}
 
-#[test]
-fn list_mixin_publishes_with_eight_methods() {
-    let env = load_full_game_ui_with_explicit_world_loot();
+prefork_full_ui_case! {
+fn list_mixin_publishes_with_eight_methods(env: &WowLuaEnv) {
+    load_world_loot_object_list(env);
 
     let kind: String = env
         .eval("return type(WorldLootObjectListMixin)")
@@ -353,11 +332,11 @@ fn list_mixin_publishes_with_eight_methods() {
         );
     }
 }
+}
 
-#[test]
-fn xml_templates_are_registered() {
-    let env = load_full_game_ui_with_explicit_world_loot();
-    let _ = env;
+prefork_full_ui_case! {
+fn xml_templates_are_registered(env: &WowLuaEnv) {
+    load_world_loot_object_list(env);
 
     for template_name in VIRTUAL_TEMPLATES {
         assert!(
@@ -367,10 +346,11 @@ fn xml_templates_are_registered() {
         );
     }
 }
+}
 
-#[test]
-fn world_loot_object_list_named_frame_publishes() {
-    let env = load_full_game_ui_with_explicit_world_loot();
+prefork_full_ui_case! {
+fn world_loot_object_list_named_frame_publishes(env: &WowLuaEnv) {
+    load_world_loot_object_list(env);
 
     let kind: String = env
         .eval("return type(WorldLootObjectList)")
@@ -389,10 +369,11 @@ fn world_loot_object_list_named_frame_publishes() {
         .expect("WorldLootObjectList:GetName() probe should succeed");
     assert_eq!(name, "WorldLootObjectList");
 }
+}
 
-#[test]
-fn list_template_owns_scroll_box_child_with_high_strata() {
-    let env = load_full_game_ui_with_explicit_world_loot();
+prefork_full_ui_case! {
+fn list_template_owns_scroll_box_child_with_high_strata(env: &WowLuaEnv) {
+    load_world_loot_object_list(env);
 
     let scroll_box_strata: String = env
         .eval("return WorldLootObjectList.ScrollBox:GetFrameStrata()")
@@ -415,10 +396,11 @@ fn list_template_owns_scroll_box_child_with_high_strata() {
          empty at session start before any loot widgets have been broadcast"
     );
 }
+}
 
-#[test]
-fn button_template_owns_widget_display_child_with_inherited_template() {
-    let env = load_full_game_ui_with_explicit_world_loot();
+prefork_full_ui_case! {
+fn button_template_owns_widget_display_child_with_inherited_template(env: &WowLuaEnv) {
+    load_world_loot_object_list(env);
 
     let button_size: f64 = env
         .eval("return select(1, WorldLootObjectList:GetSize())")
@@ -443,4 +425,5 @@ fn button_template_owns_widget_display_child_with_inherited_template() {
          (UIWidgetTemplateSpellDisplay) and a Name FontString anchored to its right edge. \
          Got {template_button_size_x}"
     );
+}
 }

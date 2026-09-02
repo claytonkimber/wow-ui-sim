@@ -100,9 +100,8 @@ fn blizzard_delves_companion_configuration_appears_in_game_discovery() {
     );
 }
 
-#[test]
-fn blizzard_delves_companion_configuration_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_delves_companion_configuration_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -126,10 +125,10 @@ fn blizzard_delves_companion_configuration_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_delves_companion_configuration_toplevel_frames_are_created() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_delves_companion_configuration_toplevel_frames_are_created(env: &WowLuaEnv) {
 
     let frames_present: bool = env
         .eval(
@@ -153,10 +152,10 @@ fn blizzard_delves_companion_configuration_toplevel_frames_are_created() {
          player clicks `View Abilities`"
     );
 }
+}
 
-#[test]
-fn blizzard_delves_companion_configuration_main_mixin_is_published() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_delves_companion_configuration_main_mixin_is_published(env: &WowLuaEnv) {
 
     let mixin_present: bool = env
         .eval(
@@ -179,10 +178,10 @@ fn blizzard_delves_companion_configuration_main_mixin_is_published() {
          HelpTip)"
     );
 }
+}
 
-#[test]
-fn blizzard_delves_companion_configuration_companion_widget_mixins_are_published() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_delves_companion_configuration_companion_widget_mixins_are_published(env: &WowLuaEnv) {
 
     let mixins_present: bool = env
         .eval(
@@ -208,10 +207,10 @@ fn blizzard_delves_companion_configuration_companion_widget_mixins_are_published
          portrait + ring + level + role icon)"
     );
 }
+}
 
-#[test]
-fn blizzard_delves_companion_configuration_slot_mixin_is_published() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_delves_companion_configuration_slot_mixin_is_published(env: &WowLuaEnv) {
 
     let mixin_present: bool = env
         .eval(
@@ -255,10 +254,10 @@ fn blizzard_delves_companion_configuration_slot_mixin_is_published() {
          that opens DelvesCompanionAbilityListFrame)"
     );
 }
+}
 
-#[test]
-fn blizzard_delves_companion_configuration_ability_list_mixins_are_published() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_delves_companion_configuration_ability_list_mixins_are_published(env: &WowLuaEnv) {
 
     let mixins_present: bool = env
         .eval(
@@ -282,10 +281,11 @@ fn blizzard_delves_companion_configuration_ability_list_mixins_are_published() {
          strip backed by Blizzard_PagedContent)"
     );
 }
+}
 
-#[test]
-fn blizzard_delves_companion_configuration_xml_templates_are_registered() {
-    let _env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_delves_companion_configuration_xml_templates_are_registered(env: &WowLuaEnv) {
+    let _env = env;
 
     let expected_templates = [
         "CompanionConfigSlotTemplate",
@@ -302,4 +302,5 @@ fn blizzard_delves_companion_configuration_xml_templates_are_registered() {
              per-ability TalentDisplayMixin wrapper"
         );
     }
+}
 }

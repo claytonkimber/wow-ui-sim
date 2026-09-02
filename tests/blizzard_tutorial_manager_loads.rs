@@ -25,7 +25,7 @@ const GLUE_SCREENS: &[ScreenKind] = &[
     ScreenKind::CharacterCreate,
 ];
 
-const TOC_DEPENDENCIES: &[&str] = &["Blizzard_Dispatcher", "Blizzard_HelpPlate"];
+const TOC_DEPENDENCIES: &[&str] = &["middleclass", "Blizzard_Dispatcher", "Blizzard_HelpPlate"];
 
 const MODULE_TABLES: &[&str] = &[
     "TutorialManager",
@@ -117,7 +117,7 @@ fn find_toc_file_resolves_bare_toc() {
 }
 
 #[test]
-fn toc_is_eager_with_two_dependencies() {
+fn toc_is_eager_with_three_dependencies() {
     let toc = TocFile::from_file(&tutorial_manager_toc()).expect("TOC parses");
 
     assert!(
@@ -183,9 +183,10 @@ fn toc_raw_bytes_pin_three_directives_and_nine_body_files() {
     let raw = std::fs::read_to_string(tutorial_manager_toc()).expect("TOC reads utf-8");
 
     let expected_lines = [
-        "## Author: Blizzard Entertainment",
-        "## Title: Blizzard Tutorial Manager",
-        "## Dependencies: Blizzard_Dispatcher, Blizzard_HelpPlate",
+        "## Title: Blizzard_TutorialManager",
+        "## Dep: middleclass",
+        "## Dep: Blizzard_Dispatcher",
+        "## Dep: Blizzard_HelpPlate",
         "Blizzard_TutorialQueue.lua",
         "Blizzard_TutorialQuestManager.lua",
         "Blizzard_TutorialRangeManager.lua",
@@ -209,6 +210,7 @@ fn toc_raw_bytes_pin_three_directives_and_nine_body_files() {
         );
     }
 
+    assert!(!raw.contains("## Author"));
     assert!(!raw.contains("## LoadOnDemand"));
     assert!(!raw.contains("## AllowLoad"));
     assert!(!raw.contains("## DefaultState"));
@@ -223,18 +225,30 @@ fn toc_raw_bytes_pin_three_directives_and_nine_body_files() {
 }
 
 #[test]
-fn appears_in_game_eager_discovery() {
+fn game_discovery_loads_middleclass_before_tutorial_manager_without_unrelated_non_blizzard_roots() {
     let addons = discover_blizzard_addons_for_screen(&blizzard_ui_dir(), ScreenKind::Game);
-    let found = addons
+    let middleclass_index = addons
         .iter()
-        .any(|(name, _)| name == "Blizzard_TutorialManager");
+        .position(|(name, _)| name == "middleclass")
+        .expect("TutorialManager hard dependency `middleclass` must be discovered");
+    let tutorial_manager_index = addons
+        .iter()
+        .position(|(name, _)| name == "Blizzard_TutorialManager")
+        .expect(
+            "Blizzard_TutorialManager must appear in Game eager discovery — non-LoD addon \
+             with no AllowLoad (Game-only)",
+        );
+
     assert!(
-        found,
-        "Blizzard_TutorialManager must appear in Game eager discovery \
-         — non-LoD addon with no AllowLoad (Game-only). Two consumers \
-         declare it as RequiredDep: Blizzard_NewPlayerExperience (LoD, \
-         pulled in for new-player flow) and Blizzard_Tutorials (non-LoD, \
-         mainline-only, the in-game tutorial overlay)"
+        middleclass_index < tutorial_manager_index,
+        "middleclass must load before Blizzard_TutorialManager so Blizzard_TutorialBase.lua \
+         can call class(\"TutorialBase\")"
+    );
+    assert!(
+        !addons
+            .iter()
+            .any(|(name, _)| name == "Deprecated_PaperDoll"),
+        "unrelated non-Blizzard roots must not enter Game discovery"
     );
 }
 
@@ -269,9 +283,8 @@ fn dep_directories_exist_on_disk() {
     }
 }
 
-#[test]
-fn explicit_load_publishes_module_tables() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn explicit_load_publishes_module_tables(env: &WowLuaEnv) {
 
     for module in MODULE_TABLES {
         let kind: String = env
@@ -289,10 +302,10 @@ fn explicit_load_publishes_module_tables() {
         );
     }
 }
+}
 
-#[test]
-fn explicit_load_publishes_mixin_tables() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn explicit_load_publishes_mixin_tables(env: &WowLuaEnv) {
 
     for mixin in MIXINS {
         let kind: String = env
@@ -308,10 +321,10 @@ fn explicit_load_publishes_mixin_tables() {
         );
     }
 }
+}
 
-#[test]
-fn tutorial_quest_manager_is_built_from_mixin() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn tutorial_quest_manager_is_built_from_mixin(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(TutorialQuestManager)")
@@ -325,10 +338,10 @@ fn tutorial_quest_manager_is_built_from_mixin() {
          on this instance"
     );
 }
+}
 
-#[test]
-fn explicit_load_publishes_tutorial_manager_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn explicit_load_publishes_tutorial_manager_methods(env: &WowLuaEnv) {
 
     for method in TUTORIAL_MANAGER_METHODS {
         let kind: String = env
@@ -343,10 +356,10 @@ fn explicit_load_publishes_tutorial_manager_methods() {
         );
     }
 }
+}
 
-#[test]
-fn explicit_load_publishes_class_tutorial_base() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn explicit_load_publishes_class_tutorial_base(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(Class_TutorialBase)")
@@ -363,10 +376,10 @@ fn explicit_load_publishes_class_tutorial_base() {
          static methods"
     );
 }
+}
 
-#[test]
-fn explicit_load_publishes_debug_tutorials_function() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn explicit_load_publishes_debug_tutorials_function(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(DebugTutorials)")
@@ -379,10 +392,10 @@ fn explicit_load_publishes_debug_tutorials_function() {
          debug logging for live troubleshooting"
     );
 }
+}
 
-#[test]
-fn explicit_load_creates_named_non_virtual_frames() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn explicit_load_creates_named_non_virtual_frames(env: &WowLuaEnv) {
 
     for frame in NAMED_NON_VIRTUAL_FRAMES {
         let exists: bool = env
@@ -401,10 +414,10 @@ fn explicit_load_creates_named_non_virtual_frames() {
         );
     }
 }
+}
 
-#[test]
-fn full_game_load_emits_no_addon_specific_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_emits_no_addon_specific_errors(env: &WowLuaEnv) {
 
     let errors: Vec<String> = env.state().borrow().lua_errors.clone();
     let addon_specific: Vec<&String> = errors
@@ -421,4 +434,5 @@ fn full_game_load_emits_no_addon_specific_errors() {
          C_TutorialState/C_QuestLog/etc. stubs without raising. \
          Found: {addon_specific:?}"
     );
+}
 }

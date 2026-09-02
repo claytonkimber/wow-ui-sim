@@ -232,24 +232,38 @@ fn insert_cvar_defaults(
     }
 }
 
-#[cfg(any(feature = "retail-12-0-7", feature = "retail-12-1-0"))]
+#[cfg(any(
+    feature = "retail-12-0-0",
+    feature = "retail-12-0-7",
+    feature = "retail-12-1-0"
+))]
 fn remove_profile_cvars(
     defaults: &mut HashMap<String, String>,
     original_names: &mut HashMap<String, String>,
 ) {
+    remove_cvar_defaults(defaults, original_names, PATCH_12_0_0_REMOVED_CVARS);
+    #[cfg(feature = "retail-12-0-7")]
     remove_cvar_defaults(defaults, original_names, PATCH_12_0_7_REMOVED_CVARS);
     #[cfg(feature = "retail-12-1-0")]
     remove_cvar_defaults(defaults, original_names, PATCH_12_1_REMOVED_CVARS);
 }
 
-#[cfg(not(any(feature = "retail-12-0-7", feature = "retail-12-1-0")))]
+#[cfg(not(any(
+    feature = "retail-12-0-0",
+    feature = "retail-12-0-7",
+    feature = "retail-12-1-0"
+)))]
 fn remove_profile_cvars(
     _defaults: &mut HashMap<String, String>,
     _original_names: &mut HashMap<String, String>,
 ) {
 }
 
-#[cfg(any(feature = "retail-12-0-7", feature = "retail-12-1-0"))]
+#[cfg(any(
+    feature = "retail-12-0-0",
+    feature = "retail-12-0-7",
+    feature = "retail-12-1-0"
+))]
 fn remove_cvar_defaults(
     defaults: &mut HashMap<String, String>,
     original_names: &mut HashMap<String, String>,
@@ -261,29 +275,53 @@ fn remove_cvar_defaults(
     }
 }
 
-#[cfg(any(feature = "retail-12-0-7", feature = "retail-12-1-0"))]
+#[cfg(any(
+    feature = "retail-12-0-0",
+    feature = "retail-12-0-7",
+    feature = "retail-12-1-0"
+))]
 fn is_profile_removed_cvar_key(key: &str) -> bool {
-    PATCH_12_0_7_REMOVED_CVARS
+    if PATCH_12_0_0_REMOVED_CVARS
         .iter()
         .any(|removed| removed.eq_ignore_ascii_case(key))
-        || {
-            #[cfg(feature = "retail-12-1-0")]
-            {
-                PATCH_12_1_REMOVED_CVARS
-                    .iter()
-                    .any(|removed| removed.eq_ignore_ascii_case(key))
-            }
-            #[cfg(not(feature = "retail-12-1-0"))]
-            {
-                false
-            }
-        }
+    {
+        return true;
+    }
+
+    #[cfg(feature = "retail-12-0-7")]
+    if PATCH_12_0_7_REMOVED_CVARS
+        .iter()
+        .any(|removed| removed.eq_ignore_ascii_case(key))
+    {
+        return true;
+    }
+
+    #[cfg(feature = "retail-12-1-0")]
+    if PATCH_12_1_REMOVED_CVARS
+        .iter()
+        .any(|removed| removed.eq_ignore_ascii_case(key))
+    {
+        return true;
+    }
+
+    false
 }
 
-#[cfg(not(any(feature = "retail-12-0-7", feature = "retail-12-1-0")))]
+#[cfg(not(any(
+    feature = "retail-12-0-0",
+    feature = "retail-12-0-7",
+    feature = "retail-12-1-0"
+)))]
 fn is_profile_removed_cvar_key(_key: &str) -> bool {
     false
 }
+
+#[cfg(feature = "retail-12-0-0")]
+const PATCH_12_0_0_REMOVED_CVARS: &[&str] = &[
+    "NamePlateHorizontalScale",
+    "NamePlateVerticalScale",
+    "ShowClassColorInFriendlyNameplate",
+];
 
 #[cfg(any(feature = "retail-12-0-7", feature = "retail-12-1-0"))]
 const PATCH_12_0_7_REMOVED_CVARS: &[&str] = &[

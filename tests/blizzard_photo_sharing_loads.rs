@@ -8,7 +8,8 @@ use wow_ui_sim::startup::fire_startup_events_for_screen;
 use wow_ui_sim::toc::TocFile;
 
 fn blizzard_ui_dir() -> PathBuf {
-    wow_ui_sim::paths::default_blizzard_ui_addons_path().expect("Blizzard UI cache should be available")
+    wow_ui_sim::paths::default_blizzard_ui_addons_path()
+        .expect("Blizzard UI cache should be available")
 }
 
 fn photo_sharing_dir() -> PathBuf {
@@ -273,9 +274,8 @@ fn blizzard_photo_sharing_appears_in_full_addon_inventory() {
     );
 }
 
-#[test]
-fn blizzard_photo_sharing_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_photo_sharing_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -296,10 +296,10 @@ fn blizzard_photo_sharing_loads_without_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_photo_sharing_is_addon_loaded_after_eager_sweep() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_photo_sharing_is_addon_loaded_after_eager_sweep(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_PhotoSharing')")
@@ -310,10 +310,10 @@ fn blizzard_photo_sharing_is_addon_loaded_after_eager_sweep() {
          eager Game-screen sweep — no LoadOnDemand puts the addon in the eager set"
     );
 }
+}
 
-#[test]
-fn blizzard_photo_sharing_publishes_five_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_photo_sharing_publishes_five_mixins(env: &WowLuaEnv) {
 
     for mixin in PUBLIC_MIXINS {
         let kind: String = env
@@ -334,10 +334,10 @@ fn blizzard_photo_sharing_publishes_five_mixins() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_photo_sharing_publishes_tab_list_global() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_photo_sharing_publishes_tab_list_global(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(_G.PHOTO_SHARING_TAB_LIST)")
@@ -372,10 +372,10 @@ fn blizzard_photo_sharing_publishes_tab_list_global() {
         .expect("[2] probe succeeds");
     assert_eq!(second, "PhotoSharingDescriptionEditBox");
 }
+}
 
-#[test]
-fn blizzard_photo_sharing_creates_named_frames() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_photo_sharing_creates_named_frames(env: &WowLuaEnv) {
 
     for frame in PUBLIC_NAMED_FRAMES {
         let kind: String = env
@@ -393,58 +393,50 @@ fn blizzard_photo_sharing_creates_named_frames() {
              PhotoSharingBrowserPopup (resolves to the inner Browser child due to a \
              name COLLISION with the outer top-level Frame; the late-registered \
              child Browser overwrites the earlier top-level Frame in `_G` — verified \
-             separately via the SetFocus probe)"
+             separately by its parent identity)"
         );
     }
 }
-
-#[test]
-fn blizzard_photo_sharing_browser_popup_global_pins_outer_frame_collision_winner() {
-    let env = load_full_game_ui();
-
-    // The XML has BOTH a top-level Frame named "PhotoSharingBrowserPopup"
-    // (Blizzard_PhotoSharingBrowser.xml line 100) AND a nested Browser child
-    // also named "PhotoSharingBrowserPopup" (line 107). The outer's parent
-    // is UIParent; the inner's parent is the outer frame (which is also
-    // named "PhotoSharingBrowserPopup"). Inspecting `:GetParent():GetName()`
-    // tells us which side won the shared `_G` slot.
-    //
-    // CURRENT SIMULATOR BEHAVIOR: the OUTER top-level Frame wins (registered
-    // first; the inner Browser's later `name=` registration is silently
-    // ignored or routed through a different code path that does not
-    // overwrite `_G`). This is the OPPOSITE of WoW retail, where the
-    // last-registered named frame wins — Blizzard_PhotoSharingBrowser.lua:73
-    // invokes `PhotoSharingBrowserPopup:NavigateTo(url)` which only works
-    // when the inner Browser is the global. The bug only surfaces when the
-    // SIMPLE_BROWSER_POPUP event fires (auth-flow trigger), which the load
-    // test never reaches. This assertion pins the current sim behavior so a
-    // future XML-loader fix that flips the resolution direction is caught
-    // intentionally rather than as a silent regression.
-    let parent_name: String = env
-        .eval(
-            "return _G.PhotoSharingBrowserPopup \
-                     and _G.PhotoSharingBrowserPopup:GetParent() \
-                     and _G.PhotoSharingBrowserPopup:GetParent():GetName() or '<none>'",
-        )
-        .expect("parent-name probe succeeds");
-    assert_eq!(
-        parent_name, "UIParent",
-        "_G.PhotoSharingBrowserPopup:GetParent():GetName() currently equals `UIParent` \
-         in the simulator — meaning the OUTER top-level Frame wins the shared global \
-         slot, NOT the inner Browser child. This is the opposite of retail WoW (where \
-         the last `name=` registration wins). The discrepancy is silent during load \
-         because the inner-Browser-only methods (`:NavigateTo`, `:SetFocus` at \
-         Blizzard_PhotoSharingBrowser.lua:73-74) are guarded behind the \
-         SIMPLE_BROWSER_POPUP event that never fires in the test. Pinning the current \
-         resolution direction here so a future XML-loader change to last-wins \
-         semantics surfaces as a deliberate test update rather than a hidden \
-         regression"
-    );
 }
 
-#[test]
-fn blizzard_photo_sharing_does_not_leak_virtual_templates_to_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_photo_sharing_browser_popup_global_pins_inner_browser_collision_winner(env: &WowLuaEnv) {
+
+    // The XML declares both a top-level Frame and its nested Browser child with
+    // name="PhotoSharingBrowserPopup". The child is registered last and owns the
+    // shared global, which is required by Blizzard_PhotoSharingBrowser.lua:73-74.
+    let parent_name: String = env
+        .eval("return PhotoSharingBrowserPopup:GetParent():GetName()")
+        .expect("popup Browser ownership probe succeeds");
+    assert_eq!(
+        parent_name, "PhotoSharingBrowserPopup",
+        "The nested Browser must own `_G.PhotoSharingBrowserPopup`; its parent is the \
+         same-named outer Frame rather than UIParent"
+    );
+
+    let navigation_contract: (String, String, bool) = env
+        .eval(
+            r#"
+            local navigateToResult = PhotoSharingBrowserPopup:NavigateTo("https://example.invalid")
+            local navigateHomeResult = PhotoSharingBrowser:NavigateHome("PhotoSharing")
+            return type(PhotoSharingBrowserPopup.NavigateTo),
+                type(PhotoSharingBrowser.NavigateHome),
+                navigateToResult == nil and navigateHomeResult == nil
+            "#,
+        )
+        .expect("Browser navigation methods should be callable");
+    assert_eq!(
+        navigation_contract,
+        ("function".to_string(), "function".to_string(), true),
+        "Browser:NavigateTo and Browser:NavigateHome must be callable no-result methods. \
+         Blizzard_PhotoSharingBrowser.lua calls them for popup URLs and the PhotoSharing \
+         home page; the simulator performs no external browser navigation"
+    );
+}
+}
+
+prefork_full_ui_case! {
+fn blizzard_photo_sharing_does_not_leak_virtual_templates_to_globals(env: &WowLuaEnv) {
 
     for tmpl in PUBLIC_VIRTUAL_TEMPLATES {
         let kind: String = env
@@ -462,10 +454,10 @@ fn blizzard_photo_sharing_does_not_leak_virtual_templates_to_globals() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_photo_sharing_c_photo_sharing_authorization_probe_works() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_photo_sharing_c_photo_sharing_authorization_probe_works(env: &WowLuaEnv) {
 
     // PhotoSharingMixin:OnLoad calls self:UpdatePublishButton() which calls
     // C_PhotoSharing.IsAuthorized() — verified callable here so the mixin's
@@ -493,4 +485,5 @@ fn blizzard_photo_sharing_c_photo_sharing_authorization_probe_works() {
          exercises this default path and must take the `else` branch (showing the \
          `Sign in` button) without erroring"
     );
+}
 }

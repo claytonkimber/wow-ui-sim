@@ -99,9 +99,8 @@ fn blizzard_deprecated_currency_script_appears_in_game_discovery_only() {
     );
 }
 
-#[test]
-fn blizzard_deprecated_currency_script_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_currency_script_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -120,10 +119,10 @@ fn blizzard_deprecated_currency_script_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_currency_script_installs_coin_texture_string_global() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_currency_script_installs_coin_texture_string_global(env: &WowLuaEnv) {
 
     let installed: bool = env
         .eval("return type(GetCoinTextureString) == 'function'")
@@ -146,10 +145,10 @@ fn blizzard_deprecated_currency_script_installs_coin_texture_string_global() {
          implementation (src/c_api/item_spell/c_currency.rs:77)"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_currency_script_globals_alias_c_currency_info_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_currency_script_globals_alias_c_currency_info_methods(env: &WowLuaEnv) {
 
     let coin_icon_matches: bool = env
         .eval("return GetCoinIcon == C_CurrencyInfo.GetCoinIcon")
@@ -181,10 +180,10 @@ fn blizzard_deprecated_currency_script_globals_alias_c_currency_info_methods() {
          C_CurrencyInfo.GetCoinTextureString` — both must point to the same Rust function"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_currency_script_load_deprecation_fallbacks_cvar_is_default_on() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_currency_script_load_deprecation_fallbacks_cvar_is_default_on(env: &WowLuaEnv) {
 
     let cvar_on: bool = env
         .eval("return GetCVarBool('loadDeprecationFallbacks')")
@@ -197,6 +196,7 @@ fn blizzard_deprecated_currency_script_load_deprecation_fallbacks_cvar_is_defaul
          If this CVar flips to false, the 3 globals are skipped and any legacy money-frame / \
          tooltip addon calling GetCoinTextureString blows up with `attempt to call a nil value`"
     );
+}
 }
 
 #[test]

@@ -310,6 +310,65 @@ fn dep_directories_exist_on_disk() {
     }
 }
 
+#[cfg(feature = "retail-12-1-0")]
+#[test]
+fn runtime_load_keeps_removed_inventory_slot_global_private() {
+    let env = fresh_game_env();
+    env.apply_post_event_workarounds();
+
+    let result: String = env
+        .eval(
+            r#"
+            if GetInventorySlotInfo ~= nil then
+                return "public_before_load"
+            end
+
+            local loaded, reason = C_AddOns.LoadAddOn("Blizzard_TransmogShared")
+            if not loaded then
+                return "load_failed:" .. tostring(reason)
+            end
+            if GetInventorySlotInfo ~= nil then
+                return "public_after_load"
+            end
+
+            local location = TransmogUtil.GetTransmogLocation("HEADSLOT", Enum.TransmogType.Appearance, false)
+            if not location then
+                return "missing_head_location"
+            end
+            return "ok"
+            "#,
+        )
+        .expect("runtime TransmogShared compatibility probe should run");
+
+    assert_eq!(result, "ok");
+}
+
+#[test]
+fn direct_load_keeps_removed_inventory_slot_global_private() {
+    let env = fresh_game_env();
+    env.apply_post_event_workarounds();
+    load_addon(&env.loader_env(), &transmog_shared_toc())
+        .expect("Blizzard_TransmogShared must load via Rust loader");
+
+    let result: String = env
+        .eval(
+            r#"
+            if GetInventorySlotInfo ~= nil then
+                return "public_after_load"
+            end
+
+            local location = TransmogUtil.GetTransmogLocation("HEADSLOT", Enum.TransmogType.Appearance, false)
+            if not location then
+                return "missing_head_location"
+            end
+            return "ok"
+            "#,
+        )
+        .expect("direct TransmogShared compatibility probe should run");
+
+    assert_eq!(result, "ok");
+}
+
 #[test]
 fn explicit_load_publishes_transmog_util_table() {
     let env = fresh_game_env();

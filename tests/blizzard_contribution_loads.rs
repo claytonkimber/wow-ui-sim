@@ -72,9 +72,8 @@ fn blizzard_contribution_is_absent_from_game_auto_discovery() {
     );
 }
 
-#[test]
-fn blizzard_contribution_loads_via_load_addon_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_contribution_loads_via_load_addon_without_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -93,10 +92,10 @@ fn blizzard_contribution_loads_via_load_addon_without_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_contribution_collection_frame_is_defined_and_parented_to_uiparent() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_contribution_collection_frame_is_defined_and_parented_to_uiparent(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &contribution_toc())
         .expect("Blizzard_Contribution should load via Rust loader");
 
@@ -117,10 +116,10 @@ fn blizzard_contribution_collection_frame_is_defined_and_parented_to_uiparent() 
          inherits=TooltipBackdropTemplate)"
     );
 }
+}
 
-#[test]
-fn blizzard_contribution_registers_uipanelwindows_entry() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_contribution_registers_uipanelwindows_entry(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &contribution_toc())
         .expect("Blizzard_Contribution should load via Rust loader");
 
@@ -140,10 +139,10 @@ fn blizzard_contribution_registers_uipanelwindows_entry() {
          so the panel can participate in the central UIParent panel-stacking system"
     );
 }
+}
 
-#[test]
-fn blizzard_contribution_collection_mixin_methods_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_contribution_collection_mixin_methods_are_defined(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &contribution_toc())
         .expect("Blizzard_Contribution should load via Rust loader");
 
@@ -174,10 +173,10 @@ fn blizzard_contribution_collection_mixin_methods_are_defined() {
          CONTRIBUTION_COLLECTOR_UPDATE / _PENDING / _UPDATE_SINGLE events"
     );
 }
+}
 
-#[test]
-fn blizzard_contribution_per_entry_mixins_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_contribution_per_entry_mixins_are_defined(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &contribution_toc())
         .expect("Blizzard_Contribution should load via Rust loader");
 
@@ -228,10 +227,10 @@ fn blizzard_contribution_per_entry_mixins_are_defined() {
          (CURRENCY_DISPLAY_UPDATE / BAG_UPDATE_DELAYED registration + tooltip + Update)"
     );
 }
+}
 
-#[test]
-fn blizzard_contribution_xml_templates_are_registered() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_contribution_xml_templates_are_registered(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &contribution_toc())
         .expect("Blizzard_Contribution should load via Rust loader");
 
@@ -247,4 +246,5 @@ fn blizzard_contribution_xml_templates_are_registered() {
              be registered in the template registry after Blizzard_Contribution loads"
         );
     }
+}
 }

@@ -238,9 +238,8 @@ fn five_mainline_addons_declare_timerunning_util_as_dependency() {
     );
 }
 
-#[test]
-fn timerunning_util_table_publishes_with_eight_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn timerunning_util_table_publishes_with_eight_methods(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(TimerunningUtil)")
@@ -278,10 +277,10 @@ fn timerunning_util_table_publishes_with_eight_methods() {
         );
     }
 }
+}
 
-#[test]
-fn timerunning_constants_resolve_to_three_season_ids() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn timerunning_constants_resolve_to_three_season_ids(env: &WowLuaEnv) {
 
     let none_id: i64 = env
         .eval("return Constants.TimerunningConsts.TIMERUNNING_SEASON_NONE")
@@ -309,10 +308,10 @@ fn timerunning_constants_resolve_to_three_season_ids() {
         "TIMERUNNING_SEASON_LEGION = 2 — Legion timerunner season"
     );
 }
+}
 
-#[test]
-fn icon_helpers_emit_atlas_markup_wrapping_text() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn icon_helpers_emit_atlas_markup_wrapping_text(env: &WowLuaEnv) {
 
     let tiny: String = env
         .eval("return TimerunningUtil.AddTinyIcon('Hello')")
@@ -341,10 +340,10 @@ fn icon_helpers_emit_atlas_markup_wrapping_text() {
          text — extra-space variant used in dialog headers. Got: {large:?}"
     );
 }
+}
 
-#[test]
-fn season_lookup_returns_classic_expansion_when_no_active_season() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn season_lookup_returns_classic_expansion_when_no_active_season(env: &WowLuaEnv) {
 
     let probe = "\
         local prev_active = GetActiveTimerunningSeasonID
@@ -380,10 +379,10 @@ fn season_lookup_returns_classic_expansion_when_no_active_season() {
          gluesTimerunningBannerHeaderText = \"\""
     );
 }
+}
 
-#[test]
-fn explicit_load_emits_no_addon_specific_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn explicit_load_emits_no_addon_specific_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -410,4 +409,5 @@ fn explicit_load_emits_no_addon_specific_errors() {
         addon_specific.len(),
         addon_specific
     );
+}
 }

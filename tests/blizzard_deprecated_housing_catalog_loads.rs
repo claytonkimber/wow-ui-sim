@@ -101,9 +101,8 @@ fn blizzard_deprecated_housing_catalog_appears_in_game_discovery_only() {
     );
 }
 
-#[test]
-fn blizzard_deprecated_housing_catalog_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_housing_catalog_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -122,10 +121,10 @@ fn blizzard_deprecated_housing_catalog_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_housing_catalog_seeds_entry_subtype_enum() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_housing_catalog_seeds_entry_subtype_enum(env: &WowLuaEnv) {
 
     let installed: bool = env
         .eval(
@@ -147,10 +146,10 @@ fn blizzard_deprecated_housing_catalog_seeds_entry_subtype_enum() {
          values must still match the documented contract"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_housing_catalog_wraps_get_catalog_entry_info_with_legacy_fields() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_housing_catalog_wraps_get_catalog_entry_info_with_legacy_fields(env: &WowLuaEnv) {
 
     let has_legacy_fields: bool = env
         .eval(
@@ -179,10 +178,10 @@ fn blizzard_deprecated_housing_catalog_wraps_get_catalog_entry_info_with_legacy_
          `showQuantity` (boolean), `dyeSlots` (empty table)"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_housing_catalog_wraps_category_info_with_legacy_field() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_housing_catalog_wraps_category_info_with_legacy_field(env: &WowLuaEnv) {
 
     let any_owned_mirrors: bool = env
         .eval(
@@ -216,10 +215,10 @@ fn blizzard_deprecated_housing_catalog_wraps_category_info_with_legacy_field() {
          (line 106-111)"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_housing_catalog_publishes_get_featured_decor_alias() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_housing_catalog_publishes_get_featured_decor_alias(env: &WowLuaEnv) {
 
     let installed: bool = env
         .eval("return type(C_HousingCatalog.GetFeaturedDecor) == 'function'")
@@ -257,10 +256,10 @@ fn blizzard_deprecated_housing_catalog_publishes_get_featured_decor_alias() {
          Deprecated_HousingCatalog.lua:65-71)"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_housing_catalog_create_catalog_searcher_aliases_legacy_method_names() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_housing_catalog_create_catalog_searcher_aliases_legacy_method_names(env: &WowLuaEnv) {
 
     let aliases_match: bool = env
         .eval(
@@ -287,10 +286,10 @@ fn blizzard_deprecated_housing_catalog_create_catalog_searcher_aliases_legacy_me
          `ConvertVariantIDsToEntryIDs` (line 230-235)"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_housing_catalog_load_deprecation_fallbacks_cvar_is_default_on() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_housing_catalog_load_deprecation_fallbacks_cvar_is_default_on(env: &WowLuaEnv) {
 
     let cvar_on: bool = env
         .eval("return GetCVarBool('loadDeprecationFallbacks')")
@@ -305,6 +304,7 @@ fn blizzard_deprecated_housing_catalog_load_deprecation_fallbacks_cvar_is_defaul
          (entryID compound, quantity, numPlaced, anyOwnedEntries, IsOwnedOnlyActive) \
          silently sees the new-API field names instead"
     );
+}
 }
 
 #[test]

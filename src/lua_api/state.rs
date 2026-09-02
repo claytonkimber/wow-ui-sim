@@ -45,6 +45,8 @@ macro_rules! build_empty_sim_state {
             on_update_frames: $collections.on_update_frames,
             visible_on_update_cache: $runtime.visible_on_update_cache,
             strata_buckets: $runtime.strata_buckets,
+            active_toplevel_show_orders: HashMap::new(),
+            next_toplevel_show_order: 0,
             pending_hit_grid_changes: $collections.pending_hit_grid_changes,
             pending_texture_preloads: $collections.pending_texture_preloads,
             animation_groups: $collections.animation_groups,
@@ -151,6 +153,7 @@ macro_rules! build_empty_sim_state {
             loading_addon_index: $runtime.loading_addon_index,
             loading_addon_stack: $runtime.loading_addon_stack,
             executing_addon_index: $runtime.executing_addon_index,
+            loading_nil_symbol_environment: None,
             xml_load_addon_depth: $runtime.xml_load_addon_depth,
             loading_forbidden: $runtime.loading_forbidden,
             loading_scoped_script_env: $runtime.loading_scoped_script_env,
@@ -164,6 +167,10 @@ macro_rules! build_empty_sim_state {
             lua_error_records: $collections.lua_error_records,
             lua_error_counts: $collections.lua_error_counts,
             nil_symbol_accesses: $collections.nil_symbol_accesses,
+            global_publications: HashSet::new(),
+            secure_global_publications: HashSet::new(),
+            pending_nested_addon_diagnostics: HashMap::new(),
+            runtime_addon_diagnostics: LoadDiagnostics::default(),
             global_show_hide_depth: 0,
             anim_sync_times: $collections.anim_sync_times,
             player: PlayerState::seeded(),
@@ -177,9 +184,11 @@ macro_rules! build_empty_sim_state {
             net_stats: NetStats::default(),
             store_frame_shown: false,
             timerunning_season_id: None,
+            timerunning_season_seconds_remaining: 0,
             modifier_keys: ModifierKeys::default(),
             game_rules: GameRulesState::default(),
             discord: DiscordState::default(),
+            player_choice: PlayerChoiceState::default(),
             housing_service_enabled: true,
             housing: HousingState::default(),
             pet_battles: PetBattleState::default(),
@@ -243,6 +252,7 @@ macro_rules! build_empty_sim_state {
             last_loot_roll_choice: None,
             auction_browse_items: Vec::new(),
             loot_method: LootMethodState::default(),
+            loot_history: LootHistoryState::default(),
             gossip: GossipState::default(),
             torghast: TorghastState::default(),
             titles: Vec::new(),
@@ -361,10 +371,14 @@ pub use super::state_types::{
     EquipmentManagerState, EquipmentSet, EquippedItem, GreatVaultActivity, GuildMember, GuildRank,
     ItemSearchKey, ItemSearchResultInfo, ItemSearchResults, KillingBlowInfo, LfdDungeonInfo,
     LfgActivityGroupInfo, LfgActivityInfo, LfgAdvancedFilter, LfgApplication, LfgCategoryInfo,
-    LfgRoleSelection, LootRollInfo, LuaErrorRecord, MacroInfo, MapChildRect, MapData, MapRect,
-    MirrorTimer, MovementState, MythicPlusAffix, MythicPlusRatingMapSummary,
+    LfgRoleSelection, LoadDiagnosticAttribution, LoadDiagnostics, LootHistoryState, LootRollInfo,
+    LuaErrorRecord, MacroInfo, MapChildRect, MapData, MapRect, MirrorTimer, MissingRequirement,
+    MissingRequirementKind, MovementState, MythicPlusAffix, MythicPlusRatingMapSummary,
     MythicPlusRatingSummary, MythicPlusRun, MythicPlusState, MythicPlusWeeklyBest, NilSymbolAccess,
-    OwnedAuction, PendingTimer, PlayerState, PlayerXpState, PvpHonorState,
+    NilSymbolEnvironment, NilSymbolObservation, NilSymbolObservationKind, OwnedAuction,
+    PendingTimer, PlayerChoiceInfo, PlayerChoiceOptionButtonInfo, PlayerChoiceOptionInfo,
+    PlayerChoiceOptionRewardInfo, PlayerChoiceRewardCurrencyInfo, PlayerChoiceRewardItemInfo,
+    PlayerChoiceRewardReputationInfo, PlayerChoiceState, PlayerState, PlayerXpState, PvpHonorState,
     SEEDED_LOCAL_CHARACTER_GUID, SEEDED_LOCAL_CHARACTER_NAME, ScenarioState, ScenarioStep,
     SecondaryPowerState, SocialFriend, SummonRequestState, TokenAuctionInfo, WorldState,
     WowTokenState,
@@ -704,6 +718,14 @@ impl SimState {
         }
         self.post_event_workarounds_applied = true;
         true
+    }
+
+    pub(crate) fn is_addon_loading(&self, addon_name: &str) -> bool {
+        self.loading_addon_stack.iter().any(|loading_idx| {
+            self.addons
+                .get(*loading_idx as usize)
+                .is_some_and(|addon| addon.folder_name == addon_name)
+        })
     }
 
     pub fn set_mouse_position(&mut self, pos: Option<(f32, f32)>) {

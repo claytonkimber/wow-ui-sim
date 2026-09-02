@@ -1,8 +1,9 @@
 //! `C_VoiceChat` probe surface backed by `SimState.voice_chat`.
 //!
-//! Migrates 14 entries off the namespace stub tables:
+//! Migrates 17 entries off the namespace stub tables:
 //!
 //! - `GetActiveChannelID()` — returns the active channel ID or nil.
+//! - `GetActiveChannelType()` — returns the active channel type or nil.
 //! - `GetChannel(channelID)` — returns a VoiceChatChannel table or nothing.
 //! - `GetChannels()` — returns array of VoiceChatChannel tables.
 //! - `GetCurrentVoiceChatConnectionStatusCode()` — returns status code or nil.
@@ -28,6 +29,7 @@ use rilua::{LuaResult, Val};
 pub(super) fn register_voice_chat_surface(state: &mut LuaState) -> LuaResult<()> {
     let ns = ensure_namespace(state, "C_VoiceChat")?;
     table_set_rust_fn_static(state, ns, "GetActiveChannelID", get_active_channel_id)?;
+    table_set_rust_fn_static(state, ns, "GetActiveChannelType", get_active_channel_type)?;
     table_set_rust_fn_static(state, ns, "GetChannel", get_channel)?;
     table_set_rust_fn_static(state, ns, "GetChannels", get_channels)?;
     table_set_rust_fn_static(
@@ -75,6 +77,26 @@ fn get_active_channel_id(state: &mut LuaState) -> LuaResult<u32> {
     let id = borrow_state(state)?.voice_chat.active_channel_id;
     match id {
         Some(n) => state.push(Val::Num(n as f64)),
+        None => state.push(Val::Nil),
+    }
+    Ok(1)
+}
+
+fn get_active_channel_type(state: &mut LuaState) -> LuaResult<u32> {
+    let channel_type = {
+        let sim = borrow_state(state)?;
+        let active_channel_id = sim.voice_chat.active_channel_id;
+        active_channel_id.and_then(|channel_id| {
+            sim.voice_chat
+                .channels
+                .iter()
+                .find(|channel| channel.channel_id == channel_id)
+                .map(|channel| channel.channel_type)
+        })
+    };
+
+    match channel_type {
+        Some(channel_type) => state.push(Val::Num(channel_type as f64)),
         None => state.push(Val::Nil),
     }
     Ok(1)

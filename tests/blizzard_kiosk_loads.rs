@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, find_toc_file, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
-use wow_ui_sim::startup::fire_startup_events_for_screen;
 use wow_ui_sim::toc::TocFile;
 
 fn blizzard_ui_dir() -> PathBuf {
@@ -23,6 +22,7 @@ fn kiosk_toc() -> PathBuf {
 
 const KIOSK_TOC_FILES: &[&str] = &[
     "Housing/Config.lua",
+    "Blizzard_Kiosk_Bootstrap.lua",
     "Kiosk.lua",
     "Kiosk.xml",
     "Housing/Glue.lua",
@@ -80,32 +80,9 @@ const GAME_NAMED_FRAMES: &[&str] = &[
     "KioskFrame",
 ];
 
-fn load_full_game_ui_with_kiosk_lod() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-
-    wow_ui_sim::xml::register_intrinsic_templates();
-
-    let ui = blizzard_ui_dir();
-    let addons = discover_blizzard_addons_for_screen(&ui, ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    env.apply_post_load_workarounds();
-    fire_startup_events_for_screen(&env, ScreenKind::Game);
-
+fn load_kiosk(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &kiosk_toc())
         .expect("Blizzard_Kiosk should load via explicit Rust loader call");
-
-    env
 }
 
 #[test]
@@ -207,7 +184,7 @@ fn blizzard_kiosk_toc_declares_allow_load_both_with_no_game_type_restriction() {
 }
 
 #[test]
-fn blizzard_kiosk_toc_lists_seven_files_with_per_file_allow_load_brackets_stripped() {
+fn blizzard_kiosk_toc_lists_eight_files_with_per_file_allow_load_brackets_stripped() {
     let toc = TocFile::from_file(&kiosk_toc()).expect("Blizzard_Kiosk TOC should parse");
     assert_eq!(
         toc.files
@@ -215,13 +192,13 @@ fn blizzard_kiosk_toc_lists_seven_files_with_per_file_allow_load_brackets_stripp
             .map(|p| p.to_string_lossy().into_owned())
             .collect::<Vec<_>>(),
         KIOSK_TOC_FILES,
-        "TOC body must list exactly 7 files in this order — Housing/Config.lua, Kiosk.lua, \
-         Kiosk.xml, Housing/Glue.lua, Housing/Glue.xml, Housing/Game.lua, Housing/Game.xml. \
-         The bracketed `[AllowLoad Glue]` and `[AllowLoad Game]` per-file annotations are \
+        "TOC body must list exactly 8 files in this order — Housing/Config.lua, \
+         Blizzard_Kiosk_Bootstrap.lua, Kiosk.lua, Kiosk.xml, Housing/Glue.lua, \
+         Housing/Glue.xml, Housing/Game.lua, Housing/Game.xml. The bracketed `[AllowLoad Glue]` and `[AllowLoad Game]` per-file annotations are \
          STRIPPED by strip_annotations (src/toc.rs:29-41) but the file paths still land in \
          the files vec. The TOC parser only honors `[AllowLoadGameType ...]` and \
          `[AllowLoadTextLocale ...]` per-file gates (src/toc.rs:138-143); per-file \
-         `[AllowLoad ...]` annotations are NOT filtered, so the simulator loads all 7 files \
+         `[AllowLoad ...]` annotations are NOT filtered, so the simulator loads all 8 files \
          on every screen mode the addon is invoked on. The Glue.lua/.xml + Game.lua/.xml \
          pair both define a frame named `KioskFrame` — the second `KioskFrame` (from Game.xml \
          since it is last in the body) re-creates the first via `register_new_frame` + \
@@ -267,9 +244,9 @@ fn blizzard_kiosk_excluded_from_every_screen_auto_discovery() {
     }
 }
 
-#[test]
-fn blizzard_kiosk_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui_with_kiosk_lod();
+prefork_full_ui_case! {
+fn blizzard_kiosk_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
+    load_kiosk(env);
 
     let load_errors: Vec<String> = env
         .state()
@@ -296,10 +273,11 @@ fn blizzard_kiosk_loads_without_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_kiosk_is_addon_loaded_via_explicit_load() {
-    let env = load_full_game_ui_with_kiosk_lod();
+prefork_full_ui_case! {
+fn blizzard_kiosk_is_addon_loaded_via_explicit_load(env: &WowLuaEnv) {
+    load_kiosk(env);
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_Kiosk')")
@@ -311,10 +289,11 @@ fn blizzard_kiosk_is_addon_loaded_via_explicit_load() {
          though the auto-discovery sweep skipped it (LoadOnDemand)"
     );
 }
+}
 
-#[test]
-fn blizzard_kiosk_namespace_extends_pre_stubbed_bootstrap_globals() {
-    let env = load_full_game_ui_with_kiosk_lod();
+prefork_full_ui_case! {
+fn blizzard_kiosk_namespace_extends_pre_stubbed_bootstrap_globals(env: &WowLuaEnv) {
+    load_kiosk(env);
 
     let kind: String = env
         .eval("return type(Kiosk)")
@@ -384,10 +363,11 @@ fn blizzard_kiosk_namespace_extends_pre_stubbed_bootstrap_globals() {
          call this via the early-return guards"
     );
 }
+}
 
-#[test]
-fn blizzard_kiosk_kiosk_frame_mixin_carries_eleven_methods() {
-    let env = load_full_game_ui_with_kiosk_lod();
+prefork_full_ui_case! {
+fn blizzard_kiosk_kiosk_frame_mixin_carries_eleven_methods(env: &WowLuaEnv) {
+    load_kiosk(env);
 
     let kind: String = env
         .eval("return type(KioskFrameMixin)")
@@ -417,10 +397,11 @@ fn blizzard_kiosk_kiosk_frame_mixin_carries_eleven_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_kiosk_glue_kiosk_frame_mixin_carries_nine_methods() {
-    let env = load_full_game_ui_with_kiosk_lod();
+prefork_full_ui_case! {
+fn blizzard_kiosk_glue_kiosk_frame_mixin_carries_nine_methods(env: &WowLuaEnv) {
+    load_kiosk(env);
 
     let kind: String = env
         .eval("return type(GlueKioskFrameMixin)")
@@ -448,10 +429,11 @@ fn blizzard_kiosk_glue_kiosk_frame_mixin_carries_nine_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_kiosk_game_kiosk_frame_mixin_extends_base_via_create_from_mixins() {
-    let env = load_full_game_ui_with_kiosk_lod();
+prefork_full_ui_case! {
+fn blizzard_kiosk_game_kiosk_frame_mixin_extends_base_via_create_from_mixins(env: &WowLuaEnv) {
+    load_kiosk(env);
 
     let kind: String = env
         .eval("return type(GameKioskFrameMixin)")
@@ -494,10 +476,11 @@ fn blizzard_kiosk_game_kiosk_frame_mixin_extends_base_via_create_from_mixins() {
          seeds the mixin via CreateFromMixins before attaching its own methods)"
     );
 }
+}
 
-#[test]
-fn blizzard_kiosk_game_mode_splash_mixin_carries_five_methods() {
-    let env = load_full_game_ui_with_kiosk_lod();
+prefork_full_ui_case! {
+fn blizzard_kiosk_game_mode_splash_mixin_carries_five_methods(env: &WowLuaEnv) {
+    load_kiosk(env);
 
     let kind: String = env
         .eval("return type(GameKioskModeSplashMixin)")
@@ -527,10 +510,11 @@ fn blizzard_kiosk_game_mode_splash_mixin_carries_five_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_kiosk_game_session_started_and_splash_end_mixins_publish_with_one_method_each() {
-    let env = load_full_game_ui_with_kiosk_lod();
+prefork_full_ui_case! {
+fn blizzard_kiosk_game_session_started_and_splash_end_mixins_publish_with_one_method_each(env: &WowLuaEnv) {
+    load_kiosk(env);
 
     for mixin in [
         "GameKioskSessionStartedDialogMixin",
@@ -563,10 +547,11 @@ fn blizzard_kiosk_game_session_started_and_splash_end_mixins_publish_with_one_me
         );
     }
 }
+}
 
-#[test]
-fn blizzard_kiosk_game_named_frames_publish_after_explicit_load() {
-    let env = load_full_game_ui_with_kiosk_lod();
+prefork_full_ui_case! {
+fn blizzard_kiosk_game_named_frames_publish_after_explicit_load(env: &WowLuaEnv) {
+    load_kiosk(env);
 
     for frame in GAME_NAMED_FRAMES {
         let kind: String = env
@@ -593,10 +578,11 @@ fn blizzard_kiosk_game_named_frames_publish_after_explicit_load() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_kiosk_kiosk_frame_template_stays_nil_at_global_scope() {
-    let env = load_full_game_ui_with_kiosk_lod();
+prefork_full_ui_case! {
+fn blizzard_kiosk_kiosk_frame_template_stays_nil_at_global_scope(env: &WowLuaEnv) {
+    load_kiosk(env);
 
     let kind: String = env
         .eval("return type(_G['KioskFrameTemplate'])")
@@ -610,10 +596,11 @@ fn blizzard_kiosk_kiosk_frame_template_stays_nil_at_global_scope() {
          136), NOT at `_G`"
     );
 }
+}
 
-#[test]
-fn blizzard_kiosk_kiosk_frame_carries_methods_from_both_glue_and_game_mixin() {
-    let env = load_full_game_ui_with_kiosk_lod();
+prefork_full_ui_case! {
+fn blizzard_kiosk_kiosk_frame_uses_final_game_mixin_definition(env: &WowLuaEnv) {
+    load_kiosk(env);
 
     let exists: bool = env
         .eval("return type(KioskFrame) == 'table'")
@@ -651,19 +638,18 @@ fn blizzard_kiosk_kiosk_frame_carries_methods_from_both_glue_and_game_mixin() {
         .eval("return type(KioskFrame.NavBack)")
         .expect("KioskFrame.NavBack probe should succeed");
     assert_eq!(
-        nav_back_kind, "function",
-        "KioskFrame.NavBack must publish as a function — NavBack is a \
-         GlueKioskFrameMixin-only method (Glue.lua line 42). Both Glue.xml and Game.xml \
-         declare non-virtual frames with name=\"KioskFrame\"; the simulator processes both \
-         (per-file `[AllowLoad Glue]` / `[AllowLoad Game]` annotations are stripped but not \
-         filtered), so the final frame carries the union of both mixins' methods. NavBack \
-         resolves through the still-attached Glue-side mixin"
+        nav_back_kind, "nil",
+        "KioskFrame.NavBack must be nil after Game.xml replaces the earlier Glue.xml frame. \
+         NavBack exists only on GlueKioskFrameMixin; the final same-named KioskFrame is \
+         declared by Game.xml with GameKioskFrameMixin, so duplicate frame registration \
+         does not merge unrelated mixin methods"
     );
 }
+}
 
-#[test]
-fn blizzard_kiosk_static_popup_dialog_registers_kiosk_enabled_entry() {
-    let env = load_full_game_ui_with_kiosk_lod();
+prefork_full_ui_case! {
+fn blizzard_kiosk_static_popup_dialog_registers_kiosk_enabled_entry(env: &WowLuaEnv) {
+    load_kiosk(env);
 
     let entry_kind: String = env
         .eval("return type(StaticPopupDialogs['KIOSK_ENABLED'])")
@@ -687,4 +673,5 @@ fn blizzard_kiosk_static_popup_dialog_registers_kiosk_enabled_entry() {
          string — the simulator's en-US locale resolves the OKAY global to the title-cased \
          literal 'Okay' (matching the retail Blizzard locale string)"
     );
+}
 }

@@ -49,3 +49,4 @@ First talent panel open: 431ms → 263ms (release). GC overhead during creation:
 
 - [[talent-performance]] — performance results from this optimization
 - [[method-dispatch-refactor]] — related `__index` lookup order changes
+- [[duplicate-named-region-binding]] — duplicate sibling regions retain the first global binding

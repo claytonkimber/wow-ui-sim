@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, find_toc_file, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
-use wow_ui_sim::startup::fire_startup_events_for_screen;
 use wow_ui_sim::toc::TocFile;
 
 fn blizzard_ui_dir() -> PathBuf {
@@ -37,32 +36,9 @@ const MIXIN_METHODS: &[&str] = &[
     "UpdateRootNodeState",
 ];
 
-fn load_full_game_ui_with_remix_explicit() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-
-    wow_ui_sim::xml::register_intrinsic_templates();
-
-    let ui = blizzard_ui_dir();
-    let addons = discover_blizzard_addons_for_screen(&ui, ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    env.apply_post_load_workarounds();
-    fire_startup_events_for_screen(&env, ScreenKind::Game);
-
+fn load_remix_artifact_tutorial_ui(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &remix_toc())
         .expect("Blizzard_RemixArtifactTutorialUI should load via explicit Rust loader call");
-
-    env
 }
 
 #[test]
@@ -216,9 +192,9 @@ fn root_directory_holds_two_files() {
     );
 }
 
-#[test]
-fn loads_without_lua_errors_after_explicit_load() {
-    let env = load_full_game_ui_with_remix_explicit();
+prefork_full_ui_case! {
+fn loads_without_lua_errors_after_explicit_load(env: &WowLuaEnv) {
+    load_remix_artifact_tutorial_ui(env);
 
     let load_errors: Vec<String> = env
         .state()
@@ -245,10 +221,11 @@ fn loads_without_lua_errors_after_explicit_load() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn is_addon_loaded_after_explicit_load() {
-    let env = load_full_game_ui_with_remix_explicit();
+prefork_full_ui_case! {
+fn is_addon_loaded_after_explicit_load(env: &WowLuaEnv) {
+    load_remix_artifact_tutorial_ui(env);
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_RemixArtifactTutorialUI')")
@@ -261,10 +238,11 @@ fn is_addon_loaded_after_explicit_load() {
          out of the eager Game-screen sweep"
     );
 }
+}
 
-#[test]
-fn publishes_named_top_level_frame_under_uiparent() {
-    let env = load_full_game_ui_with_remix_explicit();
+prefork_full_ui_case! {
+fn publishes_named_top_level_frame_under_uiparent(env: &WowLuaEnv) {
+    load_remix_artifact_tutorial_ui(env);
 
     let frame_kind: String = env
         .eval("return type(RemixArtifactTutorialControllerFrame)")
@@ -288,10 +266,11 @@ fn publishes_named_top_level_frame_under_uiparent() {
          coordinate space and lifecycle even though it never renders"
     );
 }
+}
 
-#[test]
-fn publishes_modern_mixin_table_with_eleven_methods() {
-    let env = load_full_game_ui_with_remix_explicit();
+prefork_full_ui_case! {
+fn publishes_modern_mixin_table_with_eleven_methods(env: &WowLuaEnv) {
+    load_remix_artifact_tutorial_ui(env);
 
     let mixin_kind: String = env
         .eval("return type(RemixArtifactTutorialControllerMixin)")
@@ -324,10 +303,11 @@ fn publishes_modern_mixin_table_with_eleven_methods() {
         );
     }
 }
+}
 
-#[test]
-fn inherited_callback_registrant_methods_carry_through() {
-    let env = load_full_game_ui_with_remix_explicit();
+prefork_full_ui_case! {
+fn inherited_callback_registrant_methods_carry_through(env: &WowLuaEnv) {
+    load_remix_artifact_tutorial_ui(env);
 
     for inherited in [
         "AddDynamicEventMethod",
@@ -351,10 +331,11 @@ fn inherited_callback_registrant_methods_carry_through() {
         );
     }
 }
+}
 
-#[test]
-fn xml_declares_no_virtual_templates_at_global_scope() {
-    let env = load_full_game_ui_with_remix_explicit();
+prefork_full_ui_case! {
+fn xml_declares_no_virtual_templates_at_global_scope(env: &WowLuaEnv) {
+    load_remix_artifact_tutorial_ui(env);
 
     let no_template_leak: bool = env
         .eval(
@@ -372,10 +353,11 @@ fn xml_declares_no_virtual_templates_at_global_scope() {
          singleton"
     );
 }
+}
 
-#[test]
-fn on_load_short_circuits_when_player_is_not_timerunning() {
-    let env = load_full_game_ui_with_remix_explicit();
+prefork_full_ui_case! {
+fn on_load_short_circuits_when_player_is_not_timerunning(env: &WowLuaEnv) {
+    load_remix_artifact_tutorial_ui(env);
 
     let timerunning: bool = env
         .eval("return PlayerIsTimerunning()")
@@ -398,6 +380,7 @@ fn on_load_short_circuits_when_player_is_not_timerunning() {
          UpdateArtifactSlot(INVSLOT_OFFHAND) from running, so the field never gets initialized. \
          Verifies the timerunning guard actually short-circuits before any state mutation"
     );
+}
 }
 
 #[test]

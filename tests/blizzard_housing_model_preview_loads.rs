@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, find_toc_file, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
-use wow_ui_sim::startup::fire_startup_events_for_screen;
 use wow_ui_sim::toc::TocFile;
 
 fn blizzard_ui_dir() -> PathBuf {
@@ -21,32 +20,9 @@ fn preview_toc() -> PathBuf {
     preview_dir().join("Blizzard_HousingModelPreview.toc")
 }
 
-fn load_full_game_ui_with_preview_lod() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-
-    wow_ui_sim::xml::register_intrinsic_templates();
-
-    let ui = blizzard_ui_dir();
-    let addons = discover_blizzard_addons_for_screen(&ui, ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    env.apply_post_load_workarounds();
-    fire_startup_events_for_screen(&env, ScreenKind::Game);
-
+fn load_housing_model_preview(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &preview_toc())
         .expect("Blizzard_HousingModelPreview should load via explicit Rust loader call");
-
-    env
 }
 
 fn assert_mixin_methods(env: &WowLuaEnv, mixin: &str, methods: &[&str], rationale: &str) {
@@ -179,9 +155,9 @@ fn blizzard_housing_model_preview_excluded_from_all_screen_auto_discovery() {
     }
 }
 
-#[test]
-fn blizzard_housing_model_preview_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui_with_preview_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_model_preview_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
+    load_housing_model_preview(env);
 
     let lua_errors: Vec<String> = env.state().borrow().lua_errors.clone();
     let related: Vec<&String> = lua_errors
@@ -201,10 +177,11 @@ fn blizzard_housing_model_preview_loads_without_addon_specific_lua_errors() {
         related
     );
 }
+}
 
-#[test]
-fn blizzard_housing_model_preview_is_addon_loaded_via_explicit_lod_call() {
-    let env = load_full_game_ui_with_preview_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_model_preview_is_addon_loaded_via_explicit_lod_call(env: &WowLuaEnv) {
+    load_housing_model_preview(env);
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_HousingModelPreview')")
         .expect("IsAddOnLoaded query should succeed");
@@ -214,10 +191,11 @@ fn blizzard_housing_model_preview_is_addon_loaded_via_explicit_lod_call() {
          explicit LoD load — proves the loader registered the addon name"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_model_preview_template_dependency_loads_via_game_screen_pass() {
-    let env = load_full_game_ui_with_preview_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_model_preview_template_dependency_loads_via_game_screen_pass(env: &WowLuaEnv) {
+    load_housing_model_preview(env);
     let templates_loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_HousingTemplates')")
         .expect("HousingTemplates IsAddOnLoaded query should succeed");
@@ -228,10 +206,11 @@ fn blizzard_housing_model_preview_template_dependency_loads_via_game_screen_pass
          LoadOnDemand so the auto-discovery sweep includes it"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_model_preview_publishes_main_frame_global() {
-    let env = load_full_game_ui_with_preview_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_model_preview_publishes_main_frame_global(env: &WowLuaEnv) {
+    load_housing_model_preview(env);
     let frame_type: String = env
         .eval("return type(HousingModelPreviewFrame)")
         .expect("HousingModelPreviewFrame type query should succeed");
@@ -246,10 +225,11 @@ fn blizzard_housing_model_preview_publishes_main_frame_global() {
         .expect("HousingModelPreviewFrame:GetName query should succeed");
     assert_eq!(frame_name, "HousingModelPreviewFrame");
 }
+}
 
-#[test]
-fn blizzard_housing_model_preview_main_frame_is_fullscreen_dialog_strata() {
-    let env = load_full_game_ui_with_preview_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_model_preview_main_frame_is_fullscreen_dialog_strata(env: &WowLuaEnv) {
+    load_housing_model_preview(env);
     let strata: String = env
         .eval("return HousingModelPreviewFrame:GetFrameStrata()")
         .expect("HousingModelPreviewFrame:GetFrameStrata query should succeed");
@@ -259,10 +239,11 @@ fn blizzard_housing_model_preview_main_frame_is_fullscreen_dialog_strata() {
          declares it explicitly so the preview floats above the catalog flow it was opened from"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_model_preview_template_stays_nil_in_globals() {
-    let env = load_full_game_ui_with_preview_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_model_preview_template_stays_nil_in_globals(env: &WowLuaEnv) {
+    load_housing_model_preview(env);
     let value_type: String = env
         .eval("return type(_G['HousingModelPreviewTemplate'])")
         .expect("template _G lookup should succeed");
@@ -273,10 +254,11 @@ fn blizzard_housing_model_preview_template_stays_nil_in_globals() {
          HousingModelPreviewFrame's ModelPreview parentKey child via `inherits=` only)"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_model_preview_mixin_publishes_twelve_methods() {
-    let env = load_full_game_ui_with_preview_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_model_preview_mixin_publishes_twelve_methods(env: &WowLuaEnv) {
+    load_housing_model_preview(env);
     assert_mixin_methods(
         &env,
         "HousingModelPreviewMixin",
@@ -310,10 +292,11 @@ fn blizzard_housing_model_preview_mixin_publishes_twelve_methods() {
          (helpers driving the 7 tooltip wirings and the show-or-hide text rows)",
     );
 }
+}
 
-#[test]
-fn blizzard_housing_model_preview_frame_mixin_publishes_four_methods() {
-    let env = load_full_game_ui_with_preview_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_model_preview_frame_mixin_publishes_four_methods(env: &WowLuaEnv) {
+    load_housing_model_preview(env);
     assert_mixin_methods(
         &env,
         "HousingModelPreviewFrameMixin",
@@ -326,10 +309,11 @@ fn blizzard_housing_model_preview_frame_mixin_publishes_four_methods() {
          character-info-style panels)",
     );
 }
+}
 
-#[test]
-fn blizzard_housing_model_preview_frame_publishes_model_preview_child() {
-    let env = load_full_game_ui_with_preview_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_model_preview_frame_publishes_model_preview_child(env: &WowLuaEnv) {
+    load_housing_model_preview(env);
     let key_type: String = env
         .eval("return type(HousingModelPreviewFrame.ModelPreview)")
         .expect("HousingModelPreviewFrame.ModelPreview lookup should succeed");
@@ -351,10 +335,11 @@ fn blizzard_housing_model_preview_frame_publishes_model_preview_child() {
          must resolve to a function"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_model_preview_registers_ui_panel_with_left_area_and_pushable_two() {
-    let env = load_full_game_ui_with_preview_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_model_preview_registers_ui_panel_with_left_area_and_pushable_two(env: &WowLuaEnv) {
+    load_housing_model_preview(env);
     let area: String = env
         .eval("return UIPanelWindows['HousingModelPreviewFrame'].area")
         .expect("UIPanelWindows area lookup should succeed");
@@ -373,4 +358,5 @@ fn blizzard_housing_model_preview_registers_ui_panel_with_left_area_and_pushable
          with pushable=2 — middle displacement priority gets pushed by higher-rank dialogs but \
          pushes lower-rank panels off-screen"
     );
+}
 }

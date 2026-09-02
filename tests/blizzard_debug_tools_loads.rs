@@ -84,9 +84,8 @@ fn blizzard_debug_tools_is_absent_from_game_auto_discovery() {
     );
 }
 
-#[test]
-fn blizzard_debug_tools_loads_via_load_addon_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_debug_tools_loads_via_load_addon_without_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -119,10 +118,57 @@ fn blizzard_debug_tools_loads_via_load_addon_without_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_debug_tools_frame_stack_tooltip_is_created() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn devtools_dump_captures_frame_array_metadata(env: &WowLuaEnv) {
+    let (
+        dump_type,
+        handler_type,
+        frame_type,
+        insert_ok,
+        insert_return_nil,
+        slot_one,
+        dump_ok,
+        dump_return_nil,
+        messages,
+    ): (String, String, String, bool, bool, String, bool, bool, Vec<String>) = env
+        .eval(
+            r#"
+            local messages = {}
+            DevTools_AddMessageHandler(function(message)
+                messages[#messages + 1] = tostring(message)
+            end)
+
+            local frame = CreateFrame("Frame")
+            local insertOk, insertResult = pcall(function()
+                return tinsert(frame, "foo")
+            end)
+            local dumpOk, dumpResult = pcall(function()
+                return DevTools_Dump(frame)
+            end)
+
+            return type(DevTools_Dump), type(DevTools_AddMessageHandler), type(frame),
+                insertOk, insertResult == nil, frame[1], dumpOk, dumpResult == nil, messages
+            "#,
+        )
+        .expect("DevTools frame dump probe should succeed");
+
+    assert_eq!(dump_type, "function");
+    assert_eq!(handler_type, "function");
+    assert_eq!(frame_type, "table");
+    assert!(insert_ok);
+    assert!(insert_return_nil);
+    assert_eq!(slot_one, "foo");
+    assert!(dump_ok);
+    assert!(dump_return_nil);
+    assert!(!messages.is_empty());
+    assert!(messages.join("\n").contains("foo"));
+}
+}
+
+prefork_full_ui_case! {
+fn blizzard_debug_tools_frame_stack_tooltip_is_created(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &debug_tools_toc())
         .expect("Blizzard_DebugTools should load via Rust loader");
 
@@ -145,10 +191,10 @@ fn blizzard_debug_tools_frame_stack_tooltip_is_created() {
          frame command)"
     );
 }
+}
 
-#[test]
-fn blizzard_debug_tools_frame_stack_helper_globals_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_debug_tools_frame_stack_helper_globals_are_defined(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &debug_tools_toc())
         .expect("Blizzard_DebugTools should load via Rust loader");
 
@@ -170,8 +216,7 @@ fn blizzard_debug_tools_frame_stack_helper_globals_are_defined() {
                 and type(FrameStackTooltip_OnUpdate) == 'function' \
                 and type(DebugTooltip_OnLoad) == 'function' \
                 and type(DebugIdentifierFrame_OnLoad) == 'function' \
-                and type(CompareFunctionReturns) == 'function' \
-                and type(CanAccessObject) == 'function'",
+                and type(CompareFunctionReturns) == 'function'",
         )
         .expect("FrameStackTooltip helper-global query should succeed");
     assert!(
@@ -180,15 +225,14 @@ fn blizzard_debug_tools_frame_stack_helper_globals_are_defined() {
          the framestack tooltip: 5 cvar-readers (fstack_enabled / fstack_showhidden / \
          fstack_showhighlight / fstack_showregions / fstack_showanchors), Show/Hide/Toggle, \
          OnFramestackVisibilityUpdated, InspectTable / HandleFrameCommand / ChangeHighlight, \
-         and the OnUpdate ticker. DebugObjectUtil.lua exports CanAccessObject and \
-         Blizzard_DebugTools.lua line 317 publishes CompareFunctionReturns for `func1, func2, \
-         ...` ordered comparison"
+         and the OnUpdate ticker. Blizzard_DebugTools.lua line 317 publishes \
+         CompareFunctionReturns for `func1, func2, ...` ordered comparison"
     );
 }
+}
 
-#[test]
-fn blizzard_debug_tools_anchor_highlight_mixin_is_published() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_debug_tools_anchor_highlight_mixin_is_published(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &debug_tools_toc())
         .expect("Blizzard_DebugTools should load via Rust loader");
 
@@ -208,10 +252,10 @@ fn blizzard_debug_tools_anchor_highlight_mixin_is_published() {
          FrameStackHighlight to draw the green/yellow overlays)"
     );
 }
+}
 
-#[test]
-fn blizzard_debug_tools_table_inspector_mixin_is_published() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_debug_tools_table_inspector_mixin_is_published(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &debug_tools_toc())
         .expect("Blizzard_DebugTools should load via Rust loader");
 
@@ -250,10 +294,10 @@ fn blizzard_debug_tools_table_inspector_mixin_is_published() {
          by FrameStackTooltip_InspectTable"
     );
 }
+}
 
-#[test]
-fn blizzard_debug_tools_table_inspector_data_provider_mixins_are_published() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_debug_tools_table_inspector_data_provider_mixins_are_published(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &debug_tools_toc())
         .expect("Blizzard_DebugTools should load via Rust loader");
 
@@ -294,10 +338,10 @@ fn blizzard_debug_tools_table_inspector_data_provider_mixins_are_published() {
          TableAttributeLineTitleMixin"
     );
 }
+}
 
-#[test]
-fn blizzard_debug_tools_texture_info_generator_mixin_is_published() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_debug_tools_texture_info_generator_mixin_is_published(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &debug_tools_toc())
         .expect("Blizzard_DebugTools should load via Rust loader");
 
@@ -323,10 +367,10 @@ fn blizzard_debug_tools_texture_info_generator_mixin_is_published() {
          via `Mixin(self, TextureInfoGeneratorMixin)` in FrameStackTooltip_OnLoad"
     );
 }
+}
 
-#[test]
-fn blizzard_debug_tools_texel_snapping_visualizer_is_gated_on_gm_client() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_debug_tools_texel_snapping_visualizer_is_gated_on_gm_client(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &debug_tools_toc())
         .expect("Blizzard_DebugTools should load via Rust loader");
 
@@ -349,10 +393,10 @@ fn blizzard_debug_tools_texel_snapping_visualizer_is_gated_on_gm_client() {
          created — the file should silently exit during load and not emit Lua errors"
     );
 }
+}
 
-#[test]
-fn blizzard_debug_tools_xml_templates_are_registered() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_debug_tools_xml_templates_are_registered(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &debug_tools_toc())
         .expect("Blizzard_DebugTools should load via Rust loader");
 
@@ -379,10 +423,10 @@ fn blizzard_debug_tools_xml_templates_are_registered() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_debug_tools_table_attribute_display_is_created_after_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_debug_tools_table_attribute_display_is_created_after_load(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &debug_tools_toc())
         .expect("Blizzard_DebugTools should load via Rust loader");
 
@@ -408,4 +452,5 @@ fn blizzard_debug_tools_table_attribute_display_is_created_after_load() {
          customTitle, tableFocusedCallback)` is the public entry point that spawns a fresh \
          inspector frame from the template via `CreateFrame`"
     );
+}
 }

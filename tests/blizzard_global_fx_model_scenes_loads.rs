@@ -181,9 +181,8 @@ fn is_three_d_model_gap(message: &str) -> bool {
         || message.contains("SetCamDistanceScale")
 }
 
-#[test]
-fn blizzard_global_fx_model_scenes_loads_without_non_three_d_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_global_fx_model_scenes_loads_without_non_three_d_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env.state().borrow().lua_errors.clone();
     let fx_errors: Vec<String> = load_errors
@@ -200,10 +199,10 @@ fn blizzard_global_fx_model_scenes_loads_without_non_three_d_errors() {
         fx_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_global_fx_model_scenes_is_addon_loaded_after_full_game_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_global_fx_model_scenes_is_addon_loaded_after_full_game_load(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval(
@@ -218,10 +217,10 @@ fn blizzard_global_fx_model_scenes_is_addon_loaded_after_full_game_load() {
          AllowLoad=Game + DefaultState=enabled, so it's pulled in eagerly)"
     );
 }
+}
 
-#[test]
-fn blizzard_global_fx_model_scenes_publishes_three_named_modelscenes() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_global_fx_model_scenes_publishes_three_named_modelscenes(env: &WowLuaEnv) {
 
     let scenes: (bool, bool, bool) = env
         .eval(
@@ -244,10 +243,10 @@ fn blizzard_global_fx_model_scenes_publishes_three_named_modelscenes() {
          TorghastLevelPicker background smoke)"
     );
 }
+}
 
-#[test]
-fn blizzard_global_fx_model_scenes_publish_strata_and_uiparent_parent() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_global_fx_model_scenes_publish_strata_and_uiparent_parent(env: &WowLuaEnv) {
 
     let strata: (String, String, String) = env
         .eval(
@@ -293,10 +292,10 @@ fn blizzard_global_fx_model_scenes_publish_strata_and_uiparent_parent() {
          viewport for global cross-frame effect playback"
     );
 }
+}
 
-#[test]
-fn blizzard_global_fx_model_scenes_disable_mouse_input() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_global_fx_model_scenes_disable_mouse_input(env: &WowLuaEnv) {
 
     let mouse: (bool, bool, bool) = env
         .eval(
@@ -312,4 +311,5 @@ fn blizzard_global_fx_model_scenes_disable_mouse_input() {
          disable mouse input so the fullscreen FX host frames don't intercept clicks \
          destined for the underlying UI elements they overlay"
     );
+}
 }

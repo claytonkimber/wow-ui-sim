@@ -3,6 +3,7 @@ use std::path::Path;
 const RETAIL_REQUIRED_PROFILE_CACHE_ENTRIES: &[&str] = &[
     "Blizzard_FrameXMLUtil/RuneforgeUtil.xml",
     "Blizzard_FrameXMLUtil/RuneforgeUtil.lua",
+    "Blizzard_CooldownBroadcaster/Blizzard_CooldownBroadcaster_Bootstrap.lua",
 ];
 
 const PTR_REQUIRED_PROFILE_CACHE_ENTRIES: &[&str] = &[
@@ -316,19 +317,12 @@ pub(super) fn cache_entry_is_usable(entry: &str, path: &Path) -> bool {
     }
 }
 
-fn retail_sync_entry(entry: &str) -> bool {
-    !ptr_only_entry(entry)
+fn retail_sync_entry(_entry: &str) -> bool {
+    true
 }
 
 fn ptr_sync_entry(entry: &str) -> bool {
     !legacy_profile_entry(entry) && !ptr_removed_mainline_entry(entry)
-}
-
-fn ptr_only_entry(entry: &str) -> bool {
-    matches!(
-        entry,
-        "Blizzard_CooldownBroadcaster/Blizzard_CooldownBroadcaster_Bootstrap.lua"
-    )
 }
 
 fn legacy_profile_entry(entry: &str) -> bool {
@@ -486,7 +480,7 @@ fn file_contains(path: &Path, needle: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::cache_entry_is_usable;
-    #[cfg(any(feature = "client-retail", feature = "client-ptr"))]
+    #[cfg(any(feature = "profile-retail", feature = "client-ptr"))]
     use super::required_profile_cache_entries;
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -503,7 +497,7 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "client-retail")]
+    #[cfg(feature = "profile-retail")]
     fn retail_requires_runeforge_util_cache_entries() {
         let required = required_profile_cache_entries();
 
@@ -536,15 +530,22 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "client-retail")]
-    fn retail_excludes_ptr_only_cooldown_broadcaster_bootstrap() {
-        assert!(!super::sync_entry_belongs_to_active_profile(
+    #[cfg(feature = "profile-retail")]
+    fn retail_requires_cooldown_broadcaster_bootstrap_cache_entry() {
+        let required = required_profile_cache_entries();
+
+        assert!(
+            required.contains(
+                &"Blizzard_CooldownBroadcaster/Blizzard_CooldownBroadcaster_Bootstrap.lua"
+            )
+        );
+        assert!(super::sync_entry_belongs_to_active_profile(
             "Blizzard_CooldownBroadcaster/Blizzard_CooldownBroadcaster_Bootstrap.lua"
         ));
     }
 
     #[test]
-    #[cfg(feature = "client-retail")]
+    #[cfg(feature = "profile-retail")]
     fn retail_rejects_runeforge_xml_without_script_include() {
         let root = unique_temp_dir("retail-runeforge-util");
         std::fs::create_dir_all(&root).expect("create cache root");

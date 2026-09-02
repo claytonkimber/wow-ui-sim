@@ -139,9 +139,8 @@ fn blizzard_frame_effects_auto_loads_on_game_and_login_screens() {
     );
 }
 
-#[test]
-fn blizzard_frame_effects_loads_via_full_game_ui_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_frame_effects_loads_via_full_game_ui_without_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -163,10 +162,10 @@ fn blizzard_frame_effects_loads_via_full_game_ui_without_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_frame_effects_is_addon_loaded_returns_true_after_full_game_ui_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_frame_effects_is_addon_loaded_returns_true_after_full_game_ui_load(env: &WowLuaEnv) {
 
     let post_load: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_FrameEffects') and true or false")
@@ -178,10 +177,10 @@ fn blizzard_frame_effects_is_addon_loaded_returns_true_after_full_game_ui_load()
          `mark_addon_loaded` registers it"
     );
 }
+}
 
-#[test]
-fn blizzard_frame_effects_publishes_effect_factory_mixin_with_pool_api() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_frame_effects_publishes_effect_factory_mixin_with_pool_api(env: &WowLuaEnv) {
 
     let methods_present: (bool, bool, bool, bool, bool, bool, bool, bool) = env
         .eval(
@@ -209,10 +208,10 @@ fn blizzard_frame_effects_publishes_effect_factory_mixin_with_pool_api() {
          matching `frame.target`), HasExisting (lua:83 — GetExisting ~= nil)"
     );
 }
+}
 
-#[test]
-fn blizzard_frame_effects_publishes_glow_emitter_mixin_with_anim_enum() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_frame_effects_publishes_glow_emitter_mixin_with_anim_enum(env: &WowLuaEnv) {
 
     let mixin_shape: (bool, bool, bool, bool) = env
         .eval(
@@ -233,10 +232,10 @@ fn blizzard_frame_effects_publishes_glow_emitter_mixin_with_anim_enum() {
          Play()"
     );
 }
+}
 
-#[test]
-fn blizzard_frame_effects_glow_emitter_anims_enum_has_four_named_animations() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_frame_effects_glow_emitter_anims_enum_has_four_named_animations(env: &WowLuaEnv) {
 
     let anim_values: (i32, i32, i32, i32) = env
         .eval(
@@ -259,10 +258,10 @@ fn blizzard_frame_effects_glow_emitter_anims_enum_has_four_named_animations() {
          non-smoothed pulse"
     );
 }
+}
 
-#[test]
-fn blizzard_frame_effects_publishes_glow_emitter_factory_derived_from_effect_factory() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_frame_effects_publishes_glow_emitter_factory_derived_from_effect_factory(env: &WowLuaEnv) {
 
     let factory_shape: (bool, bool, bool, bool, bool) = env
         .eval(
@@ -287,10 +286,10 @@ fn blizzard_frame_effects_publishes_glow_emitter_factory_derived_from_effect_fac
          width is given"
     );
 }
+}
 
-#[test]
-fn blizzard_frame_effects_glow_emitter_factory_init_runs_at_module_load_creating_pool() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_frame_effects_glow_emitter_factory_init_runs_at_module_load_creating_pool(env: &WowLuaEnv) {
 
     let pool_present: (bool, bool) = env
         .eval(
@@ -310,10 +309,10 @@ fn blizzard_frame_effects_glow_emitter_factory_init_runs_at_module_load_creating
          shared EffectFactoryMixin via `GlowEmitterFactory.pool` assignment"
     );
 }
+}
 
-#[test]
-fn blizzard_frame_effects_publishes_glow_emitter_template_via_intrinsic_registry() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_frame_effects_publishes_glow_emitter_template_via_intrinsic_registry(env: &WowLuaEnv) {
 
     let template_known: bool = env
         .eval(
@@ -337,10 +336,10 @@ fn blizzard_frame_effects_publishes_glow_emitter_template_via_intrinsic_registry
          all resolve to tables"
     );
 }
+}
 
-#[test]
-fn blizzard_frame_effects_publishes_power_swirl_template_via_intrinsic_registry() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_frame_effects_publishes_power_swirl_template_via_intrinsic_registry(env: &WowLuaEnv) {
 
     let template_known: bool = env
         .eval(
@@ -370,4 +369,5 @@ fn blizzard_frame_effects_publishes_power_swirl_template_via_intrinsic_registry(
          they render larger than 1:1. Spawning the template should yield a frame with \
          all eight parentKey textures plus the Anim AnimationGroup resolved"
     );
+}
 }

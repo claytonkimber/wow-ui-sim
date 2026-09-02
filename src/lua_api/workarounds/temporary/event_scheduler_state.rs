@@ -27,6 +27,22 @@ elseif mt.__index == nil then
     mt.__index = EventSchedulerNamespaceFallback
 end
 
+local useRetailEventDisplayInfo =
+    rawget(_G, "__wow_event_scheduler_retail_display_info") == true
+rawset(_G, "__wow_event_scheduler_retail_display_info", nil)
+
+local function EventSchedulerDisplayInfo()
+    if not useRetailEventDisplayInfo then
+        return {}
+    end
+    return {
+        hideDescription = false,
+        hideTimeLeft = false,
+        overrideAtlas = nil,
+        overrideTooltipWidgetSetID = nil,
+    }
+end
+
 local function EventSchedulerSeedState()
     local now = (os and type(os.time) == "function") and os.time() or 0
     return {
@@ -37,14 +53,14 @@ local function EventSchedulerSeedState()
                 areaPoiID = 1001,
                 eventID = 1001,
                 eventKey = "warsong-gulch",
-                displayInfo = {},
+                displayInfo = EventSchedulerDisplayInfo(),
                 rewardsClaimed = false,
             },
             {
                 areaPoiID = 1002,
                 eventID = 1002,
                 eventKey = "cinderbrew-meadery",
-                displayInfo = {},
+                displayInfo = EventSchedulerDisplayInfo(),
                 rewardsClaimed = false,
             },
         },
@@ -58,7 +74,7 @@ local function EventSchedulerSeedState()
                 duration = 3600,
                 hasReminder = false,
                 rewardsClaimed = false,
-                displayInfo = {},
+                displayInfo = EventSchedulerDisplayInfo(),
             },
             {
                 areaPoiID = 1004,
@@ -69,7 +85,7 @@ local function EventSchedulerSeedState()
                 duration = 3600,
                 hasReminder = true,
                 rewardsClaimed = false,
-                displayInfo = {},
+                displayInfo = EventSchedulerDisplayInfo(),
             },
         },
         reminders = {},
@@ -166,6 +182,12 @@ end
 "#;
 
 pub(crate) fn apply_bootstrap(lua: &mut rilua::Lua) -> crate::Result<()> {
+    if matches!(
+        crate::client_profile::ACTIVE,
+        crate::client_profile::ClientProfile::Retail
+    ) {
+        lua.exec("rawset(_G, '__wow_event_scheduler_retail_display_info', true)")?;
+    }
     lua.exec(EVENT_SCHEDULER_STATE_LUA)?;
     Ok(())
 }
@@ -177,15 +199,87 @@ mod tests {
     #[test]
     fn installs_seeded_events_reminders_and_namespace_fallback() {
         let env = WowLuaEnv::new().expect("lua env should initialize");
+        let expects_retail_display_info = matches!(
+            crate::client_profile::ACTIVE,
+            crate::client_profile::ClientProfile::Retail
+        );
+        env.exec(if expects_retail_display_info {
+            "rawset(_G, '__test_event_scheduler_retail_display_info', true)"
+        } else {
+            "rawset(_G, '__test_event_scheduler_retail_display_info', false)"
+        })
+        .expect("test profile marker should install");
 
         let result: String = env
             .eval(
                 r#"
+                local expect_retail_display_info =
+                    rawget(_G, "__test_event_scheduler_retail_display_info") == true
                 if #C_EventScheduler.GetOngoingEvents() ~= 2 then
                     return "bad_ongoing"
                 end
-                if #C_EventScheduler.GetScheduledEvents() ~= 2 then
+                local ongoing = C_EventScheduler.GetOngoingEvents()
+                local scheduled = C_EventScheduler.GetScheduledEvents()
+                if #scheduled ~= 2 then
                     return "bad_scheduled"
+                end
+                for _, event in ipairs(ongoing) do
+                    local display_info = event.displayInfo
+                    if expect_retail_display_info then
+                        if type(display_info) ~= "table"
+                            or type(display_info.hideDescription) ~= "boolean"
+                            or display_info.hideDescription ~= false
+                            or type(display_info.hideTimeLeft) ~= "boolean"
+                            or display_info.hideTimeLeft ~= false
+                            or display_info.overrideAtlas ~= nil
+                            or display_info.overrideTooltipWidgetSetID ~= nil then
+                            return "bad_ongoing_display_info"
+                        end
+                    elseif next(display_info) ~= nil then
+                        return "changed_nonretail_ongoing_display_info"
+                    end
+                end
+                for _, event in ipairs(scheduled) do
+                    local display_info = event.displayInfo
+                    if expect_retail_display_info then
+                        if type(display_info) ~= "table"
+                            or type(display_info.hideDescription) ~= "boolean"
+                            or display_info.hideDescription ~= false
+                            or type(display_info.hideTimeLeft) ~= "boolean"
+                            or display_info.hideTimeLeft ~= false
+                            or display_info.overrideAtlas ~= nil
+                            or display_info.overrideTooltipWidgetSetID ~= nil then
+                            return "bad_scheduled_display_info"
+                        end
+                    elseif next(display_info) ~= nil then
+                        return "changed_nonretail_scheduled_display_info"
+                    end
+                end
+                if type(scheduled[1].eventID) ~= "number" or scheduled[1].eventID ~= 2001
+                    or type(scheduled[2].eventID) ~= "number" or scheduled[2].eventID ~= 2002 then
+                    return "bad_scheduled_event_ids"
+                end
+                local first_event_id = scheduled[1].eventID
+                local second_event_id = scheduled[2].eventID
+                C_EventScheduler.RequestEvents()
+                local refreshed_scheduled = C_EventScheduler.GetScheduledEvents()
+                if refreshed_scheduled[1].eventID ~= first_event_id
+                    or refreshed_scheduled[2].eventID ~= second_event_id then
+                    return "unstable_scheduled_event_ids"
+                end
+                local refreshed_display_info = refreshed_scheduled[1].displayInfo
+                if expect_retail_display_info then
+                    if type(refreshed_display_info) ~= "table"
+                        or type(refreshed_display_info.hideDescription) ~= "boolean"
+                        or refreshed_display_info.hideDescription ~= false
+                        or type(refreshed_display_info.hideTimeLeft) ~= "boolean"
+                        or refreshed_display_info.hideTimeLeft ~= false
+                        or refreshed_display_info.overrideAtlas ~= nil
+                        or refreshed_display_info.overrideTooltipWidgetSetID ~= nil then
+                        return "unstable_scheduled_display_info"
+                    end
+                elseif next(refreshed_display_info) ~= nil then
+                    return "changed_nonretail_refreshed_display_info"
                 end
                 if not C_EventScheduler.CanShowEvents() then
                     return "not_visible"

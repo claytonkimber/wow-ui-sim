@@ -16,6 +16,7 @@ use std::ffi::OsStr;
 use std::hash::{Hash, Hasher};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU8, AtomicU64, Ordering};
 use std::sync::{Mutex, OnceLock};
 
 const PACK_FILE: &str = "pack.bin";
@@ -23,7 +24,95 @@ const PACK_FILE: &str = "pack.bin";
 // Old packs without a version header are rejected on load.
 const PACK_MAGIC: &[u8; 8] = b"WOWBC002";
 const PACK_HEADER_LEN: usize = PACK_MAGIC.len() + 4;
+const PACK_ENTRY_HEADER_LEN: usize = 8 + 4;
 const MAX_PACK_SIZE: u64 = 768 * 1024 * 1024;
+static NEXT_TEMP_PACK_ID: AtomicU64 = AtomicU64::new(1);
+static BYTECODE_CACHE_MODE: AtomicU8 = AtomicU8::new(CacheMode::WRITABLE);
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum CacheMode {
+    Writable,
+    ParentBypass,
+    ReadOnly,
+}
+
+impl CacheMode {
+    const WRITABLE: u8 = 0;
+    const PARENT_BYPASS: u8 = 1;
+    const READ_ONLY: u8 = 2;
+
+    fn current() -> Self {
+        match BYTECODE_CACHE_MODE.load(Ordering::Acquire) {
+            Self::WRITABLE => Self::Writable,
+            Self::PARENT_BYPASS => Self::ParentBypass,
+            Self::READ_ONLY => Self::ReadOnly,
+            value => panic!("invalid bytecode cache mode {value}"),
+        }
+    }
+
+    fn allows_reads(self) -> bool {
+        self != Self::ParentBypass
+    }
+
+    fn allows_writes(self) -> bool {
+        self == Self::Writable
+    }
+}
+
+pub(crate) fn enter_parent_bypass_mode() {
+    BYTECODE_CACHE_MODE.store(CacheMode::PARENT_BYPASS, Ordering::Release);
+}
+
+pub(crate) fn enter_read_only_mode() {
+    BYTECODE_CACHE_MODE.store(CacheMode::READ_ONLY, Ordering::Release);
+}
+
+pub(crate) fn release_prefork_parent_memory() -> Result<usize, String> {
+    if is_disabled() {
+        return Ok(0);
+    }
+
+    let mut state = cache_state()
+        .lock()
+        .map_err(|_| "release prefork bytecode cache memory: cache lock poisoned".to_string())?;
+    if CacheMode::current() == CacheMode::ParentBypass {
+        return seal_parent_bypass_state(&mut state);
+    }
+    release_loaded_pack_memory(&mut state)
+}
+
+fn seal_parent_bypass_state(state: &mut CacheState) -> Result<usize, String> {
+    if state.initialized || !state.values.is_empty() || !state.index.is_empty() {
+        return Err(
+            "release prefork bytecode cache memory: parent bypass started after cache use"
+                .to_string(),
+        );
+    }
+
+    state.initialized = true;
+    state.pack_exists = pack_path().is_some_and(|path| path.is_file());
+    Ok(0)
+}
+
+fn release_loaded_pack_memory(state: &mut CacheState) -> Result<usize, String> {
+    if !state.initialized {
+        return Err("release prefork bytecode cache memory: cache is not initialized".to_string());
+    }
+    if !state.pack_exists {
+        return Err("release prefork bytecode cache memory: pack is not loaded".to_string());
+    }
+    if state.values.is_empty() {
+        return Err(
+            "release prefork bytecode cache memory: in-memory pack was already released"
+                .to_string(),
+        );
+    }
+
+    let released_bytes = state.values.len();
+    state.values = Vec::new();
+    state.index = HashMap::new();
+    Ok(released_bytes)
+}
 
 #[derive(Default)]
 struct CacheState {
@@ -37,6 +126,7 @@ struct CacheState {
 pub enum PutResult {
     Stored,
     Unchanged,
+    Skipped,
     Failed,
 }
 
@@ -104,98 +194,84 @@ fn pack_path() -> Option<PathBuf> {
 /// Load cached bytecode and pass it to a callback.
 ///
 /// Current-key hits borrow directly from the in-memory pack instead of cloning
-/// the cached chunk. Legacy hits still clone once because promotion appends a
-/// second entry under the current hash. The legacy key is computed only after a
-/// current-key miss.
+/// the cached chunk. Legacy hits still clone once because writable mode promotes
+/// them under the current hash. The legacy key is computed only after a current-key
+/// miss.
 pub fn with_cached_bytecode_deferred<R>(
     hash: u64,
     legacy_hash: impl FnOnce() -> u64,
     callback: impl FnOnce(&[u8]) -> R,
 ) -> Option<R> {
+    let mode = CacheMode::current();
+    if !mode.allows_reads() {
+        return None;
+    }
+
     let mut state = cache_state().lock().ok()?;
-    ensure_loaded(&mut state);
-    with_cached_bytecode_from_state(&mut state, hash, legacy_hash, callback)
+    ensure_loaded(&mut state, mode);
+    with_cached_bytecode_from_state(&mut state, mode, hash, legacy_hash, callback)
 }
 
 /// Save compiled bytecode to cache.
 pub fn put(hash: u64, bytecode: &[u8]) -> PutResult {
+    let mode = CacheMode::current();
+    if !mode.allows_writes() {
+        return PutResult::Skipped;
+    }
+
     let mut state = match cache_state().lock() {
         Ok(state) => state,
         Err(_) => return PutResult::Failed,
     };
-    ensure_loaded(&mut state);
+    ensure_loaded(&mut state, mode);
 
-    if let Some((offset, len)) = state.index.get(&hash).copied()
-        && state.values[offset..offset + len] == *bytecode
-    {
-        return PutResult::Unchanged;
-    }
-
-    let offset = state.values.len();
-    state.values.extend_from_slice(bytecode);
-    state.index.insert(hash, (offset, bytecode.len()));
-    match append_pack_entry(&mut state, hash, bytecode) {
-        Ok(()) => PutResult::Stored,
-        Err(_) => PutResult::Failed,
-    }
+    let Some(path) = pack_path() else {
+        return PutResult::Failed;
+    };
+    store_entry_at_path_with_max(&mut state, &path, MAX_PACK_SIZE, mode, hash, bytecode)
 }
 
-fn ensure_loaded(state: &mut CacheState) {
+fn ensure_loaded(state: &mut CacheState, mode: CacheMode) {
     if state.initialized {
         return;
     }
 
     if let Some(pack) = pack_path() {
-        state.pack_exists = load_pack_from_path(state, &pack);
+        state.pack_exists = load_pack_from_path(state, &pack, mode);
     }
 
     if !state.pack_exists {
-        let _ = migrate_legacy_cache(state);
+        let _ = migrate_legacy_cache(state, mode);
     }
 
     state.initialized = true;
 }
 
-fn load_pack_from_path(state: &mut CacheState, pack: &Path) -> bool {
-    load_pack_from_path_with_max(state, pack, MAX_PACK_SIZE)
+fn load_pack_from_path(state: &mut CacheState, pack: &Path, mode: CacheMode) -> bool {
+    load_pack_from_path_with_max(state, pack, MAX_PACK_SIZE, mode)
 }
 
-fn load_pack_from_path_with_max(state: &mut CacheState, pack: &Path, max_pack_size: u64) -> bool {
-    let Ok(mut file) = std::fs::File::open(pack) else {
+fn load_pack_from_path_with_max(
+    state: &mut CacheState,
+    pack: &Path,
+    max_pack_size: u64,
+    mode: CacheMode,
+) -> bool {
+    let Some((file, bytes)) = read_pack_within_limit(pack, max_pack_size, mode) else {
         return false;
     };
-
-    let mut bytes = Vec::new();
-    if file.read_to_end(&mut bytes).is_err() {
-        return false;
-    }
-
-    let oversized = bytes.len() as u64 > max_pack_size;
     let original_len = bytes.len();
     let Some(valid_len) = load_pack_bytes(state, bytes) else {
         // Pack file existed but was wrong magic or wrong whitelist version.
         // Remove it so the next write starts a clean file.
         drop(file);
-        let _ = std::fs::remove_file(pack);
+        if mode.allows_writes() {
+            let _ = std::fs::remove_file(pack);
+        }
         return false;
     };
 
-    if oversized {
-        compact_loaded_pack(state);
-        if state.values.len() as u64 <= max_pack_size {
-            drop(file);
-            let _ = std::fs::write(pack, &state.values);
-            return true;
-        }
-
-        drop(file);
-        let _ = std::fs::remove_file(pack);
-        state.values.clear();
-        state.index.clear();
-        return false;
-    }
-
-    if valid_len < original_len {
+    if valid_len < original_len && mode.allows_writes() {
         drop(file);
         let _ = truncate_pack(pack, valid_len);
     }
@@ -203,8 +279,51 @@ fn load_pack_from_path_with_max(state: &mut CacheState, pack: &Path, max_pack_si
     true
 }
 
+fn read_pack_within_limit(
+    pack: &Path,
+    max_pack_size: u64,
+    mode: CacheMode,
+) -> Option<(std::fs::File, Vec<u8>)> {
+    let mut file = std::fs::File::open(pack).ok()?;
+    if file.metadata().ok()?.len() > max_pack_size {
+        remove_rejected_pack(file, pack, mode);
+        return None;
+    }
+
+    let mut bytes = Vec::new();
+    Read::by_ref(&mut file)
+        .take(max_pack_size.saturating_add(1))
+        .read_to_end(&mut bytes)
+        .ok()?;
+    if bytes.len() as u64 > max_pack_size {
+        remove_rejected_pack(file, pack, mode);
+        return None;
+    }
+    Some((file, bytes))
+}
+
+fn remove_rejected_pack(file: std::fs::File, pack: &Path, mode: CacheMode) {
+    drop(file);
+    if mode.allows_writes() {
+        let _ = std::fs::remove_file(pack);
+    }
+}
+
 fn lookup_with_legacy_fallback(
     state: &mut CacheState,
+    mode: CacheMode,
+    hash: u64,
+    legacy_hash: impl FnOnce() -> u64,
+) -> Option<Vec<u8>> {
+    let path = pack_path()?;
+    lookup_with_legacy_fallback_at_path(state, &path, MAX_PACK_SIZE, mode, hash, legacy_hash)
+}
+
+fn lookup_with_legacy_fallback_at_path(
+    state: &mut CacheState,
+    path: &Path,
+    max_pack_size: u64,
+    mode: CacheMode,
     hash: u64,
     legacy_hash: impl FnOnce() -> u64,
 ) -> Option<Vec<u8>> {
@@ -215,17 +334,13 @@ fn lookup_with_legacy_fallback(
     let legacy_hash = legacy_hash();
     let (offset, len) = state.index.get(&legacy_hash).copied()?;
     let bytecode = state.values[offset..offset + len].to_vec();
-
-    let promoted_offset = state.values.len();
-    state.values.extend_from_slice(&bytecode);
-    state.index.insert(hash, (promoted_offset, len));
-    let _ = append_pack_entry(state, hash, &bytecode);
-
+    let _ = store_entry_at_path_with_max(state, path, max_pack_size, mode, hash, &bytecode);
     Some(bytecode)
 }
 
 fn with_cached_bytecode_from_state<R>(
     state: &mut CacheState,
+    mode: CacheMode,
     hash: u64,
     legacy_hash: impl FnOnce() -> u64,
     callback: impl FnOnce(&[u8]) -> R,
@@ -234,7 +349,7 @@ fn with_cached_bytecode_from_state<R>(
         return Some(callback(&state.values[offset..offset + len]));
     }
 
-    let bytecode = lookup_with_legacy_fallback(state, hash, legacy_hash)?;
+    let bytecode = lookup_with_legacy_fallback(state, mode, hash, legacy_hash)?;
     Some(callback(&bytecode))
 }
 
@@ -254,7 +369,7 @@ fn load_pack_bytes(state: &mut CacheState, mut bytes: Vec<u8>) -> Option<usize> 
     let mut index = HashMap::new();
 
     let mut pos = PACK_HEADER_LEN;
-    while pos + 12 <= bytes.len() {
+    while pos + PACK_ENTRY_HEADER_LEN <= bytes.len() {
         let entry_start = pos;
         let hash = u64::from_le_bytes(bytes[pos..pos + 8].try_into().unwrap());
         pos += 8;
@@ -276,27 +391,219 @@ fn load_pack_bytes(state: &mut CacheState, mut bytes: Vec<u8>) -> Option<usize> 
     Some(pos)
 }
 
-fn compact_loaded_pack(state: &mut CacheState) {
-    let entries: Vec<(u64, Vec<u8>)> = state
-        .index
-        .iter()
-        .map(|(&hash, &(offset, len))| (hash, state.values[offset..offset + len].to_vec()))
-        .collect();
-    let mut bytes = Vec::with_capacity(PACK_HEADER_LEN);
-    let mut index = HashMap::with_capacity(entries.len());
-    bytes.extend_from_slice(PACK_MAGIC);
-    bytes.extend_from_slice(&WHITELIST_VERSION.to_le_bytes());
-
-    for (hash, bytecode) in entries {
-        bytes.extend_from_slice(&hash.to_le_bytes());
-        bytes.extend_from_slice(&(bytecode.len() as u32).to_le_bytes());
-        let offset = bytes.len();
-        bytes.extend_from_slice(&bytecode);
-        index.insert(hash, (offset, bytecode.len()));
+fn store_entry_at_path_with_max(
+    state: &mut CacheState,
+    path: &Path,
+    max_pack_size: u64,
+    mode: CacheMode,
+    hash: u64,
+    bytecode: &[u8],
+) -> PutResult {
+    if !mode.allows_writes() {
+        return PutResult::Skipped;
+    }
+    if cached_bytes_equal(state, hash, bytecode) {
+        return PutResult::Unchanged;
     }
 
-    state.values = bytes;
-    state.index = index;
+    let Some(new_pack_len) = single_entry_pack_len(bytecode.len()) else {
+        return PutResult::Failed;
+    };
+    if new_pack_len > max_pack_size {
+        return reject_oversized_entry(state, path);
+    }
+
+    let new_pack = single_entry_pack(hash, bytecode);
+    if !state.pack_exists {
+        return persist_replacement(state, path, new_pack);
+    }
+
+    let Some(projected_len) = read_projected_append_len(path, bytecode.len()) else {
+        return PutResult::Failed;
+    };
+    if projected_len <= max_pack_size {
+        return append_and_update_state(state, path, hash, bytecode);
+    }
+
+    rewrite_full_pack_for_entry(state, path, max_pack_size, hash, bytecode, new_pack)
+}
+
+fn reject_oversized_entry(state: &mut CacheState, path: &Path) -> PutResult {
+    let _ = rewrite_and_replace_state(state, path, empty_pack());
+    PutResult::Failed
+}
+
+fn rewrite_full_pack_for_entry(
+    state: &mut CacheState,
+    path: &Path,
+    max_pack_size: u64,
+    hash: u64,
+    bytecode: &[u8],
+    new_pack: Vec<u8>,
+) -> PutResult {
+    let compacted_len = compacted_pack_len_with_entry(state, hash, bytecode.len());
+    if compacted_len.is_some_and(|len| len <= max_pack_size) {
+        let compacted = compacted_pack_with_entry(state, hash, bytecode);
+        return persist_replacement(state, path, compacted);
+    }
+    persist_replacement(state, path, new_pack)
+}
+
+fn cached_bytes_equal(state: &CacheState, hash: u64, bytecode: &[u8]) -> bool {
+    state
+        .index
+        .get(&hash)
+        .copied()
+        .is_some_and(|(offset, len)| state.values[offset..offset + len] == *bytecode)
+}
+
+fn read_projected_append_len(path: &Path, bytecode_len: usize) -> Option<u64> {
+    let current_len = std::fs::metadata(path).ok()?.len();
+    current_len.checked_add(serialized_entry_len(bytecode_len)?)
+}
+
+fn single_entry_pack_len(bytecode_len: usize) -> Option<u64> {
+    (PACK_HEADER_LEN as u64).checked_add(serialized_entry_len(bytecode_len)?)
+}
+
+fn serialized_entry_len(bytecode_len: usize) -> Option<u64> {
+    u64::try_from(bytecode_len)
+        .ok()?
+        .checked_add(PACK_ENTRY_HEADER_LEN as u64)
+}
+
+fn compacted_pack_len_with_entry(
+    state: &CacheState,
+    hash: u64,
+    bytecode_len: usize,
+) -> Option<u64> {
+    state
+        .index
+        .iter()
+        .filter(|(existing_hash, _)| **existing_hash != hash)
+        .try_fold(
+            single_entry_pack_len(bytecode_len)?,
+            |total, (_, (_, len))| total.checked_add(serialized_entry_len(*len)?),
+        )
+}
+
+fn append_and_update_state(
+    state: &mut CacheState,
+    path: &Path,
+    hash: u64,
+    bytecode: &[u8],
+) -> PutResult {
+    let Ok(mut file) = std::fs::OpenOptions::new().append(true).open(path) else {
+        return PutResult::Failed;
+    };
+    let Ok(original_len) = file.metadata().map(|metadata| metadata.len()) else {
+        return PutResult::Failed;
+    };
+    if write_pack_entry(&mut file, hash, bytecode).is_err() {
+        drop(file);
+        let _ = std::fs::OpenOptions::new()
+            .write(true)
+            .open(path)
+            .and_then(|file| file.set_len(original_len));
+        return PutResult::Failed;
+    }
+
+    let offset = state.values.len();
+    state.values.extend_from_slice(bytecode);
+    state.index.insert(hash, (offset, bytecode.len()));
+    PutResult::Stored
+}
+
+fn persist_replacement(state: &mut CacheState, path: &Path, bytes: Vec<u8>) -> PutResult {
+    match rewrite_and_replace_state(state, path, bytes) {
+        Ok(()) => PutResult::Stored,
+        Err(_) => PutResult::Failed,
+    }
+}
+
+fn rewrite_and_replace_state(
+    state: &mut CacheState,
+    path: &Path,
+    bytes: Vec<u8>,
+) -> std::io::Result<()> {
+    atomic_write_pack(path, &bytes)?;
+    replace_state_with_pack(state, bytes);
+    Ok(())
+}
+
+fn replace_state_with_pack(state: &mut CacheState, bytes: Vec<u8>) {
+    let initialized = state.initialized;
+    let mut replacement = CacheState::default();
+    load_pack_bytes(&mut replacement, bytes).expect("new cache pack must be structurally valid");
+    replacement.initialized = initialized;
+    replacement.pack_exists = true;
+    *state = replacement;
+}
+
+fn compacted_pack_with_entry(state: &CacheState, hash: u64, bytecode: &[u8]) -> Vec<u8> {
+    let mut hashes: Vec<u64> = state
+        .index
+        .keys()
+        .copied()
+        .filter(|existing_hash| *existing_hash != hash)
+        .collect();
+    hashes.sort_unstable();
+
+    let mut bytes = empty_pack();
+    for existing_hash in hashes {
+        let (offset, len) = state.index[&existing_hash];
+        append_entry_bytes(
+            &mut bytes,
+            existing_hash,
+            &state.values[offset..offset + len],
+        );
+    }
+    append_entry_bytes(&mut bytes, hash, bytecode);
+    bytes
+}
+
+fn single_entry_pack(hash: u64, bytecode: &[u8]) -> Vec<u8> {
+    let mut bytes = empty_pack();
+    append_entry_bytes(&mut bytes, hash, bytecode);
+    bytes
+}
+
+fn empty_pack() -> Vec<u8> {
+    let mut bytes = Vec::with_capacity(PACK_HEADER_LEN);
+    bytes.extend_from_slice(PACK_MAGIC);
+    bytes.extend_from_slice(&WHITELIST_VERSION.to_le_bytes());
+    bytes
+}
+
+fn append_entry_bytes(bytes: &mut Vec<u8>, hash: u64, bytecode: &[u8]) {
+    bytes.extend_from_slice(&hash.to_le_bytes());
+    bytes.extend_from_slice(&(bytecode.len() as u32).to_le_bytes());
+    bytes.extend_from_slice(bytecode);
+}
+
+fn atomic_write_pack(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+    let parent = path.parent().unwrap_or_else(|| Path::new("."));
+    std::fs::create_dir_all(parent)?;
+    let temp_id = NEXT_TEMP_PACK_ID.fetch_add(1, Ordering::Relaxed);
+    let file_name = path
+        .file_name()
+        .and_then(OsStr::to_str)
+        .unwrap_or(PACK_FILE);
+    let temp_path = parent.join(format!(".{file_name}.tmp-{}-{temp_id}", std::process::id()));
+
+    let result = (|| {
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temp_path)?;
+        file.write_all(bytes)?;
+        file.sync_all()?;
+        std::fs::rename(&temp_path, path)
+    })();
+    if result.is_err() {
+        let _ = std::fs::remove_file(&temp_path);
+    }
+    result
 }
 
 fn truncate_pack(path: &Path, len: usize) -> std::io::Result<()> {
@@ -306,33 +613,46 @@ fn truncate_pack(path: &Path, len: usize) -> std::io::Result<()> {
         .set_len(len as u64)
 }
 
-fn migrate_legacy_cache(state: &mut CacheState) -> std::io::Result<()> {
+fn migrate_legacy_cache(state: &mut CacheState, mode: CacheMode) -> std::io::Result<()> {
     let Some(dir) = cache_dir() else {
         return Ok(());
     };
-    let Ok(entries) = std::fs::read_dir(&dir) else {
+    let Some(pack) = pack_path() else {
+        return Ok(());
+    };
+    migrate_legacy_cache_from_dir(state, &dir, &pack, mode)
+}
+
+fn migrate_legacy_cache_from_dir(
+    state: &mut CacheState,
+    dir: &Path,
+    pack: &Path,
+    mode: CacheMode,
+) -> std::io::Result<()> {
+    let Ok(entries) = std::fs::read_dir(dir) else {
         return Ok(());
     };
 
-    let migrated = collect_legacy_cache_entries(state, entries);
-    write_migrated_pack(state, &dir, migrated)
-}
-
-fn collect_legacy_cache_entries(
-    state: &mut CacheState,
-    entries: std::fs::ReadDir,
-) -> Vec<(u64, Vec<u8>)> {
-    let mut migrated = Vec::new();
     for entry in entries.flatten() {
         let Some((hash, bytecode)) = legacy_cache_entry(&entry.path()) else {
             continue;
         };
-        let offset = state.values.len();
-        state.values.extend_from_slice(&bytecode);
-        state.index.insert(hash, (offset, bytecode.len()));
-        migrated.push((hash, bytecode));
+        if mode.allows_writes() {
+            let _ = store_entry_at_path_with_max(state, pack, MAX_PACK_SIZE, mode, hash, &bytecode);
+        } else {
+            append_entry_to_state(state, hash, &bytecode);
+        }
     }
-    migrated
+    Ok(())
+}
+
+fn append_entry_to_state(state: &mut CacheState, hash: u64, bytecode: &[u8]) {
+    if state.values.is_empty() {
+        state.values = empty_pack();
+    }
+    let offset = state.values.len() + PACK_ENTRY_HEADER_LEN;
+    append_entry_bytes(&mut state.values, hash, bytecode);
+    state.index.insert(hash, (offset, bytecode.len()));
 }
 
 fn legacy_cache_entry(path: &Path) -> Option<(u64, Vec<u8>)> {
@@ -347,55 +667,6 @@ fn legacy_cache_entry(path: &Path) -> Option<(u64, Vec<u8>)> {
     let hash = u64::from_str_radix(stem, 16).ok()?;
     let bytecode = std::fs::read(path).ok()?;
     Some((hash, bytecode))
-}
-
-fn write_migrated_pack(
-    state: &mut CacheState,
-    dir: &Path,
-    migrated: Vec<(u64, Vec<u8>)>,
-) -> std::io::Result<()> {
-    if migrated.is_empty() {
-        return Ok(());
-    }
-
-    let Some(pack) = pack_path() else {
-        return Ok(());
-    };
-    std::fs::create_dir_all(&dir)?;
-    let mut file = std::fs::File::create(&pack)?;
-    write_pack_header(&mut file)?;
-    for (hash, bytecode) in migrated {
-        write_pack_entry(&mut file, hash, &bytecode)?;
-    }
-    state.pack_exists = true;
-    Ok(())
-}
-
-fn append_pack_entry(state: &mut CacheState, hash: u64, bytecode: &[u8]) -> std::io::Result<()> {
-    let Some(dir) = cache_dir() else {
-        return Ok(());
-    };
-    let Some(path) = pack_path() else {
-        return Ok(());
-    };
-    std::fs::create_dir_all(&dir)?;
-
-    let mut file = if state.pack_exists {
-        std::fs::OpenOptions::new().append(true).open(&path)?
-    } else {
-        let mut file = std::fs::File::create(&path)?;
-        write_pack_header(&mut file)?;
-        state.pack_exists = true;
-        file
-    };
-
-    write_pack_entry(&mut file, hash, bytecode)
-}
-
-fn write_pack_header(file: &mut std::fs::File) -> std::io::Result<()> {
-    file.write_all(PACK_MAGIC)?;
-    file.write_all(&WHITELIST_VERSION.to_le_bytes())?;
-    Ok(())
 }
 
 fn write_pack_entry(file: &mut std::fs::File, hash: u64, bytecode: &[u8]) -> std::io::Result<()> {
@@ -424,6 +695,27 @@ mod tests {
             buf.extend_from_slice(bytecode);
         }
         buf
+    }
+
+    fn pack_header_bytes() -> Vec<u8> {
+        synth_pack_bytes(PACK_MAGIC, WHITELIST_VERSION, &[])
+    }
+
+    fn serialized_pack_len(entries: &[&[u8]]) -> u64 {
+        (PACK_HEADER_LEN
+            + entries
+                .iter()
+                .map(|entry| PACK_ENTRY_HEADER_LEN + entry.len())
+                .sum::<usize>()) as u64
+    }
+
+    fn assert_cached_bytes(state: &CacheState, hash: u64, expected: &[u8]) {
+        let (offset, len) = state
+            .index
+            .get(&hash)
+            .copied()
+            .expect("expected hash in cache index");
+        assert_eq!(&state.values[offset..offset + len], expected);
     }
 
     #[test]
@@ -496,7 +788,7 @@ mod tests {
         let mut state = CacheState::default();
         assert_eq!(
             load_pack_bytes(&mut state, bytes),
-            Some(PACK_HEADER_LEN + 12 + 3)
+            Some(PACK_HEADER_LEN + PACK_ENTRY_HEADER_LEN + 3)
         );
         let payload_offset = PACK_HEADER_LEN + 8 + 4;
         assert_eq!(
@@ -507,63 +799,354 @@ mod tests {
     }
 
     #[test]
-    fn oversized_pack_compacts_instead_of_discarding() {
-        let bytes = synth_pack_bytes(
-            PACK_MAGIC,
-            WHITELIST_VERSION,
-            &[(SENTINEL_HASH, b"stale"), (SENTINEL_HASH, b"fresh")],
-        );
-        let path = temp_pack_path("oversized-compact");
-        std::fs::write(&path, &bytes).expect("write synthetic pack");
-
-        let compacted_limit = (PACK_HEADER_LEN + 12 + b"fresh".len()) as u64;
-        let mut state = CacheState::default();
-        assert!(load_pack_from_path_with_max(
-            &mut state,
-            &path,
-            compacted_limit
-        ));
-
-        let (offset, len) = state
-            .index
-            .get(&SENTINEL_HASH)
-            .copied()
-            .expect("compacted pack keeps current entry");
-        assert_eq!(&state.values[offset..offset + len], b"fresh");
-        assert_eq!(
-            std::fs::metadata(&path)
-                .expect("compacted pack remains")
-                .len(),
-            compacted_limit
-        );
-
-        let _ = std::fs::remove_file(path);
-    }
-
-    #[test]
-    fn oversized_pack_discards_when_compacted_pack_still_exceeds_limit() {
-        let bytes = synth_pack_bytes(PACK_MAGIC, WHITELIST_VERSION, &[(SENTINEL_HASH, b"fresh")]);
-        let path = temp_pack_path("oversized-discard");
-        std::fs::write(&path, &bytes).expect("write synthetic pack");
+    fn bounded_store_rejects_oversized_pack_before_payload_read() {
+        let (_temp_dir, path) = temp_pack_path("oversized-preflight");
+        let mut file = std::fs::File::create(&path).expect("create sparse pack");
+        file.write_all(&pack_header_bytes())
+            .expect("write valid pack header");
+        file.set_len(65)
+            .expect("extend sparse pack beyond test limit");
 
         let mut state = CacheState::default();
         assert!(!load_pack_from_path_with_max(
             &mut state,
             &path,
-            (PACK_HEADER_LEN + 12 + b"fresh".len() - 1) as u64
+            64,
+            CacheMode::Writable
         ));
-
         assert!(state.index.is_empty());
         assert!(state.values.is_empty());
         assert!(!path.exists());
     }
 
-    fn temp_pack_path(test_name: &str) -> PathBuf {
-        let unique = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .expect("system time before unix epoch")
-            .as_nanos();
-        std::env::temp_dir().join(format!("wow-ui-sim-{test_name}-{unique}.pack"))
+    #[test]
+    fn bounded_store_compacts_stale_entries_before_adding_new_entry() {
+        let stale_hash = 1;
+        let retained_hash = 2;
+        let new_hash = 3;
+        let bytes = synth_pack_bytes(
+            PACK_MAGIC,
+            WHITELIST_VERSION,
+            &[
+                (stale_hash, b"stale-value"),
+                (stale_hash, b"fresh-value"),
+                (retained_hash, b"retained"),
+            ],
+        );
+        let (_temp_dir, path) = temp_pack_path("bounded-compact");
+        std::fs::write(&path, &bytes).expect("write stale pack");
+        let mut state = CacheState::default();
+        load_pack_bytes(&mut state, bytes).expect("load stale pack state");
+        state.pack_exists = true;
+
+        let max = serialized_pack_len(&[
+            b"fresh-value".as_slice(),
+            b"retained".as_slice(),
+            b"new".as_slice(),
+        ]);
+        assert_eq!(
+            store_entry_at_path_with_max(
+                &mut state,
+                &path,
+                max,
+                CacheMode::Writable,
+                new_hash,
+                b"new",
+            ),
+            PutResult::Stored
+        );
+
+        assert_eq!(std::fs::metadata(&path).unwrap().len(), max);
+        assert_cached_bytes(&state, stale_hash, b"fresh-value");
+        assert_cached_bytes(&state, retained_hash, b"retained");
+        assert_cached_bytes(&state, new_hash, b"new");
+    }
+
+    #[test]
+    fn bounded_store_rebuilds_with_only_new_entry_when_unique_set_exceeds_limit() {
+        let bytes = synth_pack_bytes(
+            PACK_MAGIC,
+            WHITELIST_VERSION,
+            &[(1, b"first-value"), (2, b"second-value")],
+        );
+        let (_temp_dir, path) = temp_pack_path("bounded-rebuild");
+        std::fs::write(&path, &bytes).expect("write existing pack");
+        let mut state = CacheState::default();
+        load_pack_bytes(&mut state, bytes).expect("load existing pack state");
+        state.pack_exists = true;
+
+        let max = serialized_pack_len(&[b"new-value".as_slice()]);
+        assert_eq!(
+            store_entry_at_path_with_max(
+                &mut state,
+                &path,
+                max,
+                CacheMode::Writable,
+                3,
+                b"new-value",
+            ),
+            PutResult::Stored
+        );
+
+        assert_eq!(std::fs::metadata(&path).unwrap().len(), max);
+        assert_eq!(state.index.len(), 1);
+        assert_cached_bytes(&state, 3, b"new-value");
+    }
+
+    #[test]
+    fn bounded_store_rejects_entry_larger_than_pack_limit() {
+        let bytes = synth_pack_bytes(PACK_MAGIC, WHITELIST_VERSION, &[(1, b"old")]);
+        let (_temp_dir, path) = temp_pack_path("bounded-oversized-entry");
+        std::fs::write(&path, &bytes).expect("write existing pack");
+        let mut state = CacheState::default();
+        load_pack_bytes(&mut state, bytes).expect("load existing pack state");
+        state.pack_exists = true;
+
+        let max = (PACK_HEADER_LEN + PACK_ENTRY_HEADER_LEN + b"oversized".len() - 1) as u64;
+        assert_eq!(
+            store_entry_at_path_with_max(
+                &mut state,
+                &path,
+                max,
+                CacheMode::Writable,
+                2,
+                b"oversized",
+            ),
+            PutResult::Failed
+        );
+
+        assert_eq!(std::fs::read(&path).unwrap(), pack_header_bytes());
+        assert_eq!(state.values, pack_header_bytes());
+        assert!(state.index.is_empty());
+        assert!(state.pack_exists);
+    }
+
+    #[test]
+    fn bounded_store_failed_append_leaves_in_memory_state_unchanged() {
+        let bytes = synth_pack_bytes(PACK_MAGIC, WHITELIST_VERSION, &[(1, b"old")]);
+        let dir = tempfile::tempdir().expect("temp directory");
+        let path = dir.path();
+        let mut state = CacheState::default();
+        load_pack_bytes(&mut state, bytes).expect("load existing pack state");
+        state.pack_exists = true;
+        let original_values = state.values.clone();
+        let original_index = state.index.clone();
+        let original_pack_exists = state.pack_exists;
+
+        assert_eq!(
+            store_entry_at_path_with_max(&mut state, path, 1024, CacheMode::Writable, 2, b"new",),
+            PutResult::Failed
+        );
+
+        assert_eq!(state.values, original_values);
+        assert_eq!(state.index, original_index);
+        assert_eq!(state.pack_exists, original_pack_exists);
+    }
+
+    fn temp_pack_path(test_name: &str) -> (tempfile::TempDir, PathBuf) {
+        let temp_dir = tempfile::Builder::new()
+            .prefix(&format!("wow-ui-sim-{test_name}-"))
+            .tempdir()
+            .expect("create temporary pack directory");
+        let path = temp_dir.path().join(PACK_FILE);
+        (temp_dir, path)
+    }
+
+    #[derive(Debug, PartialEq, Eq)]
+    struct FileSnapshot {
+        bytes: Vec<u8>,
+        len: u64,
+        modified: std::time::SystemTime,
+        readonly: bool,
+    }
+
+    fn snapshot_file(path: &Path) -> FileSnapshot {
+        let metadata = std::fs::metadata(path).expect("read cache file metadata");
+        FileSnapshot {
+            bytes: std::fs::read(path).expect("read cache file bytes"),
+            len: metadata.len(),
+            modified: metadata
+                .modified()
+                .expect("read cache file modification time"),
+            readonly: metadata.permissions().readonly(),
+        }
+    }
+
+    fn directory_entry_names(path: &Path) -> Vec<std::ffi::OsString> {
+        let mut names = std::fs::read_dir(path)
+            .expect("read cache directory")
+            .map(|entry| entry.expect("read cache directory entry").file_name())
+            .collect::<Vec<_>>();
+        names.sort();
+        names
+    }
+
+    #[test]
+    fn read_only_invalid_pack_is_not_removed() {
+        let (_temp_dir, path) = temp_pack_path("read-only-invalid");
+        std::fs::write(&path, b"invalid-pack").expect("write invalid pack");
+        let before = snapshot_file(&path);
+        let entries_before = directory_entry_names(path.parent().unwrap());
+        let mut state = CacheState::default();
+
+        assert!(!load_pack_from_path_with_max(
+            &mut state,
+            &path,
+            64,
+            CacheMode::ReadOnly,
+        ));
+
+        assert_eq!(snapshot_file(&path), before);
+        assert_eq!(
+            directory_entry_names(path.parent().unwrap()),
+            entries_before
+        );
+    }
+
+    #[test]
+    fn read_only_oversized_pack_is_not_removed() {
+        let (_temp_dir, path) = temp_pack_path("read-only-oversized");
+        let mut file = std::fs::File::create(&path).expect("create oversized pack");
+        file.write_all(&pack_header_bytes())
+            .expect("write pack header");
+        file.set_len(65).expect("extend pack beyond test limit");
+        drop(file);
+        let before = snapshot_file(&path);
+        let entries_before = directory_entry_names(path.parent().unwrap());
+        let mut state = CacheState::default();
+
+        assert!(!load_pack_from_path_with_max(
+            &mut state,
+            &path,
+            64,
+            CacheMode::ReadOnly,
+        ));
+
+        assert_eq!(snapshot_file(&path), before);
+        assert_eq!(
+            directory_entry_names(path.parent().unwrap()),
+            entries_before
+        );
+    }
+
+    #[test]
+    fn read_only_torn_pack_is_not_truncated() {
+        let mut bytes = synth_pack_bytes(PACK_MAGIC, WHITELIST_VERSION, &[(1, b"complete")]);
+        bytes.extend_from_slice(&2_u64.to_le_bytes());
+        bytes.extend_from_slice(&16_u32.to_le_bytes());
+        bytes.extend_from_slice(b"partial");
+        let (_temp_dir, path) = temp_pack_path("read-only-torn");
+        std::fs::write(&path, &bytes).expect("write torn pack");
+        let before = snapshot_file(&path);
+        let mut state = CacheState::default();
+
+        assert!(load_pack_from_path_with_max(
+            &mut state,
+            &path,
+            1024,
+            CacheMode::ReadOnly,
+        ));
+
+        assert_cached_bytes(&state, 1, b"complete");
+        assert_eq!(snapshot_file(&path), before);
+    }
+
+    #[test]
+    fn read_only_legacy_hit_is_returned_without_promotion() {
+        let legacy_hash = legacy_content_hash(b"abc", "=@chunk");
+        let current_hash = content_hash(b"abc", "=@chunk");
+        let bytes = synth_pack_bytes(PACK_MAGIC, WHITELIST_VERSION, &[(legacy_hash, b"compiled")]);
+        let (_temp_dir, path) = temp_pack_path("read-only-legacy-hit");
+        std::fs::write(&path, &bytes).expect("write legacy-key pack");
+        let before = snapshot_file(&path);
+        let mut state = CacheState::default();
+        load_pack_bytes(&mut state, bytes).expect("load legacy-key pack state");
+        state.pack_exists = true;
+
+        let loaded = lookup_with_legacy_fallback_at_path(
+            &mut state,
+            &path,
+            1024,
+            CacheMode::ReadOnly,
+            current_hash,
+            || legacy_hash,
+        )
+        .expect("legacy entry should be returned");
+
+        assert_eq!(loaded, b"compiled");
+        assert!(state.index.contains_key(&legacy_hash));
+        assert!(!state.index.contains_key(&current_hash));
+        assert_eq!(snapshot_file(&path), before);
+    }
+
+    #[test]
+    fn read_only_legacy_files_are_not_migrated() {
+        let (temp_dir, pack) = temp_pack_path("read-only-legacy-migration");
+        let legacy = temp_dir.path().join("0000000000000001.luac");
+        std::fs::write(&legacy, b"legacy-bytecode").expect("write legacy cache entry");
+        let legacy_before = snapshot_file(&legacy);
+        let entries_before = directory_entry_names(temp_dir.path());
+        let mut state = CacheState::default();
+
+        migrate_legacy_cache_from_dir(&mut state, temp_dir.path(), &pack, CacheMode::ReadOnly)
+            .expect("read-only legacy scan");
+
+        assert!(!pack.exists());
+        assert_eq!(snapshot_file(&legacy), legacy_before);
+        assert_eq!(directory_entry_names(temp_dir.path()), entries_before);
+        assert_cached_bytes(&state, 1, b"legacy-bytecode");
+        assert!(!state.pack_exists);
+    }
+
+    #[test]
+    fn read_only_store_skips_append_replacement_and_temp_paths() {
+        let (_missing_dir, missing_path) = temp_pack_path("read-only-missing-store");
+        let missing_entries = directory_entry_names(missing_path.parent().unwrap());
+        let mut missing_state = CacheState::default();
+        assert_eq!(
+            store_entry_at_path_with_max(
+                &mut missing_state,
+                &missing_path,
+                1024,
+                CacheMode::ReadOnly,
+                1,
+                b"new",
+            ),
+            PutResult::Skipped
+        );
+        assert!(!missing_path.exists());
+        assert_eq!(
+            directory_entry_names(missing_path.parent().unwrap()),
+            missing_entries
+        );
+
+        let existing_bytes = synth_pack_bytes(PACK_MAGIC, WHITELIST_VERSION, &[(1, b"old")]);
+        let (_existing_dir, existing_path) = temp_pack_path("read-only-existing-store");
+        std::fs::write(&existing_path, &existing_bytes).expect("write existing pack");
+        let existing_before = snapshot_file(&existing_path);
+        let existing_entries = directory_entry_names(existing_path.parent().unwrap());
+        let mut existing_state = CacheState::default();
+        load_pack_bytes(&mut existing_state, existing_bytes).expect("load existing pack state");
+        existing_state.pack_exists = true;
+
+        assert_eq!(
+            store_entry_at_path_with_max(
+                &mut existing_state,
+                &existing_path,
+                serialized_pack_len(&[b"replacement".as_slice()]),
+                CacheMode::ReadOnly,
+                2,
+                b"replacement",
+            ),
+            PutResult::Skipped
+        );
+        assert_eq!(snapshot_file(&existing_path), existing_before);
+        assert_eq!(
+            directory_entry_names(existing_path.parent().unwrap()),
+            existing_entries
+        );
+        assert_cached_bytes(&existing_state, 1, b"old");
+        assert!(!existing_state.index.contains_key(&2));
     }
 
     #[test]
@@ -620,22 +1203,32 @@ mod tests {
     }
 
     #[test]
-    fn legacy_lookup_promotes_entry_under_current_hash() {
-        let mut state = CacheState::default();
+    fn bounded_store_legacy_lookup_promotion_uses_same_limit() {
         let legacy_hash = legacy_content_hash(b"abc", "=@chunk");
         let current_hash = content_hash(b"abc", "=@chunk");
+        let bytes = synth_pack_bytes(PACK_MAGIC, WHITELIST_VERSION, &[(legacy_hash, b"compiled")]);
+        let (_temp_dir, path) = temp_pack_path("legacy-promotion");
+        std::fs::write(&path, &bytes).expect("write legacy-key pack");
+        let mut state = CacheState::default();
+        load_pack_bytes(&mut state, bytes).expect("load legacy-key pack state");
+        state.pack_exists = true;
 
-        state.values.extend_from_slice(b"compiled");
-        state.index.insert(legacy_hash, (0, b"compiled".len()));
+        let max = serialized_pack_len(&[b"compiled".as_slice()]);
+        let loaded = lookup_with_legacy_fallback_at_path(
+            &mut state,
+            &path,
+            max,
+            CacheMode::Writable,
+            current_hash,
+            || legacy_hash,
+        )
+        .expect("legacy entry should be found");
 
-        let loaded = lookup_with_legacy_fallback(&mut state, current_hash, || legacy_hash)
-            .expect("legacy entry should be found");
         assert_eq!(loaded, b"compiled");
-        assert_eq!(
-            state.index.get(&current_hash).copied(),
-            Some((b"compiled".len(), b"compiled".len()))
-        );
-        assert_eq!(&state.values[b"compiled".len()..], b"compiled");
+        assert_eq!(state.index.len(), 1);
+        assert!(!state.index.contains_key(&legacy_hash));
+        assert_cached_bytes(&state, current_hash, b"compiled");
+        assert_eq!(std::fs::metadata(&path).unwrap().len(), max);
     }
 
     #[test]
@@ -647,6 +1240,7 @@ mod tests {
 
         let borrowed = with_cached_bytecode_from_state(
             &mut state,
+            CacheMode::Writable,
             SENTINEL_HASH,
             || SENTINEL_HASH,
             |bytes| bytes.as_ptr() == pack_ptr,

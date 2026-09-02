@@ -26,7 +26,7 @@ Default behavior for missing methods (returning nil/false/0) is provided directl
 |-----------|-------|
 | C_Timer | After, NewTicker, NewTimer — fully functional |
 | C_Item | GetItemInfo, GetItemInfoInstant, item class/subclass lookups |
-| C_Container | GetContainerItemID/Link/Info, HasContainerItem |
+| C_Container | GetContainerItemID/Link/Info, HasContainerItem, bag-slot flags and backpack flag queries |
 | C_Map | GetAreaInfo, GetMapInfo, GetWorldPosFromMapPos |
 | C_QuestLog | GetNumQuestLogEntries, GetInfo, quest ID lookups |
 | C_EditMode | GetLayouts, GetAccountSettings |

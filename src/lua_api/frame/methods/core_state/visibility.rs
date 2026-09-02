@@ -83,7 +83,7 @@ fn show_or_hide(state: &mut LuaState, id: u64, shown: bool) -> LuaResult<()> {
 
     let result = drain_visibility_handlers(state, id, shown);
 
-    reset_visibility_dispatch_state(state, id, shown, depth)?;
+    reset_visibility_dispatch_state(state, id, depth)?;
 
     result?;
     super::size::mark_nearest_layout_parent_dirty(state, id);
@@ -93,11 +93,9 @@ fn show_or_hide(state: &mut LuaState, id: u64, shown: bool) -> LuaResult<()> {
 fn reset_visibility_dispatch_state(
     state: &mut LuaState,
     id: u64,
-    shown: bool,
     previous_depth: u32,
 ) -> LuaResult<()> {
     let mut sim = borrow_state_mut(state)?;
-    sim.set_frame_visible(id, shown);
     if let Some(frame) = sim.widgets.get_mut(id) {
         frame.show_hide_depth = 0;
     }

@@ -139,9 +139,8 @@ fn blizzard_end_of_match_ui_is_excluded_from_standard_game_discovery() {
     );
 }
 
-#[test]
-fn blizzard_end_of_match_ui_loads_explicitly_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_end_of_match_ui_loads_explicitly_without_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -167,10 +166,10 @@ fn blizzard_end_of_match_ui_loads_explicitly_without_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_end_of_match_ui_creates_named_singleton_frame() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_end_of_match_ui_creates_named_singleton_frame(env: &WowLuaEnv) {
 
     load_addon(&env.loader_env(), &end_of_match_ui_toc())
         .expect("Blizzard_EndOfMatchUI should load");
@@ -194,10 +193,10 @@ fn blizzard_end_of_match_ui_creates_named_singleton_frame() {
         "EndOfMatchFrame:GetName() must echo the XML `name` attribute"
     );
 }
+}
 
-#[test]
-fn blizzard_end_of_match_ui_singleton_starts_hidden_with_top_level_input() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_end_of_match_ui_singleton_starts_hidden_with_top_level_input(env: &WowLuaEnv) {
 
     load_addon(&env.loader_env(), &end_of_match_ui_toc())
         .expect("Blizzard_EndOfMatchUI should load");
@@ -224,10 +223,10 @@ fn blizzard_end_of_match_ui_singleton_starts_hidden_with_top_level_input() {
          in the simulator's XML-to-widget conversion.)"
     );
 }
+}
 
-#[test]
-fn blizzard_end_of_match_ui_publishes_three_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_end_of_match_ui_publishes_three_mixins(env: &WowLuaEnv) {
 
     load_addon(&env.loader_env(), &end_of_match_ui_toc())
         .expect("Blizzard_EndOfMatchUI should load");
@@ -254,10 +253,10 @@ fn blizzard_end_of_match_ui_publishes_three_mixins() {
          BigRed/BigGoldRed three-slice button variants)"
     );
 }
+}
 
-#[test]
-fn blizzard_end_of_match_ui_singleton_carries_three_frame_pools() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_end_of_match_ui_singleton_carries_three_frame_pools(env: &WowLuaEnv) {
 
     load_addon(&env.loader_env(), &end_of_match_ui_toc())
         .expect("Blizzard_EndOfMatchUI should load");
@@ -284,10 +283,10 @@ fn blizzard_end_of_match_ui_singleton_carries_three_frame_pools() {
          CreateFramePool resolves the templates without erroring"
     );
 }
+}
 
-#[test]
-fn blizzard_end_of_match_ui_is_addon_loaded_flips_after_explicit_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_end_of_match_ui_is_addon_loaded_flips_after_explicit_load(env: &WowLuaEnv) {
 
     let pre_load: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_EndOfMatchUI') and true or false")
@@ -312,10 +311,10 @@ fn blizzard_end_of_match_ui_is_addon_loaded_flips_after_explicit_load() {
          when the TOC's game-type token doesn't match the active client"
     );
 }
+}
 
-#[test]
-fn blizzard_end_of_match_ui_singleton_is_parented_to_ui_parent() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_end_of_match_ui_singleton_is_parented_to_ui_parent(env: &WowLuaEnv) {
 
     load_addon(&env.loader_env(), &end_of_match_ui_toc())
         .expect("Blizzard_EndOfMatchUI should load");
@@ -330,10 +329,10 @@ fn blizzard_end_of_match_ui_singleton_is_parented_to_ui_parent() {
          and hides with the rest of the standard UI"
     );
 }
+}
 
-#[test]
-fn blizzard_end_of_match_ui_singleton_registers_for_show_end_of_match_event() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_end_of_match_ui_singleton_registers_for_show_end_of_match_event(env: &WowLuaEnv) {
 
     load_addon(&env.loader_env(), &end_of_match_ui_toc())
         .expect("Blizzard_EndOfMatchUI should load");
@@ -349,10 +348,10 @@ fn blizzard_end_of_match_ui_singleton_registers_for_show_end_of_match_event() {
          singleton — it triggers :TryShow(false) when the game fires the post-match-UI event"
     );
 }
+}
 
-#[test]
-fn blizzard_end_of_match_ui_singleton_resolves_xml_named_children() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_end_of_match_ui_singleton_resolves_xml_named_children(env: &WowLuaEnv) {
 
     load_addon(&env.loader_env(), &end_of_match_ui_toc())
         .expect("Blizzard_EndOfMatchUI should load");
@@ -375,4 +374,5 @@ fn blizzard_end_of_match_ui_singleton_resolves_xml_named_children() {
          ActionsContainer (HorizontalLayoutFrame for the bottom button row). All four must \
          resolve as tables after load — confirms parentKey resolution sees the singleton"
     );
+}
 }

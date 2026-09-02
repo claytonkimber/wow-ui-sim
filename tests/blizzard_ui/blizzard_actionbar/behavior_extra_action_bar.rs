@@ -170,9 +170,9 @@
 //!      called `bar:Show()` at lua:13).
 //!
 //! 4. **After also firing `ACTIONBAR_SLOT_CHANGED arg=slot`,
-//!    `ExtraActionButton1.icon:GetTexture()` is a non-empty string ending
-//!    in the spell's manifest texture-path suffix.** Pins
-//!    `ActionBarButtonEventsFrame` → `ExtraActionButton1:OnEvent` →
+//!    `ExtraActionButton1.icon:GetTexture()` is the spell icon's numeric
+//!    fileDataID and `GetTextureFilePath()` preserves its manifest path.**
+//!    Pins `ActionBarButtonEventsFrame` → `ExtraActionButton1:OnEvent` →
 //!    `:UpdateAction(true)` → `:Update()` → `icon:SetTexture(texture)`,
 //!    where `texture = C_ActionBar.GetActionTexture(slot)` resolved
 //!    `state.action_bars[slot]` through `SPELL_DB` and
@@ -207,11 +207,9 @@ const ROOT: &str = "Blizzard_ActionBarController";
 /// differs from anything seeded by `SimState::default()`.
 const SPELL_ID: u32 = 100;
 
-/// `manifest_interface_data` resolves the icon for spell 100 (Charge,
-/// `icon_file_data_id = 132337`) to this path. Confirmed at
-/// `data/manifest_interface_data.rs:248758`. The post-seed icon
-/// `:GetTexture()` should match this exactly (allowing case variation
-/// from the simulator's path resolver).
+/// Charge's icon identity. `GetTexture()` exposes the numeric fileDataID;
+/// `GetTextureFilePath()` preserves the resolved manifest path.
+const EXPECTED_ICON_FILE_DATA_ID: i64 = 132337;
 const EXPECTED_ICON_SUFFIX: &str = "Ability_Warrior_Charge";
 
 #[test]
@@ -329,44 +327,26 @@ fn extra_action_button_show_and_icon_round_trip_through_update_events() {
         env.fire_event_with_args("ACTIONBAR_SLOT_CHANGED", &[Val::Num(slot as f64)])
             .expect("ACTIONBAR_SLOT_CHANGED fire must dispatch cleanly");
 
-        let icon_texture: String = env
-            .eval("return tostring(ExtraActionButton1.icon:GetTexture() or \"\")")
-            .expect("icon:GetTexture() probe must run cleanly");
-        assert!(
-            !icon_texture.is_empty(),
-            "After ACTIONBAR_SLOT_CHANGED arg=slot, \
-             `ExtraActionButton1.icon:GetTexture()` must return a \
-             non-empty string. `ActionBarButtonEventsFrameMixin:OnEvent` \
-             (Shared/ActionButton.lua:220-225) fans the event to each \
-             registered button. `ExtraActionButton1:OnEvent` lua:972-976 \
-             gates on `arg1 == 0 or arg1 == tonumber(self.action)` and \
-             calls `:UpdateAction(true)`, which invokes `:Update()` \
-             (lua:555). Update reads \
-             `texture = C_ActionBar.GetActionTexture(self.action)` \
-             (lua:558) and calls `icon:SetTexture(texture)` when non-nil \
-             (lua:617-619). The simulator's `GetActionTexture` resolves \
-             `state.action_bars[slot]` through `SPELL_DB` and \
-             `manifest_interface_data::get_texture_path` \
-             (action_bar_api.rs:226-230). An empty reading means \
-             RegisterFrame at lua:454 didn't run for ExtraActionButton1, \
-             the arg1 gate inverted, or the texture lookup short-\
-             circuited."
+        let (icon_file_data_id, icon_path): (i64, String) = env
+            .eval(
+                "return ExtraActionButton1.icon:GetTexture(), \
+                 ExtraActionButton1.icon:GetTextureFilePath()",
+            )
+            .expect("extra-action icon identity probe must run cleanly");
+        assert_eq!(
+            icon_file_data_id, EXPECTED_ICON_FILE_DATA_ID,
+            "After seeding `state.action_bars[{slot}] = {SPELL_ID}`, \
+             `ExtraActionButton1.icon:GetTexture()` must return Charge's \
+             fileDataID. A mismatch means the event refresh did not set \
+             the expected icon or texture identity stopped preserving \
+             known fileDataIDs. Got path: {icon_path:?}."
         );
         assert!(
-            icon_texture
+            icon_path
                 .to_ascii_lowercase()
                 .contains(&EXPECTED_ICON_SUFFIX.to_ascii_lowercase()),
-            "After seeding `state.action_bars[{slot}] = {SPELL_ID}` \
-             (Charge, `icon_file_data_id = 132337`), \
-             `ExtraActionButton1.icon:GetTexture()` must contain \
-             `{EXPECTED_ICON_SUFFIX}` (case-insensitive). The manifest \
-             entry at `data/manifest_interface_data.rs:248758` maps \
-             `132337 -> ICONS/Ability_Warrior_Charge`. Got: \
-             {icon_texture:?}. A mismatch means either the spell→texture \
-             resolution path skipped the manifest lookup, or the \
-             ACTIONBAR_SLOT_CHANGED dispatch hit a different button than \
-             ExtraActionButton1 (e.g., the slot computation was inverted \
-             so a different button claimed slot {slot})."
+            "`ExtraActionButton1.icon:GetTextureFilePath()` must preserve \
+             Charge's resolved manifest path. Got: {icon_path:?}."
         );
     });
     }

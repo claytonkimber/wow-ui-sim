@@ -2,6 +2,124 @@
 
 use wow_ui_sim::lua_api::WowLuaEnv;
 
+fn frame_storage_estimate(env: &WowLuaEnv, name: &str) -> usize {
+    let state = env.state().borrow();
+    let id = state
+        .widgets
+        .get_id_by_name(name)
+        .unwrap_or_else(|| panic!("missing frame {name}"));
+    state.widgets.get(id).unwrap().storage_estimate_bytes()
+}
+
+#[test]
+fn model_storage_defaults_do_not_allocate_until_non_default_mutation() {
+    let env = WowLuaEnv::new().unwrap();
+    env.exec("CreateFrame('Frame', 'OrdinaryModelMethodFrame', UIParent)")
+        .unwrap();
+    let initial = frame_storage_estimate(&env, "OrdinaryModelMethodFrame");
+
+    env.exec(
+        r#"
+        local frame = OrdinaryModelMethodFrame
+        local model = frame:GetModel()
+        local scale = frame:GetModelScale()
+        local x, y, z = frame:GetPosition()
+        local facing = frame:GetFacing()
+        local displayInfo = frame:GetDisplayInfo()
+        local fileID = frame:GetModelFileID()
+        local alpha = frame:GetModelAlpha()
+        local blend = frame:GetDoBlend()
+        local keep = frame:GetKeepModelOnHide()
+        local left, right, top, bottom = frame:GetViewInsets()
+        assert(model == "")
+        assert(scale == 1 and x == 0 and y == 0 and z == 0 and facing == 0)
+        assert(displayInfo == 0 and fileID == 0 and alpha == 1)
+        assert(blend == false and keep == false)
+        assert(left == 0 and right == 0 and top == 0 and bottom == 0)
+        "#,
+    )
+    .unwrap();
+
+    let after_default_reads = frame_storage_estimate(&env, "OrdinaryModelMethodFrame");
+    assert_eq!(
+        after_default_reads, initial,
+        "default model getters should not allocate persistent state"
+    );
+    env.exec(
+        r#"
+        OrdinaryModelMethodFrame:SetModelScale(1)
+        OrdinaryModelMethodFrame:SetPosition(0, 0, 0)
+        OrdinaryModelMethodFrame:SetFacing(0)
+        OrdinaryModelMethodFrame:SetModelAlpha(1)
+        OrdinaryModelMethodFrame:SetDoBlend(false)
+        OrdinaryModelMethodFrame:SetKeepModelOnHide(false)
+        OrdinaryModelMethodFrame:SetViewInsets(0, 0, 0, 0)
+        OrdinaryModelMethodFrame:ClearModel()
+        OrdinaryModelMethodFrame:ClearScene()
+        "#,
+    )
+    .unwrap();
+    assert_eq!(
+        frame_storage_estimate(&env, "OrdinaryModelMethodFrame"),
+        after_default_reads,
+        "default-valued model operations should not allocate persistent state"
+    );
+
+    env.exec("OrdinaryModelMethodFrame:SetModelScale(2)")
+        .unwrap();
+    assert!(
+        frame_storage_estimate(&env, "OrdinaryModelMethodFrame") > after_default_reads,
+        "first non-default model mutation should allocate persistent state"
+    );
+}
+
+#[test]
+fn model_storage_counts_scene_actor_tags() {
+    let env = WowLuaEnv::new().unwrap();
+    env.exec(
+        r#"
+        local untagged = CreateFrame("ModelScene", "UntaggedActorScene", UIParent)
+        local tagged = CreateFrame("ModelScene", "TaggedActorScene", UIParent)
+        untagged:CreateActor("")
+        tagged:CreateActor("storage-accounting-actor-tag")
+        "#,
+    )
+    .unwrap();
+
+    assert!(
+        frame_storage_estimate(&env, "TaggedActorScene")
+            > frame_storage_estimate(&env, "UntaggedActorScene"),
+        "actor tag vector and string storage should be counted"
+    );
+}
+
+#[test]
+fn model_storage_counts_player_model_owned_strings() {
+    let env = WowLuaEnv::new().unwrap();
+    env.exec(
+        r#"
+        local model = CreateFrame("PlayerModel", "PlayerModelStorage", UIParent)
+        model:SetModelScale(2)
+        "#,
+    )
+    .unwrap();
+    let payload_only = frame_storage_estimate(&env, "PlayerModelStorage");
+
+    env.exec(
+        r#"
+        PlayerModelStorage:SetItem("item:19019:storage-accounting")
+        PlayerModelStorage:SetItemAppearance("appearance:123456:storage-accounting")
+        PlayerModelStorage:SetUnit("player-storage-accounting")
+        "#,
+    )
+    .unwrap();
+
+    assert!(
+        frame_storage_estimate(&env, "PlayerModelStorage") > payload_only,
+        "player-model owned strings should be counted"
+    );
+}
+
 #[test]
 fn test_player_model_methods_still_resolve() {
     let env = WowLuaEnv::new().unwrap();
@@ -20,6 +138,32 @@ fn test_player_model_methods_still_resolve() {
     assert!(result.0, "PlayerModel should expose ApplySpellVisualKit");
     assert!(result.1, "PlayerModel should expose SetKeepModelOnHide");
     assert!(result.2, "PlayerModel should expose GetDisplayInfo");
+}
+
+#[test]
+fn test_model_and_model_scene_clear_fog_methods_absorb_visual_reset() {
+    let env = WowLuaEnv::new().unwrap();
+
+    let (model_method, model_call, scene_method, scene_call): (bool, bool, bool, bool) = env
+        .eval(
+            r#"
+            local model = CreateFrame("Model")
+            local scene = CreateFrame("ModelScene")
+            return type(model.ClearFog) == "function",
+                   pcall(model.ClearFog, model),
+                   type(scene.ClearFog) == "function",
+                   pcall(scene.ClearFog, scene)
+            "#,
+        )
+        .unwrap();
+
+    assert!(model_method, "Model should expose ClearFog");
+    assert!(model_call, "Model:ClearFog should absorb the visual reset");
+    assert!(scene_method, "ModelScene should expose ClearFog");
+    assert!(
+        scene_call,
+        "ModelScene:ClearFog should absorb the visual reset"
+    );
 }
 
 #[test]
@@ -48,10 +192,10 @@ fn test_player_model_set_model_persists_path_and_clears_file_id() {
     let state = env.state().borrow();
     let frame = state.widgets.get(model_id).unwrap();
     assert_eq!(
-        frame.model_path.as_deref(),
+        frame.model_state().model_path.as_deref(),
         Some("Creature/Dragon/Dragon.m2")
     );
-    assert_eq!(frame.model_file_id, None);
+    assert_eq!(frame.model_state().model_file_id, None);
 }
 
 #[test]
@@ -114,17 +258,17 @@ fn test_player_model_transform_and_camera_methods_persist_state() {
         .unwrap();
     let state = env.state().borrow();
     let frame = state.widgets.get(model_id).unwrap();
-    assert!((frame.model_transform.scale - 1.75).abs() < 0.001);
-    assert!((frame.model_transform.position.0 - 10.5).abs() < 0.001);
-    assert!((frame.model_transform.position.1 + 2.25).abs() < 0.001);
-    assert!((frame.model_transform.position.2 - 8.0).abs() < 0.001);
-    assert!((frame.model_transform.facing - 1.125).abs() < 0.001);
-    assert!((frame.model_transform.camera.distance - 23.5).abs() < 0.001);
-    assert!((frame.model_transform.camera.facing - 0.875).abs() < 0.001);
-    assert!((frame.model_transform.camera.target.0 - 4.0).abs() < 0.001);
-    assert!((frame.model_transform.camera.target.1 - 5.5).abs() < 0.001);
-    assert!((frame.model_transform.camera.target.2 + 6.25).abs() < 0.001);
-    assert!((frame.model_transform.camera.roll - 0.375).abs() < 0.001);
+    assert!((frame.model_state().model_transform.scale - 1.75).abs() < 0.001);
+    assert!((frame.model_state().model_transform.position.0 - 10.5).abs() < 0.001);
+    assert!((frame.model_state().model_transform.position.1 + 2.25).abs() < 0.001);
+    assert!((frame.model_state().model_transform.position.2 - 8.0).abs() < 0.001);
+    assert!((frame.model_state().model_transform.facing - 1.125).abs() < 0.001);
+    assert!((frame.model_state().model_transform.camera.distance - 23.5).abs() < 0.001);
+    assert!((frame.model_state().model_transform.camera.facing - 0.875).abs() < 0.001);
+    assert!((frame.model_state().model_transform.camera.target.0 - 4.0).abs() < 0.001);
+    assert!((frame.model_state().model_transform.camera.target.1 - 5.5).abs() < 0.001);
+    assert!((frame.model_state().model_transform.camera.target.2 + 6.25).abs() < 0.001);
+    assert!((frame.model_state().model_transform.camera.roll - 0.375).abs() < 0.001);
 }
 
 #[test]
@@ -155,10 +299,10 @@ fn test_player_model_appearance_and_state_methods_persist_and_clear_state() {
     {
         let state = env.state().borrow();
         let frame = state.widgets.get(model_id).unwrap();
-        assert_eq!(frame.model_path, None);
-        assert_eq!(frame.model_file_id, None);
-        assert_eq!(frame.model_appearance.display_info, Some(1234));
-        assert_eq!(frame.model_appearance.creature_id, None);
+        assert_eq!(frame.model_state().model_path, None);
+        assert_eq!(frame.model_state().model_file_id, None);
+        assert_eq!(frame.model_state().model_appearance.display_info, Some(1234));
+        assert_eq!(frame.model_state().model_appearance.creature_id, None);
     }
 
     env.exec(
@@ -183,13 +327,13 @@ fn test_player_model_appearance_and_state_methods_persist_and_clear_state() {
     {
         let state = env.state().borrow();
         let frame = state.widgets.get(model_id).unwrap();
-        assert_eq!(frame.model_appearance.display_info, None);
-        assert_eq!(frame.model_appearance.creature_id, Some(5678));
-        assert_eq!(frame.model_appearance.animation_id, Some(42));
-        assert_eq!(frame.model_appearance.sequence_id, Some(7));
-        assert_eq!(frame.model_appearance.sequence_time_ms, None);
-        assert_eq!(frame.model_appearance.refresh_unit_count, 1);
-        assert_eq!(frame.model_appearance.refresh_camera_count, 1);
+        assert_eq!(frame.model_state().model_appearance.display_info, None);
+        assert_eq!(frame.model_state().model_appearance.creature_id, Some(5678));
+        assert_eq!(frame.model_state().model_appearance.animation_id, Some(42));
+        assert_eq!(frame.model_state().model_appearance.sequence_id, Some(7));
+        assert_eq!(frame.model_state().model_appearance.sequence_time_ms, None);
+        assert_eq!(frame.model_state().model_appearance.refresh_unit_count, 1);
+        assert_eq!(frame.model_state().model_appearance.refresh_camera_count, 1);
     }
 
     env.exec("TestPlayerModelAppearanceState:SetSequenceTime(7, 250)")
@@ -198,8 +342,8 @@ fn test_player_model_appearance_and_state_methods_persist_and_clear_state() {
     {
         let state = env.state().borrow();
         let frame = state.widgets.get(model_id).unwrap();
-        assert_eq!(frame.model_appearance.sequence_id, Some(7));
-        assert_eq!(frame.model_appearance.sequence_time_ms, Some(250));
+        assert_eq!(frame.model_state().model_appearance.sequence_id, Some(7));
+        assert_eq!(frame.model_state().model_appearance.sequence_time_ms, Some(250));
     }
 
     env.exec("TestPlayerModelAppearanceState:ClearModel()")
@@ -224,15 +368,15 @@ fn test_player_model_appearance_and_state_methods_persist_and_clear_state() {
     {
         let state = env.state().borrow();
         let frame = state.widgets.get(model_id).unwrap();
-        assert_eq!(frame.model_path, None);
-        assert_eq!(frame.model_file_id, None);
-        assert_eq!(frame.model_appearance.display_info, None);
-        assert_eq!(frame.model_appearance.creature_id, None);
-        assert_eq!(frame.model_appearance.animation_id, None);
-        assert_eq!(frame.model_appearance.sequence_id, None);
-        assert_eq!(frame.model_appearance.sequence_time_ms, None);
-        assert_eq!(frame.model_appearance.refresh_unit_count, 1);
-        assert_eq!(frame.model_appearance.refresh_camera_count, 1);
+        assert_eq!(frame.model_state().model_path, None);
+        assert_eq!(frame.model_state().model_file_id, None);
+        assert_eq!(frame.model_state().model_appearance.display_info, None);
+        assert_eq!(frame.model_state().model_appearance.creature_id, None);
+        assert_eq!(frame.model_state().model_appearance.animation_id, None);
+        assert_eq!(frame.model_state().model_appearance.sequence_id, None);
+        assert_eq!(frame.model_state().model_appearance.sequence_time_ms, None);
+        assert_eq!(frame.model_state().model_appearance.refresh_unit_count, 1);
+        assert_eq!(frame.model_state().model_appearance.refresh_camera_count, 1);
     }
 }
 
@@ -270,10 +414,10 @@ fn test_player_model_rendering_flag_methods_persist_state() {
         .unwrap();
     let state = env.state().borrow();
     let frame = state.widgets.get(model_id).unwrap();
-    assert!((frame.model_rendering.alpha - 0.35).abs() < 0.001);
-    assert!((frame.model_rendering.shadow_effect - 0.8).abs() < 0.001);
-    assert!(frame.model_rendering.particles_enabled);
-    assert!(frame.model_rendering.use_gbuffer);
+    assert!((frame.model_state().model_rendering.alpha - 0.35).abs() < 0.001);
+    assert!((frame.model_state().model_rendering.shadow_effect - 0.8).abs() < 0.001);
+    assert!(frame.model_state().model_rendering.particles_enabled);
+    assert!(frame.model_state().model_rendering.use_gbuffer);
 }
 
 #[test]
@@ -324,14 +468,14 @@ fn test_player_model_specific_methods_persist_state() {
     {
         let state = env.state().borrow();
         let frame = state.widgets.get(model_id).unwrap();
-        assert!(frame.player_model_state.do_blend);
-        assert!(frame.player_model_state.keep_model_on_hide);
-        assert_eq!(frame.player_model_state.last_item.as_deref(), Some("19019"));
+        assert!(frame.model_state().player_model_state.do_blend);
+        assert!(frame.model_state().player_model_state.keep_model_on_hide);
+        assert_eq!(frame.model_state().player_model_state.last_item.as_deref(), Some("19019"));
         assert_eq!(
-            frame.player_model_state.last_item_appearance.as_deref(),
+            frame.model_state().player_model_state.last_item_appearance.as_deref(),
             Some("4242")
         );
-        assert_eq!(frame.player_model_state.active_anim_kit, Some(777));
+        assert_eq!(frame.model_state().player_model_state.active_anim_kit, Some(777));
     }
 
     env.exec("TestPlayerModelSpecificState:StopAnimKit()")
@@ -339,7 +483,7 @@ fn test_player_model_specific_methods_persist_state() {
 
     let state = env.state().borrow();
     let frame = state.widgets.get(model_id).unwrap();
-    assert_eq!(frame.player_model_state.active_anim_kit, None);
+    assert_eq!(frame.model_state().player_model_state.active_anim_kit, None);
 }
 
 #[test]
@@ -457,37 +601,37 @@ fn test_model_scene_camera_light_and_fog_methods_persist_state() {
         .unwrap();
     let state = env.state().borrow();
     let frame = state.widgets.get(scene_id).unwrap();
-    assert!((frame.model_scene_state.camera.position.0 - 1.5).abs() < 0.001);
-    assert!((frame.model_scene_state.camera.position.1 + 2.25).abs() < 0.001);
-    assert!((frame.model_scene_state.camera.position.2 - 3.75).abs() < 0.001);
-    assert_eq!(frame.model_scene_state.camera.forward, (0.0, 0.0, 1.0));
-    assert_eq!(frame.model_scene_state.camera.right, (1.0, 0.0, 0.0));
-    assert_eq!(frame.model_scene_state.camera.up, (0.0, 1.0, 0.0));
-    assert!((frame.model_scene_state.camera.field_of_view - 1.125).abs() < 0.001);
-    assert!((frame.model_scene_state.camera.near_clip - 0.25).abs() < 0.001);
-    assert!((frame.model_scene_state.camera.far_clip - 250.0).abs() < 0.001);
-    assert_eq!(frame.model_scene_state.light.light_type, 2);
-    assert!((frame.model_scene_state.light.position.0 - 4.5).abs() < 0.001);
-    assert!((frame.model_scene_state.light.position.1 - 5.5).abs() < 0.001);
-    assert!((frame.model_scene_state.light.position.2 + 6.5).abs() < 0.001);
-    assert!((frame.model_scene_state.light.direction.0 - 0.1).abs() < 0.001);
-    assert!((frame.model_scene_state.light.direction.1 + 0.2).abs() < 0.001);
-    assert!((frame.model_scene_state.light.direction.2 - 0.3).abs() < 0.001);
-    assert!((frame.model_scene_state.light.ambient_color.r - 0.11).abs() < 0.001);
-    assert!((frame.model_scene_state.light.ambient_color.g - 0.22).abs() < 0.001);
-    assert!((frame.model_scene_state.light.ambient_color.b - 0.33).abs() < 0.001);
-    assert!((frame.model_scene_state.light.diffuse_color.r - 0.44).abs() < 0.001);
-    assert!((frame.model_scene_state.light.diffuse_color.g - 0.55).abs() < 0.001);
-    assert!((frame.model_scene_state.light.diffuse_color.b - 0.66).abs() < 0.001);
-    assert!(!frame.model_scene_state.light.visible);
-    assert!((frame.model_scene_state.fog.near - 7.5).abs() < 0.001);
-    assert!((frame.model_scene_state.fog.far - 8.5).abs() < 0.001);
-    assert!((frame.model_scene_state.fog.color.r - 0.7).abs() < 0.001);
-    assert!((frame.model_scene_state.fog.color.g - 0.8).abs() < 0.001);
-    assert!((frame.model_scene_state.fog.color.b - 0.9).abs() < 0.001);
-    assert!(frame.model_scene_state.paused);
+    assert!((frame.model_state().model_scene_state.camera.position.0 - 1.5).abs() < 0.001);
+    assert!((frame.model_state().model_scene_state.camera.position.1 + 2.25).abs() < 0.001);
+    assert!((frame.model_state().model_scene_state.camera.position.2 - 3.75).abs() < 0.001);
+    assert_eq!(frame.model_state().model_scene_state.camera.forward, (0.0, 0.0, 1.0));
+    assert_eq!(frame.model_state().model_scene_state.camera.right, (1.0, 0.0, 0.0));
+    assert_eq!(frame.model_state().model_scene_state.camera.up, (0.0, 1.0, 0.0));
+    assert!((frame.model_state().model_scene_state.camera.field_of_view - 1.125).abs() < 0.001);
+    assert!((frame.model_state().model_scene_state.camera.near_clip - 0.25).abs() < 0.001);
+    assert!((frame.model_state().model_scene_state.camera.far_clip - 250.0).abs() < 0.001);
+    assert_eq!(frame.model_state().model_scene_state.light.light_type, 2);
+    assert!((frame.model_state().model_scene_state.light.position.0 - 4.5).abs() < 0.001);
+    assert!((frame.model_state().model_scene_state.light.position.1 - 5.5).abs() < 0.001);
+    assert!((frame.model_state().model_scene_state.light.position.2 + 6.5).abs() < 0.001);
+    assert!((frame.model_state().model_scene_state.light.direction.0 - 0.1).abs() < 0.001);
+    assert!((frame.model_state().model_scene_state.light.direction.1 + 0.2).abs() < 0.001);
+    assert!((frame.model_state().model_scene_state.light.direction.2 - 0.3).abs() < 0.001);
+    assert!((frame.model_state().model_scene_state.light.ambient_color.r - 0.11).abs() < 0.001);
+    assert!((frame.model_state().model_scene_state.light.ambient_color.g - 0.22).abs() < 0.001);
+    assert!((frame.model_state().model_scene_state.light.ambient_color.b - 0.33).abs() < 0.001);
+    assert!((frame.model_state().model_scene_state.light.diffuse_color.r - 0.44).abs() < 0.001);
+    assert!((frame.model_state().model_scene_state.light.diffuse_color.g - 0.55).abs() < 0.001);
+    assert!((frame.model_state().model_scene_state.light.diffuse_color.b - 0.66).abs() < 0.001);
+    assert!(!frame.model_state().model_scene_state.light.visible);
+    assert!((frame.model_state().model_scene_state.fog.near - 7.5).abs() < 0.001);
+    assert!((frame.model_state().model_scene_state.fog.far - 8.5).abs() < 0.001);
+    assert!((frame.model_state().model_scene_state.fog.color.r - 0.7).abs() < 0.001);
+    assert!((frame.model_state().model_scene_state.fog.color.g - 0.8).abs() < 0.001);
+    assert!((frame.model_state().model_scene_state.fog.color.b - 0.9).abs() < 0.001);
+    assert!(frame.model_state().model_scene_state.paused);
     assert_eq!(
-        frame.model_scene_state.view_insets,
+        frame.model_state().model_scene_state.view_insets,
         (10.0, 20.0, 30.0, 40.0)
     );
 }
@@ -517,7 +661,7 @@ fn test_model_scene_overlap_flag_persists_state() {
         .unwrap();
     let state = env.state().borrow();
     let frame = state.widgets.get(scene_id).unwrap();
-    assert!(frame.model_scene_state.allow_overlapped_models);
+    assert!(frame.model_state().model_scene_state.allow_overlapped_models);
 }
 
 #[test]
@@ -728,7 +872,7 @@ fn test_model_scene_actor_management_tracks_created_indexed_and_taken_actors() {
 
     let state = env.state().borrow();
     let scene = state.widgets.get(scene_id).unwrap();
-    assert_eq!(scene.model_scene_actor_ids, vec![first_actor_id]);
+    assert_eq!(scene.model_state().model_scene_actor_ids, vec![first_actor_id]);
 
     let first_actor = state.widgets.get(first_actor_id).unwrap();
     assert_eq!(first_actor.parent_id, Some(scene_id));

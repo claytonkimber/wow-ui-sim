@@ -1,6 +1,6 @@
 # Generated Stubs Audit
 
-Audit of `generated_stubs.rs` functions that still sit on startup-sensitive or panel-load-sensitive Blizzard paths. Date: 2026-04-09.
+Audit of generated-stub functions that still sit on startup-sensitive or panel-load-sensitive Blizzard paths. Date: 2026-04-09. Updated: 2026-08-23.
 
 ## Priority Findings
 
@@ -11,7 +11,6 @@ Audit of `generated_stubs.rs` functions that still sit on startup-sensitive or p
 | 3 | `C_WeeklyRewards.GetActivityEncounterInfo`, `GetSortedProgressForActivity`, `HasInteraction` | Great Vault panel loses encounter/progress detail (namespace is partially promoted) |
 | 4 | `C_LFGList.GetPremadeGroupFinderStyle`, `GetApplicationInfo`, `CanCreateScenarioGroup` | Startup LFG style and scenario "Find Group" pinned to stub values |
 | 5 | `C_Garrison` mission/follower/talent helpers | Garrison alerts and minimap decisions remain data-starved |
-| 6 | `C_LootHistory.*` | Loot history panel loads but has no encounter/drop data |
 
 ## Key Pattern
 
@@ -23,14 +22,19 @@ A generated stub is high-risk when it returns `false`, `0`, `()`, or an empty ta
 
 `C_LFGList` similarly has a handwritten search core but `GetApplicationInfo` and `GetPremadeGroupFinderStyle` are still generated, affecting `UIParent.lua` iteration on startup.
 
+## Resolved Empty-State Slice
+
+`C_LootHistory` is no longer an unresolved generated-only priority on retail/PTR. The state-backed surface returns `GetAllEncounterInfos()` and `GetSortedDropsForEncounter(...)` as empty tables, keyed lookups as `nil`, and `GetLootHistoryTime()` as `0.0`. The real `GroupLootHistoryFrame` loads and shows its empty state with zero new Lua errors during `Show()`.
+
+Populated encounters, drops, rolls, event producers, persistence, and timer progression remain unmodeled.
+
 ## Recommended Order
 
-1. Promote `C_EncounterWarnings` out of generated stubs
+1. Promote `C_EncounterWarnings` out of the generated stub surfaces
 2. Seed `C_InstanceEncounter` state so warning/timeline features can activate
 3. Finish missing `C_WeeklyRewards` panel-facing methods
 4. Replace remaining startup-visible `C_LFGList` generated methods
 5. Seed garrison alert helper methods
-6. Implement `C_LootHistory`
 
 ## Sources
 

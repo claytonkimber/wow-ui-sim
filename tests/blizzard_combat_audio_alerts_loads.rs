@@ -52,9 +52,8 @@ fn blizzard_combat_audio_alerts_appears_in_game_discovery() {
     );
 }
 
-#[test]
-fn blizzard_combat_audio_alerts_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_combat_audio_alerts_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -73,10 +72,10 @@ fn blizzard_combat_audio_alerts_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_combat_audio_alerts_manager_frame_and_mixin_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_combat_audio_alerts_manager_frame_and_mixin_are_defined(env: &WowLuaEnv) {
 
     let frame_present: bool = env
         .eval("return CombatAudioAlertManager ~= nil")
@@ -103,10 +102,10 @@ fn blizzard_combat_audio_alerts_manager_frame_and_mixin_are_defined() {
          should be defined after load"
     );
 }
+}
 
-#[test]
-fn blizzard_combat_audio_alerts_setting_query_helpers_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_combat_audio_alerts_setting_query_helpers_are_defined(env: &WowLuaEnv) {
 
     let helpers_present: bool = env
         .eval(
@@ -125,4 +124,5 @@ fn blizzard_combat_audio_alerts_setting_query_helpers_are_defined() {
         "CombatAudioAlertManagerMixin should expose the IsSay*/IsInterrupt* setting-query \
          helpers after load"
     );
+}
 }

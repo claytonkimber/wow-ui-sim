@@ -1,4 +1,4 @@
-//! Bank and guild-bank globals used by the Mists storage panels.
+//! Shared guild-tabard lookup and bank globals used by the Mists storage panels.
 
 use crate::c_api::ensure_namespace;
 use crate::items;
@@ -11,6 +11,11 @@ use rilua::{LuaApiMut, LuaResult, RustFn, Val};
 const MAX_BANK_BAG_SLOTS: i32 = 7;
 const GUILD_BANK_TAB_NAME: &str = "General";
 const GUILD_BANK_TAB_ICON: &str = "Interface\\Icons\\INV_Misc_Bag_10";
+
+pub fn register_guild_tabard_files(lua: &mut rilua::Lua) -> crate::Result<()> {
+    LuaApiMut::register_function(lua, "GetGuildTabardFiles", get_guild_tabard_files)?;
+    Ok(())
+}
 
 pub fn register_all(lua: &mut rilua::Lua) -> crate::Result<()> {
     register_bank_globals(lua)?;
@@ -65,7 +70,6 @@ const GUILD_BANK_GLOBALS: &[(&str, RustFn)] = &[
     ("PickupGuildBankMoney", pickup_guild_bank_money),
     ("CanWithdrawGuildBankMoney", can_withdraw_guild_bank_money),
     ("CanEditGuildBankTabInfo", can_edit_guild_bank_tab_info),
-    ("GetGuildTabardFiles", get_guild_tabard_files),
 ];
 
 fn register_c_guild_bank(state: &mut LuaState) -> LuaResult<()> {

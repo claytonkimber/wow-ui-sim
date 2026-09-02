@@ -11,7 +11,7 @@ const CREATE_FRAME_THROUGHPUT_BUDGET: Duration = Duration::from_millis(200);
 
 #[test]
 fn create_frame_throughput_for_1000_frames_stays_under_budget() {
-    test_timeout! {
+    perf_test_timeout! {
         let elapsed = measure_create_frame_throughput();
         eprintln!(
             "CreateFrame throughput baseline: {:.2?} (budget {:.2?})",

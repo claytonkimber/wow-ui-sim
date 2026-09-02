@@ -178,9 +178,8 @@ fn blizzard_map_canvas_pulled_into_game_screen_via_world_map_dep_edge() {
     }
 }
 
-#[test]
-fn blizzard_map_canvas_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_map_canvas_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -208,10 +207,10 @@ fn blizzard_map_canvas_loads_without_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_map_canvas_is_addon_loaded_after_dep_edge_pull() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_map_canvas_is_addon_loaded_after_dep_edge_pull(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_MapCanvas')")
@@ -225,10 +224,10 @@ fn blizzard_map_canvas_is_addon_loaded_after_dep_edge_pull() {
          + registered the addon name in the loaded-set"
     );
 }
+}
 
-#[test]
-fn blizzard_map_canvas_publishes_canvas_mixin_with_callback_registry_inheritance() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_map_canvas_publishes_canvas_mixin_with_callback_registry_inheritance(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(MapCanvasMixin)")
@@ -265,10 +264,10 @@ fn blizzard_map_canvas_publishes_canvas_mixin_with_callback_registry_inheritance
          consumers (like Blizzard_WorldMap) RegisterCallback to hook them"
     );
 }
+}
 
-#[test]
-fn blizzard_map_canvas_mixin_carries_full_method_surface() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_map_canvas_mixin_carries_full_method_surface(env: &WowLuaEnv) {
 
     let method_count = count_mixin_methods(&env, "MapCanvasMixin");
     assert!(
@@ -310,10 +309,10 @@ fn blizzard_map_canvas_mixin_carries_full_method_surface() {
          area triggers, mask textures, refresh)",
     );
 }
+}
 
-#[test]
-fn blizzard_map_canvas_publishes_scroll_controller_mixin() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_map_canvas_publishes_scroll_controller_mixin(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(MapCanvasScrollControllerMixin)")
@@ -356,10 +355,10 @@ fn blizzard_map_canvas_publishes_scroll_controller_mixin() {
          by the outer MapCanvasMixin to delegate pan / zoom",
     );
 }
+}
 
-#[test]
-fn blizzard_map_canvas_publishes_pin_frame_levels_manager_mixin() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_map_canvas_publishes_pin_frame_levels_manager_mixin(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(MapCanvasPinFrameLevelsManagerMixin)")
@@ -395,10 +394,10 @@ fn blizzard_map_canvas_publishes_pin_frame_levels_manager_mixin() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_map_canvas_publishes_data_provider_mixin() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_map_canvas_publishes_data_provider_mixin(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(MapCanvasDataProviderMixin)")
@@ -439,10 +438,10 @@ fn blizzard_map_canvas_publishes_data_provider_mixin() {
         "part of the canonical data-provider lifecycle / event-binding contract",
     );
 }
+}
 
-#[test]
-fn blizzard_map_canvas_publishes_cvar_data_provider_mixin_inheriting_base() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_map_canvas_publishes_cvar_data_provider_mixin_inheriting_base(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(CVarMapCanvasDataProviderMixin)")
@@ -486,10 +485,10 @@ fn blizzard_map_canvas_publishes_cvar_data_provider_mixin_inheriting_base() {
          RegisterEvent surface for free"
     );
 }
+}
 
-#[test]
-fn blizzard_map_canvas_publishes_pin_mixin_inheriting_taggable_object() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_map_canvas_publishes_pin_mixin_inheriting_taggable_object(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(MapCanvasPinMixin)")
@@ -533,10 +532,10 @@ fn blizzard_map_canvas_publishes_pin_mixin_inheriting_taggable_object() {
          allocation (ApplyFrameLevel calls into MapCanvasPinFrameLevelsManagerMixin)",
     );
 }
+}
 
-#[test]
-fn blizzard_map_canvas_publishes_detail_layer_mixin() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_map_canvas_publishes_detail_layer_mixin(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(MapCanvasDetailLayerMixin)")
@@ -561,10 +560,10 @@ fn blizzard_map_canvas_publishes_detail_layer_mixin() {
          isWaitingForLoad)",
     );
 }
+}
 
-#[test]
-fn blizzard_map_canvas_publishes_squared_distance_free_function() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_map_canvas_publishes_squared_distance_free_function(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(SquaredDistanceBetweenPoints)")
@@ -589,10 +588,10 @@ fn blizzard_map_canvas_publishes_squared_distance_free_function() {
          returning the unsquared sum"
     );
 }
+}
 
-#[test]
-fn blizzard_map_canvas_constants_local_to_pin_frame_levels_module() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_map_canvas_constants_local_to_pin_frame_levels_module(env: &WowLuaEnv) {
 
     for name in [
         "MAP_CANVAS_PIN_FRAME_LEVEL_DEFAULT",
@@ -612,10 +611,10 @@ fn blizzard_map_canvas_constants_local_to_pin_frame_levels_module() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_map_canvas_world_map_frame_inherits_canvas_template() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_map_canvas_world_map_frame_inherits_canvas_template(env: &WowLuaEnv) {
 
     let world_map_kind: String = env
         .eval("return type(WorldMapFrame)")
@@ -645,10 +644,10 @@ fn blizzard_map_canvas_world_map_frame_inherits_canvas_template() {
          MapCanvasFrameScrollContainerTemplate) wired up correctly during XML parse"
     );
 }
+}
 
-#[test]
-fn blizzard_map_canvas_pin_frame_levels_manager_default_range_seeds_at_2000() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_map_canvas_pin_frame_levels_manager_default_range_seeds_at_2000(env: &WowLuaEnv) {
 
     let start: i64 = env
         .eval(
@@ -679,4 +678,5 @@ fn blizzard_map_canvas_pin_frame_levels_manager_default_range_seeds_at_2000() {
          type holds a single slot (start = 2000, end = 2000). Sub-ranges expand the \
          allocator on either side, but the default itself stays minimal"
     );
+}
 }

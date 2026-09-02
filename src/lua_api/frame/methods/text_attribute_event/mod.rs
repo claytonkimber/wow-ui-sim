@@ -472,6 +472,12 @@ fn register_attribute_frame_refs(state: &mut LuaState, table: GcRef<Table>) -> L
 
 fn register_attribute_protection(state: &mut LuaState, table: GcRef<Table>) -> LuaResult<()> {
     table_set_rust_fn_static(state, table, "SetForbidden", attributes::set_forbidden)?;
+    table_set_rust_fn_static(
+        state,
+        table,
+        "HasAccessConstraints",
+        attributes::has_access_constraints,
+    )?;
     table_set_rust_fn_static(state, table, "IsForbidden", attributes::is_forbidden)?;
     table_set_rust_fn_static(
         state,

@@ -100,9 +100,8 @@ fn blizzard_deprecated_battle_net_appears_in_game_discovery_only() {
     );
 }
 
-#[test]
-fn blizzard_deprecated_battle_net_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_battle_net_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -120,10 +119,10 @@ fn blizzard_deprecated_battle_net_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_battle_net_installs_function_shims() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_battle_net_installs_function_shims(env: &WowLuaEnv) {
 
     let installed: bool = env
         .eval(
@@ -141,10 +140,10 @@ fn blizzard_deprecated_battle_net_installs_function_shims() {
          C_BattleNet.SendWhisper; BNSetCustomMessage(text) → C_BattleNet.SetCustomMessage"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_battle_net_load_deprecation_fallbacks_cvar_is_default_on() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_battle_net_load_deprecation_fallbacks_cvar_is_default_on(env: &WowLuaEnv) {
 
     let cvar_on: bool = env
         .eval("return GetCVarBool('loadDeprecationFallbacks')")
@@ -157,6 +156,7 @@ fn blizzard_deprecated_battle_net_load_deprecation_fallbacks_cvar_is_default_on(
          any legacy chat addon calling BNSendGameData / BNSendWhisper / BNSetCustomMessage \
          blows up with `attempt to call a nil value`"
     );
+}
 }
 
 #[test]

@@ -98,6 +98,33 @@ fn get_ability_info_by_id_unknown_returns_nil() {
     assert!(ability_name.is_none());
 }
 
+// ── GetPetSpeciesID ───────────────────────────────────────────────────────────
+
+#[test]
+fn get_pet_species_id_matches_journal_model_scenes_for_default_battle_pets() {
+    let env = env();
+    let result: String = env
+        .eval(
+            r#"
+            local ally = C_PetBattles.GetPetSpeciesID(1, 1)
+            local enemy = C_PetBattles.GetPetSpeciesID(2, 1)
+            local missing = C_PetBattles.GetPetSpeciesID(1, 99)
+            if ally ~= 39 then return "ally:" .. tostring(ally) end
+            if enemy ~= 87 then return "enemy:" .. tostring(enemy) end
+            if missing ~= nil then return "missing:" .. tostring(missing) end
+
+            local allyCard, allyLoadout = C_PetJournal.GetPetModelSceneInfoBySpeciesID(ally)
+            local enemyCard, enemyLoadout = C_PetJournal.GetPetModelSceneInfoBySpeciesID(enemy)
+            if type(allyCard) ~= "number" or type(allyLoadout) ~= "number" then return "ally-scenes" end
+            if type(enemyCard) ~= "number" or type(enemyLoadout) ~= "number" then return "enemy-scenes" end
+            return "ok"
+            "#,
+        )
+        .unwrap();
+
+    assert_eq!(result, "ok");
+}
+
 // ── GetPetStats ───────────────────────────────────────────────────────────────
 
 #[test]
@@ -200,6 +227,32 @@ fn get_turn_result_default_zero() {
     let env = env();
     let result: i32 = env.eval("return C_PetBattles.GetTurnResult(1)").unwrap();
     assert_eq!(result, 0);
+}
+
+// ── GetBreedQuality ───────────────────────────────────────────────────────────
+
+#[test]
+fn get_breed_quality_returns_numeric_seeded_and_missing_values() {
+    let env = env();
+    let result: String = env
+        .eval(
+            r#"
+            local ally = C_PetBattles.GetBreedQuality(Enum.BattlePetOwner.Ally, 1)
+            local enemy = C_PetBattles.GetBreedQuality(Enum.BattlePetOwner.Enemy, 1)
+            local missing = C_PetBattles.GetBreedQuality(Enum.BattlePetOwner.Ally, 99)
+            if type(ally) ~= "number" or type(enemy) ~= "number" or type(missing) ~= "number" then
+                return "type"
+            end
+            if ally ~= Enum.BattlePetBreedQuality.Rare or enemy ~= Enum.BattlePetBreedQuality.Rare then
+                return "seeded"
+            end
+            if missing ~= 0 then return "missing" end
+            return "ok"
+            "#,
+        )
+        .unwrap();
+
+    assert_eq!(result, "ok");
 }
 
 // ── GetXP ─────────────────────────────────────────────────────────────────────

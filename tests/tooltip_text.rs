@@ -696,26 +696,33 @@ fn test_blank_unwrapped_line_does_not_collapse_wrapped_tooltip_width() {
 fn test_tooltip_sizing_skipped_when_hidden() {
     let env = WowLuaEnv::new().unwrap();
 
-    // GameTooltip starts hidden — sizing should not change its dimensions
-    let width_before = {
+    env.exec(
+        r#"
+        GameTooltip:Hide()
+        GameTooltip:AddLine("Hidden line")
+    "#,
+    )
+    .unwrap();
+
+    let width_before_render = {
         let state = env.state().borrow();
         let gt_id = state.widgets.get_id_by_name("GameTooltip").unwrap();
-        state.widgets.get(gt_id).unwrap().width
+        let frame = state.widgets.get(gt_id).unwrap();
+        assert!(!frame.visible, "tooltip must be hidden before render sizing");
+        frame.width
     };
 
-    // Add a line but don't show the tooltip (no SetOwner)
-    env.exec(r#"GameTooltip:AddLine("Hidden line")"#).unwrap();
     update_tooltip_sizes(&env);
 
-    let width_after = {
+    let width_after_render = {
         let state = env.state().borrow();
         let gt_id = state.widgets.get_id_by_name("GameTooltip").unwrap();
         state.widgets.get(gt_id).unwrap().width
     };
 
     assert_eq!(
-        width_before, width_after,
-        "Sizing should skip hidden tooltips"
+        width_before_render, width_after_render,
+        "render sizing should skip hidden tooltips"
     );
 }
 

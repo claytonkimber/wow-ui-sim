@@ -205,9 +205,8 @@ fn root_directory_holds_single_lua_next_to_toc() {
     );
 }
 
-#[test]
-fn loads_without_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn loads_without_lua_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -228,10 +227,10 @@ fn loads_without_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn is_addon_loaded_after_eager_sweep() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn is_addon_loaded_after_eager_sweep(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_ScriptErrors')")
@@ -243,10 +242,10 @@ fn is_addon_loaded_after_eager_sweep() {
          eager set and `load_addon` flips the loaded flag"
     );
 }
+}
 
-#[test]
-fn script_errors_mixin_publishes_with_init_and_add_unhandled_error() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn script_errors_mixin_publishes_with_init_and_add_unhandled_error(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(_G.ScriptErrorsMixin)")
@@ -273,10 +272,10 @@ fn script_errors_mixin_publishes_with_init_and_add_unhandled_error() {
         );
     }
 }
+}
 
-#[test]
-fn script_errors_singleton_is_initialized_clone_of_mixin() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn script_errors_singleton_is_initialized_clone_of_mixin(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(_G.ScriptErrors)")
@@ -320,10 +319,10 @@ fn script_errors_singleton_is_initialized_clone_of_mixin() {
          have been queued yet so no deferred replay is in flight"
     );
 }
+}
 
-#[test]
-fn add_lua_error_handler_publishes_globally_as_function() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn add_lua_error_handler_publishes_globally_as_function(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(_G.AddLuaErrorHandler)")
@@ -339,10 +338,10 @@ fn add_lua_error_handler_publishes_globally_as_function() {
          code calling AddLuaErrorHandler will trip the assert"
     );
 }
+}
 
-#[test]
-fn module_locals_stay_off_global_scope() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn module_locals_stay_off_global_scope(env: &WowLuaEnv) {
 
     for name in MODULE_LOCAL_NAMES {
         let kind: String = env
@@ -361,10 +360,10 @@ fn module_locals_stay_off_global_scope() {
         );
     }
 }
+}
 
-#[test]
-fn add_lua_error_handler_appends_to_internal_registry_via_dispatch() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn add_lua_error_handler_appends_to_internal_registry_via_dispatch(env: &WowLuaEnv) {
 
     env.exec(
         r#"
@@ -402,10 +401,10 @@ fn add_lua_error_handler_appends_to_internal_registry_via_dispatch() {
          occurred between the AddUnhandledError call and this probe"
     );
 }
+}
 
-#[test]
-fn seterrorhandler_was_invoked_at_module_load_with_internal_dispatcher() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn seterrorhandler_was_invoked_at_module_load_with_internal_dispatcher(env: &WowLuaEnv) {
 
     let handler_kind: String = env
         .eval("return type(geterrorhandler())")
@@ -422,4 +421,5 @@ fn seterrorhandler_was_invoked_at_module_load_with_internal_dispatcher() {
          registered after load — the addon-specific contract is covered by the \
          no-load-errors test)"
     );
+}
 }

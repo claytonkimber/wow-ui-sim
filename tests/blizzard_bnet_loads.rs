@@ -59,9 +59,8 @@ fn bnet_toast_global_strings_exist() {
     );
 }
 
-#[test]
-fn blizzard_bnet_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_bnet_loads_without_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -96,10 +95,10 @@ fn blizzard_bnet_loads_without_errors() {
         "BNet frames, mixins, and helper globals should be defined after load"
     );
 }
+}
 
-#[test]
-fn bnet_toast_show_and_hide_run_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn bnet_toast_show_and_hide_run_without_errors(env: &WowLuaEnv) {
 
     load_addon(&env.loader_env(), &bnet_toc()).expect("Blizzard_BNet should load");
 
@@ -119,4 +118,5 @@ fn bnet_toast_show_and_hide_run_without_errors() {
         "BNToastFrame Show/Hide emitted Lua errors:\n  {}",
         errors.join("\n  ")
     );
+}
 }

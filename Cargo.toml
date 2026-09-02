@@ -50,7 +50,7 @@ bytemuck = { version = "1.21", features = ["derive"], optional = true }
 pollster = { version = "0.4", optional = true }
 webp = { version = "0.3.1", optional = true }
 rustc-hash = "2.1.2"
-asset-resolver = { git = "https://github.com/world-of-osso/asset-resolver", rev = "76f98d44fe332a4d5f0d02ebe1f5f89e37ff5c56", optional = true }
+asset-resolver = { git = "https://github.com/world-of-osso/asset-resolver", rev = "292bea963293a8445b58fb80af25ae5f843f1574", optional = true }
 cascette-client-storage = { git = "https://github.com/Osso/cascette-rs", rev = "3992ef0fb9a81f10841a763619440a68647611ff", features = ["local-install"], optional = true }
 cascette-crypto = { git = "https://github.com/Osso/cascette-rs", rev = "3992ef0fb9a81f10841a763619440a68647611ff", optional = true }
 casc-extract = { git = "https://github.com/Osso/casc-extract", rev = "14579a656414778ce376f776f612e0f6eef58b54", optional = true }
@@ -103,9 +103,11 @@ retail-12-0-5 = ["retail-12-0-0"]
 retail-12-0-7 = ["retail-12-0-5"]
 retail-12-1-0 = ["retail-12-0-7"]
 
-# Client profile features — exactly one must be enabled. Selects which
-# Interface/BlizzardUI/<Profile>/ subdir the loader reads vendor sources from.
-client-retail = ["retail-12-0-7"]
+# Client profile features — exactly one profile marker must be enabled. The
+# public client-retail bundle preserves the current retail epoch; profile-retail
+# allows historical retail epoch tests against the same retail source cache.
+profile-retail = []
+client-retail = ["profile-retail", "retail-12-1-0"]
 client-ptr = ["retail-12-1-0"]
 client-wrath = []
 client-mists = []
@@ -117,6 +119,7 @@ lto = false
 debug = "line-tables-only"
 
 [profile.dev]
+incremental = true
 lto = false
 debug = "line-tables-only"
 # Hit-grid rebuilds, layout resolution, and texture decode are pure data
@@ -131,6 +134,12 @@ harness = false
 [[test]]
 name = "integration"
 path = "tests/integration.rs"
+
+[[test]]
+name = "prefork_full_ui"
+path = "tests/prefork_full_ui.rs"
+harness = false
+required-features = ["client-retail"]
 
 [[test]]
 name = "patch_12_1_audit"
@@ -214,6 +223,9 @@ iced-layout-inspector = { git = "https://github.com/Osso/iced-layout-inspector.g
 
 [build-dependencies]
 winresource = "0.1"
+# Parse explicit prefork test marker items in build.rs instead of maintaining a bespoke Rust lexer.
+syn = { version = "2", features = ["full", "parsing"] }
+quote = "1"
 
 [patch.crates-io]
 iced_wgpu = { path = "iced-wgpu-patched" }

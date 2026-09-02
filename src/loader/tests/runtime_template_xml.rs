@@ -176,6 +176,110 @@ fn test_runtime_button_template_inherits_texture_slots() {
 }
 
 #[test]
+fn test_runtime_template_partitioned_child_binds_private_method_handlers() {
+    let t = load_test_xml(
+        "runtime-template-partitioned-private-method-handlers",
+        r#"
+        <Ui xmlns="http://www.blizzard.com/wow/ui/">
+            <Script>
+                PartitionedAuraPrivateMixin = {}
+                function PartitionedAuraPrivateMixin:OnLoad_Intrinsic()
+                    self:RegisterEvent("PLAYER_LOGIN")
+                    self.loaded = true
+                end
+                function PartitionedAuraPrivateMixin:OnUpdate_Intrinsic(elapsed)
+                    self.elapsed = elapsed
+                end
+
+                PartitionedAuraInboundMixin = {}
+            </Script>
+            <ScopedModifier useForbiddenObjectTable="true">
+                <AuraContainer name="PartitionedAuraContainerTemplate" virtual="true">
+                    <Mixins>
+                        <Mixin key="PartitionedAuraInboundMixin" source="secure" targetPartition="public" inboundPartition="forbidden" secureDelegates="true"/>
+                        <Mixin key="PartitionedAuraPrivateMixin" source="secure"/>
+                    </Mixins>
+                    <Scripts>
+                        <OnLoad method="OnLoad_Intrinsic"/>
+                        <OnUpdate method="OnUpdate_Intrinsic"/>
+                    </Scripts>
+                </AuraContainer>
+            </ScopedModifier>
+            <Frame name="PartitionedAuraContainerParent" parent="UIParent">
+                <Frames>
+                    <AuraContainer parentKey="Auras" inherits="PartitionedAuraContainerTemplate"/>
+                </Frames>
+            </Frame>
+        </Ui>
+        "#,
+    );
+
+    t.assert_lua_true(
+        "return PartitionedAuraContainerParent.Auras ~= nil",
+        "concrete inherited child should remain reachable through parentKey",
+    );
+    t.assert_lua_true(
+        "return PartitionedAuraContainerParent.Auras:GetParent() == PartitionedAuraContainerParent",
+        "concrete inherited child should remain parented",
+    );
+    t.assert_lua_true(
+        "return GetForbiddenObjectTable(PartitionedAuraContainerParent.Auras).loaded == true",
+        "private OnLoad method should run with forbidden self",
+    );
+    t.assert_lua_true(
+        "return PartitionedAuraContainerParent.Auras:IsEventRegistered('PLAYER_LOGIN')",
+        "private OnLoad should dispatch frame methods through the public frame",
+    );
+
+    t.env.fire_on_update(0.016).unwrap();
+
+    t.assert_lua_true(
+        "return GetForbiddenObjectTable(PartitionedAuraContainerParent.Auras).elapsed == 0.016",
+        "private OnUpdate method should run with forbidden self",
+    );
+}
+
+#[test]
+fn test_xml_partitioned_intrinsic_onload_uses_forbidden_self() {
+    let t = load_test_xml(
+        "xml-partitioned-intrinsic-onload-forbidden-self",
+        r#"
+        <Ui xmlns="http://www.blizzard.com/wow/ui/">
+            <Script>
+                PartitionedIntrinsicPrivateMixin = {}
+                function PartitionedIntrinsicPrivateMixin:OnLoad_Intrinsic()
+                    self.intrinsicLoaded = true
+                end
+            </Script>
+            <ScopedModifier useForbiddenObjectTable="true">
+                <Frame name="PartitionedIntrinsicFrame" parent="UIParent">
+                    <Mixins>
+                        <Mixin key="PartitionedIntrinsicPrivateMixin" source="secure"/>
+                    </Mixins>
+                    <Scripts>
+                        <OnLoad/>
+                    </Scripts>
+                </Frame>
+            </ScopedModifier>
+        </Ui>
+        "#,
+    );
+
+    t.assert_lua_true(
+        "return type(GetForbiddenObjectTable(PartitionedIntrinsicFrame).OnLoad_Intrinsic) == 'function'",
+        "private intrinsic method should be installed on forbidden frame table",
+    );
+    t.assert_lua_true(
+        "return PartitionedIntrinsicFrame.intrinsicLoaded == nil",
+        "private intrinsic OnLoad should not write to public frame",
+    );
+    t.assert_lua_true(
+        "return GetForbiddenObjectTable(PartitionedIntrinsicFrame).intrinsicLoaded == true",
+        "private intrinsic OnLoad should run with forbidden self",
+    );
+}
+
+#[test]
 fn test_runtime_template_creates_inherited_layer_regions() {
     let t = load_test_xml(
         "runtime-template-layer-regions",

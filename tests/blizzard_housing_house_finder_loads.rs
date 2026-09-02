@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, find_toc_file, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
-use wow_ui_sim::startup::fire_startup_events_for_screen;
 use wow_ui_sim::toc::TocFile;
 
 fn blizzard_ui_dir() -> PathBuf {
@@ -21,32 +20,9 @@ fn finder_toc() -> PathBuf {
     finder_dir().join("Blizzard_HousingHouseFinder.toc")
 }
 
-fn load_full_game_ui_with_finder_lod() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-
-    wow_ui_sim::xml::register_intrinsic_templates();
-
-    let ui = blizzard_ui_dir();
-    let addons = discover_blizzard_addons_for_screen(&ui, ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    env.apply_post_load_workarounds();
-    fire_startup_events_for_screen(&env, ScreenKind::Game);
-
+fn load_housing_house_finder(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &finder_toc())
         .expect("Blizzard_HousingHouseFinder should load via explicit Rust loader call");
-
-    env
 }
 
 fn assert_mixin_methods(env: &WowLuaEnv, mixin: &str, methods: &[&str], rationale: &str) {
@@ -190,9 +166,9 @@ fn blizzard_housing_house_finder_excluded_from_all_screen_auto_discovery() {
     }
 }
 
-#[test]
-fn blizzard_housing_house_finder_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui_with_finder_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_house_finder_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
+    load_housing_house_finder(env);
 
     let lua_errors: Vec<String> = env.state().borrow().lua_errors.clone();
     let related: Vec<&String> = lua_errors
@@ -220,10 +196,11 @@ fn blizzard_housing_house_finder_loads_without_addon_specific_lua_errors() {
         related
     );
 }
+}
 
-#[test]
-fn blizzard_housing_house_finder_is_addon_loaded_via_explicit_lod_call() {
-    let env = load_full_game_ui_with_finder_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_house_finder_is_addon_loaded_via_explicit_lod_call(env: &WowLuaEnv) {
+    load_housing_house_finder(env);
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_HousingHouseFinder')")
         .expect("IsAddOnLoaded query should succeed");
@@ -233,10 +210,11 @@ fn blizzard_housing_house_finder_is_addon_loaded_via_explicit_lod_call() {
          LoD load — proves the loader registered the addon name"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_house_finder_template_dependency_loads_via_game_screen_pass() {
-    let env = load_full_game_ui_with_finder_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_house_finder_template_dependency_loads_via_game_screen_pass(env: &WowLuaEnv) {
+    load_housing_house_finder(env);
     let templates_loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_HousingTemplates')")
         .expect("HousingTemplates IsAddOnLoaded query should succeed");
@@ -247,10 +225,11 @@ fn blizzard_housing_house_finder_template_dependency_loads_via_game_screen_pass(
          LoadOnDemand so the auto-discovery sweep includes it"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_house_finder_map_canvas_dependency_is_loaded() {
-    let env = load_full_game_ui_with_finder_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_house_finder_map_canvas_dependency_is_loaded(env: &WowLuaEnv) {
+    load_housing_house_finder(env);
     let map_canvas_loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_MapCanvas')")
         .expect("MapCanvas IsAddOnLoaded query should succeed");
@@ -260,10 +239,11 @@ fn blizzard_housing_house_finder_map_canvas_dependency_is_loaded() {
          MapCanvasDataProviderMixin and MapCanvasPinMixin which 3 HouseFinder mixins extend"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_house_finder_publishes_house_finder_frame_global() {
-    let env = load_full_game_ui_with_finder_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_house_finder_publishes_house_finder_frame_global(env: &WowLuaEnv) {
+    load_housing_house_finder(env);
     let frame_type: String = env
         .eval("return type(HouseFinderFrame)")
         .expect("HouseFinderFrame type query should succeed");
@@ -278,10 +258,11 @@ fn blizzard_housing_house_finder_publishes_house_finder_frame_global() {
         .expect("HouseFinderFrame:GetName query should succeed");
     assert_eq!(frame_name, "HouseFinderFrame");
 }
+}
 
-#[test]
-fn blizzard_housing_house_finder_companion_tooltip_frame_publishes_to_globals() {
-    let env = load_full_game_ui_with_finder_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_house_finder_companion_tooltip_frame_publishes_to_globals(env: &WowLuaEnv) {
+    load_housing_house_finder(env);
     let tooltip_type: String = env
         .eval("return type(HouseFinderHighlightedPlotTooltip)")
         .expect("HouseFinderHighlightedPlotTooltip type query should succeed");
@@ -293,10 +274,11 @@ fn blizzard_housing_house_finder_companion_tooltip_frame_publishes_to_globals() 
          data-provider XML is `virtual=\"true\"`"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_house_finder_virtual_templates_stay_nil_in_globals() {
-    let env = load_full_game_ui_with_finder_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_house_finder_virtual_templates_stay_nil_in_globals(env: &WowLuaEnv) {
+    load_housing_house_finder(env);
     for template in [
         "HouseFinderNeighborhoodButtonTemplate",
         "SelectedPlotTooltipTemplate",
@@ -313,10 +295,11 @@ fn blizzard_housing_house_finder_virtual_templates_stay_nil_in_globals() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_house_finder_frame_mixin_publishes_eighteen_methods() {
-    let env = load_full_game_ui_with_finder_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_house_finder_frame_mixin_publishes_eighteen_methods(env: &WowLuaEnv) {
+    load_housing_house_finder(env);
     assert_mixin_methods(
         &env,
         "HouseFinderFrameMixin",
@@ -349,10 +332,11 @@ fn blizzard_housing_house_finder_frame_mixin_publishes_eighteen_methods() {
          SetPendingNeighborhoodInviteToDecline (StaticPopup decline-invite handshake)",
     );
 }
+}
 
-#[test]
-fn blizzard_housing_house_finder_bnet_search_box_mixin_publishes_eleven_methods() {
-    let env = load_full_game_ui_with_finder_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_house_finder_bnet_search_box_mixin_publishes_eleven_methods(env: &WowLuaEnv) {
+    load_housing_house_finder(env);
     assert_mixin_methods(
         &env,
         "HouseFinderBNetFriendSearchBoxMixin",
@@ -375,10 +359,11 @@ fn blizzard_housing_house_finder_bnet_search_box_mixin_publishes_eleven_methods(
          queries) used by the BNet-friend autocomplete search edit box",
     );
 }
+}
 
-#[test]
-fn blizzard_housing_house_finder_plot_info_back_button_mixin_publishes_four_methods() {
-    let env = load_full_game_ui_with_finder_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_house_finder_plot_info_back_button_mixin_publishes_four_methods(env: &WowLuaEnv) {
+    load_housing_house_finder(env);
     assert_mixin_methods(
         &env,
         "PlotInfoFrameBackButtonMixin",
@@ -387,10 +372,11 @@ fn blizzard_housing_house_finder_plot_info_back_button_mixin_publishes_four_meth
          returns to the neighborhood list, UpdateSize lays out the chevron)",
     );
 }
+}
 
-#[test]
-fn blizzard_housing_house_finder_plot_info_frame_mixin_publishes_six_methods() {
-    let env = load_full_game_ui_with_finder_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_house_finder_plot_info_frame_mixin_publishes_six_methods(env: &WowLuaEnv) {
+    load_housing_house_finder(env);
     assert_mixin_methods(
         &env,
         "HouseFinderPlotInfoFrameMixin",
@@ -407,10 +393,11 @@ fn blizzard_housing_house_finder_plot_info_frame_mixin_publishes_six_methods() {
          through C_Housing visit-plot RPCs)",
     );
 }
+}
 
-#[test]
-fn blizzard_housing_house_finder_neighborhood_button_mixin_publishes_ten_methods() {
-    let env = load_full_game_ui_with_finder_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_house_finder_neighborhood_button_mixin_publishes_ten_methods(env: &WowLuaEnv) {
+    load_housing_house_finder(env);
     assert_mixin_methods(
         &env,
         "HouseFinderNeighborhoodButtonMixin",
@@ -434,10 +421,11 @@ fn blizzard_housing_house_finder_neighborhood_button_mixin_publishes_ten_methods
          UpdateGuildIcon",
     );
 }
+}
 
-#[test]
-fn blizzard_housing_house_finder_decline_invite_button_mixin_publishes_five_methods() {
-    let env = load_full_game_ui_with_finder_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_house_finder_decline_invite_button_mixin_publishes_five_methods(env: &WowLuaEnv) {
+    load_housing_house_finder(env);
     assert_mixin_methods(
         &env,
         "DeclineInviteButtonMixin",
@@ -453,10 +441,11 @@ fn blizzard_housing_house_finder_decline_invite_button_mixin_publishes_five_meth
          setter and the StaticPopup_Show OnClick that fires HOUSING_HOUSEFINDER_CANCEL_INVITATION",
     );
 }
+}
 
-#[test]
-fn blizzard_housing_house_finder_map_data_provider_mixin_extends_map_canvas_base() {
-    let env = load_full_game_ui_with_finder_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_house_finder_map_data_provider_mixin_extends_map_canvas_base(env: &WowLuaEnv) {
+    load_housing_house_finder(env);
     let extends: bool = env
         .eval(
             "return type(HouseFinderMapDataProviderMixin) == 'table' \
@@ -489,10 +478,11 @@ fn blizzard_housing_house_finder_map_data_provider_mixin_extends_map_canvas_base
          RefreshAllData driving the embedded map panel",
     );
 }
+}
 
-#[test]
-fn blizzard_housing_house_finder_for_sale_pin_mixin_publishes_nine_methods() {
-    let env = load_full_game_ui_with_finder_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_house_finder_for_sale_pin_mixin_publishes_nine_methods(env: &WowLuaEnv) {
+    load_housing_house_finder(env);
     assert_mixin_methods(
         &env,
         "HouseFinderPlotForSalePinMixin",
@@ -513,10 +503,11 @@ fn blizzard_housing_house_finder_for_sale_pin_mixin_publishes_nine_methods() {
          StartGlow/StopGlow tying the pin's animation playback to the highlight state",
     );
 }
+}
 
-#[test]
-fn blizzard_housing_house_finder_friends_pin_mixin_publishes_five_methods() {
-    let env = load_full_game_ui_with_finder_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_house_finder_friends_pin_mixin_publishes_five_methods(env: &WowLuaEnv) {
+    load_housing_house_finder(env);
     assert_mixin_methods(
         &env,
         "HouseFinderFriendsPlotPinMixin",
@@ -531,10 +522,11 @@ fn blizzard_housing_house_finder_friends_pin_mixin_publishes_five_methods() {
          OnMouseEnter/Leave) — friends pins are tooltip-only and do not own a click action",
     );
 }
+}
 
-#[test]
-fn blizzard_housing_house_finder_selected_plot_tooltip_mixin_publishes_two_methods() {
-    let env = load_full_game_ui_with_finder_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_house_finder_selected_plot_tooltip_mixin_publishes_two_methods(env: &WowLuaEnv) {
+    load_housing_house_finder(env);
     assert_mixin_methods(
         &env,
         "SelectedPlotTooltipMixin",
@@ -544,10 +536,11 @@ fn blizzard_housing_house_finder_selected_plot_tooltip_mixin_publishes_two_metho
          atlases / header text / footer color and Show or Hide the price MoneyFrame)",
     );
 }
+}
 
-#[test]
-fn blizzard_housing_house_finder_publishes_static_popup_for_cancel_invitation() {
-    let env = load_full_game_ui_with_finder_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_house_finder_publishes_static_popup_for_cancel_invitation(env: &WowLuaEnv) {
+    load_housing_house_finder(env);
     let exists: bool = env
         .eval("return type(StaticPopupDialogs['HOUSING_HOUSEFINDER_CANCEL_INVITATION']) == 'table'")
         .expect("StaticPopupDialogs lookup should succeed");
@@ -559,10 +552,11 @@ fn blizzard_housing_house_finder_publishes_static_popup_for_cancel_invitation() 
          DeclineInviteButtonMixin:OnClick"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_house_finder_registers_ui_panel_with_left_area_and_pushable_zero() {
-    let env = load_full_game_ui_with_finder_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_house_finder_registers_ui_panel_with_left_area_and_pushable_zero(env: &WowLuaEnv) {
+    load_housing_house_finder(env);
     let area: String = env
         .eval("return UIPanelWindows['HouseFinderFrame'].area")
         .expect("UIPanelWindows area lookup should succeed");
@@ -580,10 +574,11 @@ fn blizzard_housing_house_finder_registers_ui_panel_with_left_area_and_pushable_
          pushable=0 — lowest displacement priority, gets pushed by every higher-rank panel"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_house_finder_frame_publishes_top_level_parent_keys() {
-    let env = load_full_game_ui_with_finder_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_house_finder_frame_publishes_top_level_parent_keys(env: &WowLuaEnv) {
+    load_housing_house_finder(env);
     for key in ["NeighborhoodListFrame", "HouseFinderMapCanvasFrame"] {
         let key_type: String = env
             .eval(&format!("return type(HouseFinderFrame.{key})"))
@@ -603,4 +598,5 @@ fn blizzard_housing_house_finder_frame_publishes_top_level_parent_keys() {
          child — the XML declares the EditBox under NeighborhoodListFrame's <Frames> element \
          (not at HouseFinderFrame's top-level <Frames>)"
     );
+}
 }

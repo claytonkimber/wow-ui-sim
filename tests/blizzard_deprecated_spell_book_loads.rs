@@ -109,9 +109,8 @@ fn blizzard_deprecated_spell_book_appears_in_game_discovery_only() {
     );
 }
 
-#[test]
-fn blizzard_deprecated_spell_book_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_spell_book_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -129,10 +128,10 @@ fn blizzard_deprecated_spell_book_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_spell_book_installs_six_function_shims() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_spell_book_installs_six_function_shims(env: &WowLuaEnv) {
 
     let installed: bool = env
         .eval(
@@ -160,10 +159,10 @@ fn blizzard_deprecated_spell_book_installs_six_function_shims() {
          function values"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_spell_book_global_wrappers_are_not_identity_equal_to_c_spell_book() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_spell_book_global_wrappers_are_not_identity_equal_to_c_spell_book(env: &WowLuaEnv) {
 
     let not_identity_equal: bool = env
         .eval(
@@ -184,10 +183,10 @@ fn blizzard_deprecated_spell_book_global_wrappers_are_not_identity_equal_to_c_sp
          the wrapper just returns the result of a single delegated call"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_spell_book_shim_overrides_existing_is_spell_known_global() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_spell_book_shim_overrides_existing_is_spell_known_global(env: &WowLuaEnv) {
 
     let calls_through_namespace: bool = env
         .eval(
@@ -209,10 +208,10 @@ fn blizzard_deprecated_spell_book_shim_overrides_existing_is_spell_known_global(
          pcall returns ok=true with a boolean result"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_spell_book_hunter_dismiss_pet_constant_pulls_from_constants_table() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_spell_book_hunter_dismiss_pet_constant_pulls_from_constants_table(env: &WowLuaEnv) {
 
     let constant_value: f64 = env
         .eval("return HUNTER_DISMISS_PET")
@@ -228,10 +227,10 @@ fn blizzard_deprecated_spell_book_hunter_dismiss_pet_constant_pulls_from_constan
          BEFORE any addon loads — so the addon reads the populated value rather than nil"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_spell_book_unstubbed_shims_call_without_error() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_spell_book_unstubbed_shims_call_without_error(env: &WowLuaEnv) {
 
     let no_error: bool = env
         .eval(
@@ -255,10 +254,10 @@ fn blizzard_deprecated_spell_book_unstubbed_shims_call_without_error() {
          pcalls return ok=true"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_spell_book_load_deprecation_fallbacks_cvar_is_default_on() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_spell_book_load_deprecation_fallbacks_cvar_is_default_on(env: &WowLuaEnv) {
 
     let cvar_on: bool = env
         .eval("return GetCVarBool('loadDeprecationFallbacks')")
@@ -272,6 +271,7 @@ fn blizzard_deprecated_spell_book_load_deprecation_fallbacks_cvar_is_default_on(
          meaning the simulator's pre-existing 1-arg IsSpellKnown would survive instead of \
          the 2-arg (spellID, isPet) wrapper"
     );
+}
 }
 
 #[test]

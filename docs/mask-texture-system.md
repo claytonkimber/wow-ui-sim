@@ -2,11 +2,12 @@
 
 ## Overview
 
-WoW uses MaskTextures to clip child textures to specific shapes (rounded squares, circles, etc.). The mask's alpha channel determines which parts of the child texture are visible: alpha=1 shows the texture, alpha=0 hides it.
+WoW uses MaskTextures to clip child textures to specific shapes (rounded squares, circles, etc.). Mask coverage may be encoded in the mask's alpha channel or RGB intensity, depending on the asset.
 
 **Key files:**
 - `src/iced_app/masking.rs` - Mask UV computation and GPU application
-- `src/render/shader/quad.wgsl` - Fragment shader mask sampling (lines 148-151)
+- `src/render/shader/primitive.rs` - Deferred RGBA/BC mask resolution and atlas UV remapping
+- `src/render/shader/quad.wgsl` - Fragment shader mask sampling
 - `src/loader/xml_texture.rs` - XML MaskTexture creation
 - `src/lua_api/globals/template/elements.rs` - Template MaskTexture creation
 
@@ -42,18 +43,12 @@ This creates a mask that clips the `icon` child texture. The mask is centered on
 ### GPU Pipeline
 
 Each quad vertex carries:
-- `mask_tex_index: i32` - Texture tier index for the mask (-2 = pending resolution, -1 = none)
-- `mask_tex_coords: [f32; 2]` - UV coordinates into the mask texture
+- `mask_tex_index: i32` - GPU texture binding for the mask (`-2` = pending resolution, `-1` = no mask, `0–4` = RGBA atlas tiers, `6` = BC1 atlas, `7` = BC3 atlas)
+- `mask_tex_coords: [f32; 2]` - UV coordinates into the resolved atlas slot
 
-The fragment shader (quad.wgsl:148-151):
-```wgsl
-if in.mask_tex_index >= 0 {
-    let mask_color = sample_tiered_texture(in.mask_tex_index, in.mask_tex_coords);
-    color *= mask_color.a;
-}
-```
+Mask paths are deferred like ordinary texture paths. During primitive preparation, the renderer resolves each mask from the RGBA atlas first, then the BC1/BC3 atlas, and remaps its UVs into the selected slot. If no atlas entry resolves, the pending index becomes `-1` and the mask is skipped. This BC-aware path is required for CircleMask-style compressed masks; previously a BC-only mask was cleared as unresolved.
 
-Premultiplied alpha: the final color is multiplied by the mask's alpha. Where mask alpha=0, the pixel is fully transparent.
+The fragment shader samples the resolved binding and applies mask coverage to output alpha. Alpha-backed masks use the mask alpha channel; masks using RGB intensity multiply by the mask's RGB coverage as well. Where effective mask coverage is zero, the pixel is fully transparent.
 
 ---
 

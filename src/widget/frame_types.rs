@@ -233,6 +233,20 @@ pub struct PlayerModelState {
     pub active_anim_kit: Option<i32>,
 }
 
+/// Lazily allocated state used only by model-family widget methods.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct ModelWidgetState {
+    pub model_path: Option<String>,
+    pub model_file_id: Option<i64>,
+    pub model_transform: ModelTransformState,
+    pub model_appearance: ModelAppearanceState,
+    pub model_rendering: ModelRenderingState,
+    pub model_scene_state: ModelSceneState,
+    pub model_scene_actor_ids: Vec<u64>,
+    pub model_scene_actor_tags: Vec<(String, u64)>,
+    pub player_model_state: PlayerModelState,
+}
+
 /// Text justification for FontStrings.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum TextJustify {

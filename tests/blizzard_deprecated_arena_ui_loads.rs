@@ -110,9 +110,8 @@ fn blizzard_deprecated_arena_ui_appears_in_game_discovery_only() {
     );
 }
 
-#[test]
-fn blizzard_deprecated_arena_ui_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_arena_ui_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -131,10 +130,10 @@ fn blizzard_deprecated_arena_ui_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_arena_ui_publishes_max_arena_enemies_global() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_arena_ui_publishes_max_arena_enemies_global(env: &WowLuaEnv) {
 
     let value: i32 = env
         .eval("return MAX_ARENA_ENEMIES")
@@ -146,10 +145,10 @@ fn blizzard_deprecated_arena_ui_publishes_max_arena_enemies_global() {
          match/prep containers and the `GetBestAnchorUnitFrameForOppponent` clamp"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_arena_ui_creates_top_level_container_frame() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_arena_ui_creates_top_level_container_frame(env: &WowLuaEnv) {
 
     let frame_present: bool = env
         .eval(
@@ -172,10 +171,10 @@ fn blizzard_deprecated_arena_ui_creates_top_level_container_frame() {
          instanceType == 'pvp')"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_arena_ui_creates_five_match_and_prep_unit_frames() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_arena_ui_creates_five_match_and_prep_unit_frames(env: &WowLuaEnv) {
 
     let unit_frames_present: bool = env
         .eval(
@@ -197,10 +196,11 @@ fn blizzard_deprecated_arena_ui_creates_five_match_and_prep_unit_frames() {
          ResetCrowdControlCooldownData / UpdateFrames / GetBestAnchorUnitFrameForOppponent"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_arena_ui_registers_virtual_templates() {
-    load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_arena_ui_registers_virtual_templates(env: &WowLuaEnv) {
+    let _env = env;
 
     let templates = [
         "DeprecatedArenaBarSegmentTemplate",
@@ -219,10 +219,10 @@ fn blizzard_deprecated_arena_ui_registers_virtual_templates() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_deprecated_arena_ui_publishes_six_mixins_with_lifecycle_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_arena_ui_publishes_six_mixins_with_lifecycle_methods(env: &WowLuaEnv) {
 
     let mixins_present: bool = env
         .eval(
@@ -265,6 +265,7 @@ fn blizzard_deprecated_arena_ui_publishes_six_mixins_with_lifecycle_methods() {
          (OnLoad / OnEvent / Update — line 362), ArenaEnemyPrepFramesContainerMixin (OnLoad / \
          OnEvent / UpdateFrames / GetBestAnchorUnitFrameForOppponent — line 444)"
     );
+}
 }
 
 #[test]

@@ -30,7 +30,11 @@ const TOC_FILES: &[&str] = &[
     "SecureHoverDriver.lua",
     "SecureGroupHeaders.lua",
     "SecureGroupHeaders.xml",
+    "SecureAuraHeader.lua",
+    "SecureAuraHeader.xml",
 ];
+
+const RETAIL_TOC_FILE_COUNT: usize = 10;
 
 const HARD_DEPENDENCIES: &[&str] = &["Blizzard_FrameXML"];
 
@@ -86,15 +90,6 @@ const SECURE_GROUP_HEADER_GLOBALS: &[&str] = &[
     "SecureGroupPetHeader_OnEvent",
     "SecureGroupPetHeader_OnAttributeChanged",
     "SecureGroupPetHeader_Update",
-    "SecureAuraHeader_OnLoad",
-    "SecureAuraHeader_OnShow",
-    "SecureAuraHeader_OnHide",
-    "SecureAuraHeader_OnUpdate",
-    "SecureAuraHeader_OnEvent",
-    "SecureAuraHeader_OnAttributeChanged",
-    "SecureAuraHeader_GetUnit",
-    "SecureAuraHeader_UpdateEventRegistrations",
-    "SecureAuraHeader_Update",
 ];
 
 const VIRTUAL_TEMPLATES: &[&str] = &[
@@ -114,8 +109,6 @@ const VIRTUAL_TEMPLATES: &[&str] = &[
     "SecureGroupPetHeaderTemplate",
     "SecurePartyPetHeaderTemplate",
     "SecureRaidPetHeaderTemplate",
-    "SecureAuraHeaderTemplate",
-    "SecureAuraButtonTemplate",
 ];
 
 const NAMED_MANAGER_FRAMES: &[&str] = &[
@@ -224,7 +217,7 @@ fn toc_declares_eager_game_only_with_classic_standard_allowlist() {
 }
 
 #[test]
-fn toc_lists_ten_files_in_documented_order() {
+fn toc_lists_ten_retail_files_in_documented_order() {
     let toc = TocFile::from_file(&restricted_toc())
         .expect("Blizzard_RestrictedAddOnEnvironment TOC should parse");
     let listed: Vec<String> = toc
@@ -232,18 +225,13 @@ fn toc_lists_ten_files_in_documented_order() {
         .iter()
         .map(|p| p.to_string_lossy().replace('\\', "/"))
         .collect();
+    let expected: Vec<String> = TOC_FILES[..RETAIL_TOC_FILE_COUNT]
+        .iter()
+        .map(|name| (*name).to_string())
+        .collect();
     assert_eq!(
-        listed, TOC_FILES,
-        "TOC body must list these 10 files in this EXACT order — order matters for dependency \
-         flow. RestrictedInfrastructure.lua loads first to publish IsFrameHandle / \
-         GetFrameHandle / GetManagedEnvironment / rtable, then RestrictedEnvironment.lua \
-         (under the secure env override) builds the RESTRICTED_FUNCTIONS_SCOPE addon-table \
-         export consumed by RestrictedExecution.lua's CallRestrictedClosure body. \
-         RestrictedFrames.lua publishes the FrameHandle:* method namespace via \
-         InitFrameHandleNamespace before SecureHandlers.lua wires the wrap-script machinery, \
-         and the SecureHandlerTemplates.xml registry lookup happens AFTER its OnLoad function \
-         names are global. SecureGroupHeaders/SecureAuraHeaders depend on the wrap-script \
-         globals so they go LAST"
+        listed, expected,
+        "Retail parsing must retain the first ten ordered files and filter the classic-gated SecureAuraHeader pair"
     );
 }
 
@@ -276,7 +264,8 @@ fn restricted_environment_lua_carries_secure_env_per_file_override() {
          with secure taint so the restricted-execution sandbox stays insecure-sealed"
     );
 
-    for (idx, &name) in TOC_FILES.iter().enumerate() {
+    for (idx, file) in toc.files.iter().enumerate() {
+        let name = file.to_string_lossy();
         if name == "RestrictedEnvironment.lua" {
             continue;
         }
@@ -353,42 +342,26 @@ fn excluded_from_eager_discovery_on_glue_screens() {
 }
 
 #[test]
-fn root_directory_holds_eight_lua_and_two_xml_files() {
+fn root_directory_holds_ten_lua_and_two_xml_files() {
     let mut entries: Vec<String> = std::fs::read_dir(restricted_dir())
         .expect("Blizzard_RestrictedAddOnEnvironment directory should read")
         .flatten()
-        .filter_map(|e| e.file_name().into_string().ok())
+        .filter_map(|entry| entry.file_name().into_string().ok())
         .filter(|name| name != "Blizzard_RestrictedAddOnEnvironment.toc")
         .collect();
     entries.sort();
-    let expected: Vec<String> = vec![
-        "RestrictedEnvironment.lua",
-        "RestrictedExecution.lua",
-        "RestrictedFrames.lua",
-        "RestrictedInfrastructure.lua",
-        "SecureGroupHeaders.lua",
-        "SecureGroupHeaders.xml",
-        "SecureHandlerTemplates.xml",
-        "SecureHandlers.lua",
-        "SecureHoverDriver.lua",
-        "SecureStateDriver.lua",
-    ]
-    .into_iter()
-    .map(String::from)
-    .collect();
+
+    let mut expected: Vec<String> = TOC_FILES.iter().map(|name| (*name).to_string()).collect();
+    expected.sort();
+
     assert_eq!(
         entries, expected,
-        "Blizzard_RestrictedAddOnEnvironment/ root must hold 8 lua files plus 2 xml files next \
-         to the TOC — no per-flavor subdirectory and no localization stub. The split is by \
-         subsystem: 4 Restricted* files for the closure sandbox, 4 Secure* lua files for \
-         the public handler/driver/header machinery, plus 2 xml files for the \
-         SecureHandlerTemplates and SecureGroupHeaders virtual templates"
+        "Retail 12.1 root must contain exactly its ten Lua and two XML TOC body files"
     );
 }
 
-#[test]
-fn loads_without_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn loads_without_lua_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -417,10 +390,10 @@ fn loads_without_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn is_addon_loaded_after_eager_sweep() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn is_addon_loaded_after_eager_sweep(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_RestrictedAddOnEnvironment')")
@@ -434,10 +407,10 @@ fn is_addon_loaded_after_eager_sweep() {
          global"
     );
 }
+}
 
-#[test]
-fn restricted_infrastructure_publishes_frame_handle_namespace_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn restricted_infrastructure_publishes_frame_handle_namespace_globals(env: &WowLuaEnv) {
 
     for fname in RESTRICTED_INFRASTRUCTURE_GLOBALS {
         let kind: String = env
@@ -458,10 +431,10 @@ fn restricted_infrastructure_publishes_frame_handle_namespace_globals() {
         );
     }
 }
+}
 
-#[test]
-fn init_frame_handle_namespace_is_explicitly_nilled_after_use() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn init_frame_handle_namespace_is_explicitly_nilled_after_use(env: &WowLuaEnv) {
     let kind: String = env
         .eval("return type(_G['InitFrameHandleNamespace'])")
         .expect("type(_G.InitFrameHandleNamespace) probe should succeed");
@@ -475,10 +448,10 @@ fn init_frame_handle_namespace_is_explicitly_nilled_after_use() {
          deliberate one-shot pattern matching real WoW behaviour"
     );
 }
+}
 
-#[test]
-fn restricted_execution_publishes_call_restricted_closure() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn restricted_execution_publishes_call_restricted_closure(env: &WowLuaEnv) {
     for fname in RESTRICTED_EXECUTION_GLOBALS {
         let kind: String = env
             .eval(&format!("return type(_G['{fname}'])"))
@@ -494,10 +467,10 @@ fn restricted_execution_publishes_call_restricted_closure() {
         );
     }
 }
+}
 
-#[test]
-fn rtable_namespace_publishes_with_restricted_table_helpers() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn rtable_namespace_publishes_with_restricted_table_helpers(env: &WowLuaEnv) {
     let kind: String = env
         .eval("return type(rtable)")
         .expect("type(rtable) probe should succeed");
@@ -520,20 +493,20 @@ fn rtable_namespace_publishes_with_restricted_table_helpers() {
          immediately after rtable construction"
     );
 }
+}
 
-#[test]
-fn secure_handler_execute_persists_restricted_tables_for_show_handlers() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn secure_handler_execute_persists_restricted_tables_for_show_handlers(env: &WowLuaEnv) {
     let count: String = env
         .eval(r#"local frame = CreateFrame("Button", "SecureHandlerExecutePersistenceProbe", UIParent, "SecureHandlerShowHideTemplate"); frame:Hide(); frame:Execute([[ keybinds = table.new("ALT-X") ]]); frame:SetAttribute("_onshow", [[ self:SetAttribute("observedCount", tostring(table.maxn(keybinds))) ]]); frame:Show(); return frame:GetAttribute("observedCount")"#)
         .unwrap();
 
     assert_eq!(count, "1");
 }
+}
 
-#[test]
-fn secure_handlers_publish_full_global_surface() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn secure_handlers_publish_full_global_surface(env: &WowLuaEnv) {
     for fname in SECURE_HANDLER_GLOBALS {
         let kind: String = env
             .eval(&format!("return type(_G['{fname}'])"))
@@ -554,10 +527,10 @@ fn secure_handlers_publish_full_global_surface() {
         );
     }
 }
+}
 
-#[test]
-fn secure_state_driver_publishes_attribute_state_unit_drivers() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn secure_state_driver_publishes_attribute_state_unit_drivers(env: &WowLuaEnv) {
     for fname in SECURE_STATE_DRIVER_GLOBALS {
         let kind: String = env
             .eval(&format!("return type(_G['{fname}'])"))
@@ -573,10 +546,10 @@ fn secure_state_driver_publishes_attribute_state_unit_drivers() {
         );
     }
 }
+}
 
-#[test]
-fn secure_hover_driver_publishes_auto_hide_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn secure_hover_driver_publishes_auto_hide_globals(env: &WowLuaEnv) {
     for fname in SECURE_HOVER_DRIVER_GLOBALS {
         let kind: String = env
             .eval(&format!("return type(_G['{fname}'])"))
@@ -592,30 +565,29 @@ fn secure_hover_driver_publishes_auto_hide_globals() {
         );
     }
 }
+}
 
-#[test]
-fn secure_group_headers_publish_full_lifecycle_surface() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn secure_group_headers_publish_full_lifecycle_surface(env: &WowLuaEnv) {
     for fname in SECURE_GROUP_HEADER_GLOBALS {
         let kind: String = env
             .eval(&format!("return type(_G['{fname}'])"))
             .unwrap_or_else(|err| panic!("type(_G.{fname}) probe failed: {err}"));
         assert_eq!(
             kind, "function",
-            "{fname} must publish at `_G` as a function — SecureGroupHeaders.lua wires 17 \
-             globals across three header types. SecureGroupHeader_* (party/raid frames) sort \
-             group members and create child unit frames matching the showParty/showRaid \
-             attributes. SecureGroupPetHeader_* mirrors the structure for group pets. \
-             SecureAuraHeader_* manages the 40-slot aura auto-layout grid (used by \
-             BuffFrame.xml + DebuffFrame.xml). All six are dispatched via the matching XML \
-             <Scripts> blocks in SecureGroupHeaders.xml"
+            "{fname} must publish at `_G` as a function — retail SecureGroupHeaders.lua wires \
+             eight lifecycle globals across group and pet headers. SecureGroupHeader_* \
+             (party/raid frames) sort group members and create child unit frames matching the \
+             showParty/showRaid attributes; SecureGroupPetHeader_* mirrors the structure for \
+             group pets. SecureAuraHeader.lua is classic-only in the current TOC and is not part \
+             of the retail publication contract"
         );
     }
 }
+}
 
-#[test]
-fn restricted_environment_module_locals_stay_file_scoped() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn restricted_environment_module_locals_stay_file_scoped(env: &WowLuaEnv) {
     let no_module_local_leak: bool = env
         .eval(
             "return _G['RESTRICTED_FUNCTIONS_SCOPE'] == nil \
@@ -639,10 +611,10 @@ fn restricted_environment_module_locals_stay_file_scoped() {
          file-locals and the addonTable export"
     );
 }
+}
 
-#[test]
-fn virtual_templates_stay_off_global_scope() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn virtual_templates_stay_off_global_scope(env: &WowLuaEnv) {
     for template in VIRTUAL_TEMPLATES {
         let kind: String = env
             .eval(&format!("return type(_G['{template}'])"))
@@ -659,10 +631,10 @@ fn virtual_templates_stay_off_global_scope() {
         );
     }
 }
+}
 
-#[test]
-fn named_manager_frames_publish_globally_under_secure_template() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn named_manager_frames_publish_globally_under_secure_template(env: &WowLuaEnv) {
     for fname in NAMED_MANAGER_FRAMES {
         let (exists, is_protected, blocked_insecure_attribute): (bool, bool, bool) = env
             .eval(&format!(
@@ -711,6 +683,7 @@ fn named_manager_frames_publish_globally_under_secure_template() {
         );
     }
 }
+}
 
 #[test]
 fn xml_files_declare_only_virtual_templates() {
@@ -739,12 +712,12 @@ fn xml_files_declare_only_virtual_templates() {
          party/raid header all four PartyHeader / RaidGroupHeader / PartyPetHeader / \
          RaidPetHeader templates inherit from"
     );
+    let aura_xml = std::fs::read_to_string(restricted_dir().join("SecureAuraHeader.xml"))
+        .expect("SecureAuraHeader.xml should read");
     assert!(
-        header_xml.contains("name=\"SecureAuraHeaderTemplate\"")
-            && header_xml.contains("name=\"SecureAuraButtonTemplate\""),
-        "SecureGroupHeaders.xml must declare both SecureAuraHeaderTemplate (the multi-aura \
-         layout grid wired with OnShow/OnHide/OnUpdate/OnAttributeChanged via SecureAuraHeader_*) \
-         and SecureAuraButtonTemplate (the per-aura RightButtonDown CheckButton with \
-         type2=\"cancelaura\" attribute that lets right-click cancel the aura)"
+        aura_xml.contains("name=\"SecureAuraHeaderTemplate\"")
+            && aura_xml.contains("name=\"SecureAuraButtonTemplate\"")
+            && aura_xml.contains("virtual=\"true\""),
+        "Retail 12.1 keeps the virtual aura header and button templates in SecureAuraHeader.xml, separate from group-header templates"
     );
 }

@@ -284,9 +284,8 @@ fn blizzard_item_button_auto_discovered_on_game_screen() {
     );
 }
 
-#[test]
-fn blizzard_item_button_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_item_button_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -309,10 +308,10 @@ fn blizzard_item_button_loads_without_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_item_button_is_addon_loaded_after_game_sweep() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_item_button_is_addon_loaded_after_game_sweep(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_ItemButton')")
@@ -324,10 +323,10 @@ fn blizzard_item_button_is_addon_loaded_after_game_sweep() {
          explicit load_addon call"
     );
 }
+}
 
-#[test]
-fn blizzard_item_button_publishes_constants_table_with_two_context_match_values() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_item_button_publishes_constants_table_with_two_context_match_values(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(ItemButtonConstants)")
@@ -359,10 +358,10 @@ fn blizzard_item_button_publishes_constants_table_with_two_context_match_values(
          `runecarving-icon-bag-item-glow` atlas centered on the icon (bagged-item runeforging cue)"
     );
 }
+}
 
-#[test]
-fn blizzard_item_button_mixin_publishes_with_shared_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_item_button_mixin_publishes_with_shared_methods(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(ItemButtonMixin)")
@@ -386,10 +385,10 @@ fn blizzard_item_button_mixin_publishes_with_shared_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_item_button_mixin_carries_mainline_method_overrides() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_item_button_mixin_carries_mainline_method_overrides(env: &WowLuaEnv) {
 
     for method in ITEM_BUTTON_MAINLINE_METHOD_OVERRIDES {
         let kind: String = env
@@ -407,10 +406,10 @@ fn blizzard_item_button_mixin_carries_mainline_method_overrides() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_item_button_publishes_circular_giant_mixin() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_item_button_publishes_circular_giant_mixin(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(CircularGiantItemButtonMixin)")
@@ -434,10 +433,10 @@ fn blizzard_item_button_publishes_circular_giant_mixin() {
          applies the atlas to IconBorder, falling back to the bare border when quality is nil"
     );
 }
+}
 
-#[test]
-fn blizzard_item_button_publishes_enchanting_anim_mixin_with_lifecycle_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_item_button_publishes_enchanting_anim_mixin_with_lifecycle_methods(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(EnchantingItemButtonAnimMixin)")
@@ -469,10 +468,10 @@ fn blizzard_item_button_publishes_enchanting_anim_mixin_with_lifecycle_methods()
         );
     }
 }
+}
 
-#[test]
-fn blizzard_item_button_publishes_mainline_global_helpers() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_item_button_publishes_mainline_global_helpers(env: &WowLuaEnv) {
 
     for global in ITEM_BUTTON_MAINLINE_GLOBALS {
         let kind: String = env
@@ -489,10 +488,10 @@ fn blizzard_item_button_publishes_mainline_global_helpers() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_item_button_virtual_templates_stay_nil_at_global_scope() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_item_button_virtual_templates_stay_nil_at_global_scope(env: &WowLuaEnv) {
 
     for template in ITEM_BUTTON_VIRTUAL_TEMPLATES {
         let kind: String = env
@@ -509,10 +508,10 @@ fn blizzard_item_button_virtual_templates_stay_nil_at_global_scope() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_item_button_intrinsic_creates_via_create_frame() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_item_button_intrinsic_creates_via_create_frame(env: &WowLuaEnv) {
 
     let intrinsic_table_global: String = env
         .eval("return type(_G['ItemButton'])")
@@ -551,4 +550,5 @@ fn blizzard_item_button_intrinsic_creates_via_create_frame() {
          declares `<KeyValue key=\"showMatchHighlight\" value=\"true\" type=\"boolean\"/>` so \
          every ItemButton-intrinsic instance starts with the match-highlight overlay opted in"
     );
+}
 }

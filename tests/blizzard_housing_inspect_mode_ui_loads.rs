@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, find_toc_file, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
-use wow_ui_sim::startup::fire_startup_events_for_screen;
 use wow_ui_sim::toc::TocFile;
 
 fn blizzard_ui_dir() -> PathBuf {
@@ -27,34 +26,11 @@ fn house_editor_toc() -> PathBuf {
         .join("Blizzard_HouseEditor.toc")
 }
 
-fn load_full_game_ui_with_inspect_lod() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-
-    wow_ui_sim::xml::register_intrinsic_templates();
-
-    let ui = blizzard_ui_dir();
-    let addons = discover_blizzard_addons_for_screen(&ui, ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    env.apply_post_load_workarounds();
-    fire_startup_events_for_screen(&env, ScreenKind::Game);
-
+fn load_housing_inspect_mode_ui_with_dependency(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &house_editor_toc())
         .expect("Blizzard_HouseEditor (the only declared dep) should load via explicit LoD call");
     load_addon(&env.loader_env(), &inspect_toc())
         .expect("Blizzard_HousingInspectModeUI should load via explicit Rust loader call");
-
-    env
 }
 
 fn assert_mixin_methods(env: &WowLuaEnv, mixin: &str, methods: &[&str], rationale: &str) {
@@ -182,9 +158,9 @@ fn blizzard_housing_inspect_mode_ui_excluded_from_all_screen_auto_discovery() {
     }
 }
 
-#[test]
-fn blizzard_housing_inspect_mode_ui_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui_with_inspect_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_inspect_mode_ui_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
+    load_housing_inspect_mode_ui_with_dependency(env);
 
     let lua_errors: Vec<String> = env.state().borrow().lua_errors.clone();
     let related: Vec<&String> = lua_errors
@@ -203,10 +179,11 @@ fn blizzard_housing_inspect_mode_ui_loads_without_addon_specific_lua_errors() {
         related
     );
 }
+}
 
-#[test]
-fn blizzard_housing_inspect_mode_ui_is_addon_loaded_via_explicit_lod_call() {
-    let env = load_full_game_ui_with_inspect_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_inspect_mode_ui_is_addon_loaded_via_explicit_lod_call(env: &WowLuaEnv) {
+    load_housing_inspect_mode_ui_with_dependency(env);
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_HousingInspectModeUI')")
         .expect("IsAddOnLoaded query should succeed");
@@ -216,10 +193,11 @@ fn blizzard_housing_inspect_mode_ui_is_addon_loaded_via_explicit_lod_call() {
          explicit LoD load — proves the loader registered the addon name"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_inspect_mode_ui_house_editor_dependency_loads_via_explicit_lod_call() {
-    let env = load_full_game_ui_with_inspect_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_inspect_mode_ui_house_editor_dependency_loads_via_explicit_lod_call(env: &WowLuaEnv) {
+    load_housing_inspect_mode_ui_with_dependency(env);
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_HouseEditor')")
         .expect("HouseEditor IsAddOnLoaded query should succeed");
@@ -230,10 +208,11 @@ fn blizzard_housing_inspect_mode_ui_house_editor_dependency_loads_via_explicit_l
          test driver explicitly LoDs HouseEditor first to satisfy the dependency"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_inspect_mode_ui_publishes_manager_frame_global() {
-    let env = load_full_game_ui_with_inspect_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_inspect_mode_ui_publishes_manager_frame_global(env: &WowLuaEnv) {
+    load_housing_inspect_mode_ui_with_dependency(env);
     let frame_type: String = env
         .eval("return type(HousingInspectModeManagerFrame)")
         .expect("HousingInspectModeManagerFrame type query should succeed");
@@ -249,10 +228,11 @@ fn blizzard_housing_inspect_mode_ui_publishes_manager_frame_global() {
         .expect("HousingInspectModeManagerFrame:GetName query should succeed");
     assert_eq!(frame_name, "HousingInspectModeManagerFrame");
 }
+}
 
-#[test]
-fn blizzard_housing_inspect_mode_ui_manager_mixin_publishes_eighteen_methods() {
-    let env = load_full_game_ui_with_inspect_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_inspect_mode_ui_manager_mixin_publishes_eighteen_methods(env: &WowLuaEnv) {
+    load_housing_inspect_mode_ui_with_dependency(env);
     assert_mixin_methods(
         &env,
         "HousingInspectModeManagerMixin",
@@ -297,10 +277,11 @@ fn blizzard_housing_inspect_mode_ui_manager_mixin_publishes_eighteen_methods() {
          ExitInspectMode (call C_HousingInspectMode.ExitInspectMode RPC)",
     );
 }
+}
 
-#[test]
-fn blizzard_housing_inspect_mode_ui_manager_frame_uses_button_widget_type() {
-    let env = load_full_game_ui_with_inspect_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_inspect_mode_ui_manager_frame_uses_button_widget_type(env: &WowLuaEnv) {
+    load_housing_inspect_mode_ui_with_dependency(env);
     let object_type: String = env
         .eval("return HousingInspectModeManagerFrame:GetObjectType()")
         .expect("HousingInspectModeManagerFrame:GetObjectType query should succeed");
@@ -312,10 +293,11 @@ fn blizzard_housing_inspect_mode_ui_manager_frame_uses_button_widget_type() {
          dispatch (a Frame would not fire OnClick for unconsumed mouse-up events)"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_inspect_mode_ui_manager_frame_uses_low_frame_strata() {
-    let env = load_full_game_ui_with_inspect_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_inspect_mode_ui_manager_frame_uses_low_frame_strata(env: &WowLuaEnv) {
+    load_housing_inspect_mode_ui_with_dependency(env);
     let strata: String = env
         .eval("return HousingInspectModeManagerFrame:GetFrameStrata()")
         .expect("HousingInspectModeManagerFrame:GetFrameStrata query should succeed");
@@ -327,10 +309,11 @@ fn blizzard_housing_inspect_mode_ui_manager_frame_uses_low_frame_strata() {
          everything else (propagateMouseInput=Both lets clicks hit world geometry too)"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_inspect_mode_ui_manager_registers_two_frame_events() {
-    let env = load_full_game_ui_with_inspect_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_inspect_mode_ui_manager_registers_two_frame_events(env: &WowLuaEnv) {
+    load_housing_inspect_mode_ui_with_dependency(env);
     for event in [
         "HOUSING_INSPECT_MODE_DECOR_HOVERED_CHANGED",
         "HOUSING_INSPECT_MODE_STATE_UPDATED",
@@ -348,4 +331,5 @@ fn blizzard_housing_inspect_mode_ui_manager_registers_two_frame_events() {
              dispatches them to OnDecorHoveredChanged or OnUpdateInspectModeActive"
         );
     }
+}
 }

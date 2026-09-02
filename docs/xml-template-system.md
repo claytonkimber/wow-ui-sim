@@ -153,7 +153,7 @@ pub fn parse_xml_file(path: &Path) -> Result<UiXml, XmlLoadError> {
 
 `XmlLoadError` wraps both `std::io::Error` and `quick_xml::DeError`.
 
-All XML structure knowledge lives in the serde annotations on the type definitions. The `@` prefix marks XML attributes (`@name`), `$value` collects mixed child elements, and `$text` captures text content. `rename_all = "PascalCase"` maps Rust variants to XML tag names.
+All XML structure knowledge lives in the serde annotations on the type definitions. The `@` prefix marks XML attributes (`@name`), `$value` collects mixed child elements, and `$text` captures text content. `rename_all = "PascalCase"` maps Rust variants to XML tag names. Inline `<Scripts>...</Scripts>` elements are kept as one complete child, so following sibling templates or frames are not consumed as part of the script block.
 
 ### Processing Flow
 **File:** `src/loader/xml_file.rs:17-73`
@@ -326,7 +326,7 @@ Throughout the codebase, properties are resolved by walking the chain and keepin
 8. **Apply button textures** (line 65): `NormalTexture`, `PushedTexture`, etc. from XML
 9. **Apply button text** (line 66): From `text` attribute
 10. **Init action bar tables** (line 68): Pre-create `actionButtons` table for action bar frames
-11. **Fire lifecycle scripts** (line 70): Execute OnLoad, then OnShow if visible
+11. **Fire lifecycle scripts** (line 70): Execute OnLoad, then OnShow if visible. Animation-group mixins are applied before XML `method=` script binding and the group's OnLoad callback, so the callback resolves methods from the composed mixin object.
 
 ### Name Resolution
 **File:** `src/loader/xml_frame.rs:76-94`
@@ -351,7 +351,7 @@ fn build_create_frame_code(widget_type, name, parent, inherits) -> String {
 }
 ```
 
-The `inherits` parameter in `CreateFrame()` triggers `apply_templates_from_registry()` in the Lua-side template module. This means template children (frames, textures, fontstrings) are already created by the time `create_frame_from_xml()` continues to step 5. The XML loader then only creates children defined directly on the frame, not in the template.
+The `inherits` parameter in `CreateFrame()` triggers `apply_templates_from_registry()` in the Lua-side template module. XML intrinsic widget types prepend their intrinsic template to the explicit `inherits` chain. When the XML frame has `<KeyValues>`, the loader passes a template initializer into `CreateFrame()` so those direct values exist before deferred template-child `OnLoad` handlers run. Template children (frames, textures, fontstrings) are already created by the time `create_frame_from_xml()` continues to step 5. The XML loader then only creates children defined directly on the frame, not in the template.
 
 ### Texture Creation
 **File:** `src/loader/xml_texture.rs:114-197`
@@ -508,7 +508,7 @@ The `inherit` attribute controls how a handler interacts with an existing handle
 - **`inherit="prepend"`**: New handler runs first, then the existing handler. Both wrapped in `pcall()`
 - **`inherit="append"`**: Existing handler runs first, then the new handler
 
-This is critical for templates: a derived template can prepend its own OnLoad while preserving the base template's OnLoad handler.
+This is critical for templates: a derived template can prepend its own OnLoad while preserving the base template's OnLoad handler. Intrinsic default scripts use the precall binding; ordinary XML scripts use the normal binding unless `intrinsicOrder` requests precall or postcall. Dispatch visits precall, normal, then postcall, while `GetScript(name)` without a binding argument reads only the normal handler.
 
 ### Lifecycle Script Firing
 **File:** `src/loader/xml_frame.rs:585-634`

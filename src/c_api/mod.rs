@@ -17,22 +17,28 @@ pub mod c_azerite_essence;
 pub mod c_azerite_item;
 pub mod c_barber_shop;
 pub mod c_battle_net;
+pub mod c_catalog_shop;
 pub mod c_character_services;
 pub mod c_chat_bubbles;
+pub mod c_chromie_time;
 pub mod c_cursor;
 pub mod c_death_recap;
 pub mod c_discord;
 pub mod c_glue;
 pub mod c_housing;
+pub mod c_instance_encounter;
 pub mod c_lfg_info;
 pub mod c_login;
+pub mod c_loot_history;
 pub mod c_major_factions;
 pub mod c_map;
 pub mod c_map_exploration_info;
 pub mod c_merchant_frame;
 pub mod c_paper_doll_info;
 pub mod c_party_info;
+pub mod c_pet_battles;
 pub mod c_ping_secure;
+pub mod c_player_choice;
 pub mod c_player_interaction_manager;
 pub mod c_pvp;
 pub mod c_quest_hub;
@@ -44,6 +50,7 @@ pub mod c_spell_book;
 pub mod c_spell_diminish;
 pub mod c_stable_info;
 pub mod c_string_util;
+mod c_string_util_decimal;
 pub mod c_summon_info;
 pub mod c_texture;
 pub mod c_ui_file_asset;
@@ -73,6 +80,7 @@ use rilua::LuaResult;
 use rilua::vm::state::LuaState;
 
 pub(crate) fn register_utility_bootstrap_tables(state: &mut LuaState) -> LuaResult<()> {
+    c_loot_history::register_c_loot_history(state)?;
     register_specialization_and_model_tables(state)?;
     register_glue_and_display_tables(state)?;
     register_auxiliary_utility_tables(state)
@@ -96,6 +104,7 @@ fn register_auxiliary_utility_tables(state: &mut LuaState) -> LuaResult<()> {
 
 fn register_token_texture_xml_tables(state: &mut LuaState) -> LuaResult<()> {
     c_string_util::register_c_string_util(state)?;
+    c_string_util_decimal::register_escape_decimal_non_printables(state)?;
     c_pvp::register_c_pvp_surface(state)?;
     c_ping_secure::register_c_ping_secure_surface(state)?;
     c_wowtoken_secure::register_c_wowtoken_secure(state)?;

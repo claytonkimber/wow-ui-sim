@@ -106,9 +106,8 @@ fn blizzard_deprecated_world_elapsed_timer_types_appears_in_game_discovery_only(
     );
 }
 
-#[test]
-fn blizzard_deprecated_world_elapsed_timer_types_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_world_elapsed_timer_types_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -128,10 +127,10 @@ fn blizzard_deprecated_world_elapsed_timer_types_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_world_elapsed_timer_types_installs_le_globals_as_numbers() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_world_elapsed_timer_types_installs_le_globals_as_numbers(env: &WowLuaEnv) {
 
     let kinds: (String, String, String) = env
         .eval(
@@ -154,10 +153,10 @@ fn blizzard_deprecated_world_elapsed_timer_types_installs_le_globals_as_numbers(
          values, so all three globals must be of type `number`"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_world_elapsed_timer_types_le_constants_match_enum_values() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_world_elapsed_timer_types_le_constants_match_enum_values(env: &WowLuaEnv) {
 
     let values: (i64, i64, i64) = env
         .eval(
@@ -175,10 +174,10 @@ fn blizzard_deprecated_world_elapsed_timer_types_le_constants_match_enum_values(
          must be identity-equal to the enum table reads"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_world_elapsed_timer_types_le_constants_equal_enum_table_lookups() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_world_elapsed_timer_types_le_constants_equal_enum_table_lookups(env: &WowLuaEnv) {
 
     let all_equal: bool = env
         .eval(
@@ -194,10 +193,10 @@ fn blizzard_deprecated_world_elapsed_timer_types_le_constants_equal_enum_table_l
          globals are simple numeric copies of the enum integer values"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_world_elapsed_timer_types_load_deprecation_fallbacks_cvar_is_default_on() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_world_elapsed_timer_types_load_deprecation_fallbacks_cvar_is_default_on(env: &WowLuaEnv) {
 
     let cvar_on: bool = env
         .eval("return GetCVarBool('loadDeprecationFallbacks')")
@@ -211,6 +210,7 @@ fn blizzard_deprecated_world_elapsed_timer_types_load_deprecation_fallbacks_cvar
          these constants observes the fallback values seeded at startup by \
          missing_constants.lua:43-44 + 1379"
     );
+}
 }
 
 #[test]

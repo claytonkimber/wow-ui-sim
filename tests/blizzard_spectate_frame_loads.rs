@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, find_toc_file, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
-use wow_ui_sim::startup::fire_startup_events_for_screen;
 use wow_ui_sim::toc::TocFile;
 
 fn blizzard_ui_dir() -> PathBuf {
@@ -47,32 +46,9 @@ const STATIC_POPUP_DIALOGS: &[&str] = &[
     "CONFIRM_LEAVE_MATCH_WITH_PLUNDER_SOLO",
 ];
 
-fn load_full_game_ui_with_spectate_explicit() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-
-    wow_ui_sim::xml::register_intrinsic_templates();
-
-    let ui = blizzard_ui_dir();
-    let addons = discover_blizzard_addons_for_screen(&ui, ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    env.apply_post_load_workarounds();
-    fire_startup_events_for_screen(&env, ScreenKind::Game);
-
+fn load_spectate_frame(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &spectate_toc())
         .expect("Blizzard_SpectateFrame should load via explicit Rust loader call");
-
-    env
 }
 
 #[test]
@@ -243,9 +219,9 @@ fn excluded_from_every_screen_auto_discovery() {
     }
 }
 
-#[test]
-fn explicit_load_emits_no_addon_specific_lua_errors() {
-    let env = load_full_game_ui_with_spectate_explicit();
+prefork_full_ui_case! {
+fn explicit_load_emits_no_addon_specific_lua_errors(env: &WowLuaEnv) {
+    load_spectate_frame(env);
 
     let cross_addon_gaps = ["EndOfMatchFrame"];
 
@@ -281,10 +257,11 @@ fn explicit_load_emits_no_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn is_addon_loaded_reports_true_after_explicit_load() {
-    let env = load_full_game_ui_with_spectate_explicit();
+prefork_full_ui_case! {
+fn is_addon_loaded_reports_true_after_explicit_load(env: &WowLuaEnv) {
+    load_spectate_frame(env);
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_SpectateFrame')")
@@ -297,10 +274,11 @@ fn is_addon_loaded_reports_true_after_explicit_load() {
          it on the mainline simulator target"
     );
 }
+}
 
-#[test]
-fn publishes_four_mixin_tables() {
-    let env = load_full_game_ui_with_spectate_explicit();
+prefork_full_ui_case! {
+fn publishes_four_mixin_tables(env: &WowLuaEnv) {
+    load_spectate_frame(env);
 
     for mixin in PUBLISHED_MIXINS {
         let kind: String = env
@@ -325,10 +303,11 @@ fn publishes_four_mixin_tables() {
         );
     }
 }
+}
 
-#[test]
-fn spectate_frame_mixin_publishes_thirteen_canonical_methods() {
-    let env = load_full_game_ui_with_spectate_explicit();
+prefork_full_ui_case! {
+fn spectate_frame_mixin_publishes_thirteen_canonical_methods(env: &WowLuaEnv) {
+    load_spectate_frame(env);
 
     for method in SPECTATE_FRAME_METHODS {
         let kind: String = env
@@ -352,10 +331,11 @@ fn spectate_frame_mixin_publishes_thirteen_canonical_methods() {
         );
     }
 }
+}
 
-#[test]
-fn cycle_mode_mixin_carries_on_click_and_set_arrow_text_methods() {
-    let env = load_full_game_ui_with_spectate_explicit();
+prefork_full_ui_case! {
+fn cycle_mode_mixin_carries_on_click_and_set_arrow_text_methods(env: &WowLuaEnv) {
+    load_spectate_frame(env);
 
     let probe = "return type(SpectateCycleModeMixin.OnClick) == 'function' and \
                  type(SpectateCycleModeMixin.SetArrowText) == 'function'";
@@ -370,10 +350,11 @@ fn cycle_mode_mixin_carries_on_click_and_set_arrow_text_methods() {
          hover states)"
     );
 }
+}
 
-#[test]
-fn leave_match_button_mixin_owns_on_click_only() {
-    let env = load_full_game_ui_with_spectate_explicit();
+prefork_full_ui_case! {
+fn leave_match_button_mixin_owns_on_click_only(env: &WowLuaEnv) {
+    load_spectate_frame(env);
 
     let kind: String = env
         .eval("return type(SpectateLeaveMatchButtonMixin.OnClick)")
@@ -389,10 +370,11 @@ fn leave_match_button_mixin_owns_on_click_only() {
          ForceLogout)"
     );
 }
+}
 
-#[test]
-fn match_details_button_mixin_owns_on_click_only() {
-    let env = load_full_game_ui_with_spectate_explicit();
+prefork_full_ui_case! {
+fn match_details_button_mixin_owns_on_click_only(env: &WowLuaEnv) {
+    load_spectate_frame(env);
 
     let kind: String = env
         .eval("return type(MatchDetailsButtonMixin.OnClick)")
@@ -405,10 +387,11 @@ fn match_details_button_mixin_owns_on_click_only() {
          false) to surface the post-match details panel"
     );
 }
+}
 
-#[test]
-fn leave_match_util_global_function_publishes() {
-    let env = load_full_game_ui_with_spectate_explicit();
+prefork_full_ui_case! {
+fn leave_match_util_global_function_publishes(env: &WowLuaEnv) {
+    load_spectate_frame(env);
 
     let kind: String = env
         .eval("return type(LeaveMatchUtil_LeaveMatchPopup)")
@@ -424,10 +407,11 @@ fn leave_match_util_global_function_publishes() {
          AND the in-match GameMenu both call it"
     );
 }
+}
 
-#[test]
-fn three_static_popup_dialogs_register() {
-    let env = load_full_game_ui_with_spectate_explicit();
+prefork_full_ui_case! {
+fn three_static_popup_dialogs_register(env: &WowLuaEnv) {
+    load_spectate_frame(env);
 
     for dialog in STATIC_POPUP_DIALOGS {
         let kind: String = env
@@ -448,10 +432,11 @@ fn three_static_popup_dialogs_register() {
         );
     }
 }
+}
 
-#[test]
-fn ressurectable_dialog_carries_custom_alert_icon() {
-    let env = load_full_game_ui_with_spectate_explicit();
+prefork_full_ui_case! {
+fn ressurectable_dialog_carries_custom_alert_icon(env: &WowLuaEnv) {
+    load_spectate_frame(env);
 
     let icon: String = env
         .eval(
@@ -468,10 +453,11 @@ fn ressurectable_dialog_carries_custom_alert_icon() {
          plunder-loss dialogs. Got: {icon:?}"
     );
 }
+}
 
-#[test]
-fn named_spectate_frame_publishes_with_arrow_buttons_and_setallpoints() {
-    let env = load_full_game_ui_with_spectate_explicit();
+prefork_full_ui_case! {
+fn named_spectate_frame_publishes_with_arrow_buttons_and_setallpoints(env: &WowLuaEnv) {
+    load_spectate_frame(env);
 
     let probe = "local f = SpectateFrame \
                  if not f then return 'nil' end \
@@ -499,10 +485,11 @@ fn named_spectate_frame_publishes_with_arrow_buttons_and_setallpoints() {
          labels need stable globals for /run debug access)"
     );
 }
+}
 
-#[test]
-fn arrow_buttons_carry_spectate_next_key_value_booleans() {
-    let env = load_full_game_ui_with_spectate_explicit();
+prefork_full_ui_case! {
+fn arrow_buttons_carry_spectate_next_key_value_booleans(env: &WowLuaEnv) {
+    load_spectate_frame(env);
 
     let probe = "return tostring(SpectateFrameArrowLeft.spectateNext) \
                  .. ',' .. tostring(SpectateFrameArrowRight.spectateNext)";
@@ -521,10 +508,11 @@ fn arrow_buttons_carry_spectate_next_key_value_booleans() {
          gives global access for /run inspection. Got: {report:?}"
     );
 }
+}
 
-#[test]
-fn match_details_and_leave_match_buttons_publish_via_parent_keys() {
-    let env = load_full_game_ui_with_spectate_explicit();
+prefork_full_ui_case! {
+fn match_details_and_leave_match_buttons_publish_via_parent_keys(env: &WowLuaEnv) {
+    load_spectate_frame(env);
 
     let probe = "return type(SpectateFrame.LeaveMatchButton) == 'table' and \
                  type(SpectateFrame.MatchDetailsButton) == 'table'";
@@ -538,4 +526,5 @@ fn match_details_and_leave_match_buttons_publish_via_parent_keys() {
          template, and the MatchDetails button anchors LEFT of the \
          LeaveMatch button (-12 px gap)"
     );
+}
 }

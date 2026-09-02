@@ -152,6 +152,59 @@ fn plan_named_frames_have_their_mixins_applied() {
     });
 }
 
+#[test]
+fn edit_mode_action_bar_seeds_callable_base_method_aliases() {
+    with_blizzard_addon_startup_shape(&[ROOT], &[], |env, _loaded| {
+        let (aliases_callable, base_preserved): (bool, bool) = env
+            .eval(
+                r#"
+                local originalOnLoad = EditModeActionBarMixin.EditModeActionBar_OnLoad
+                EditModeActionBarMixin.EditModeActionBar_OnLoad = function(frame)
+                    local aliasesCallable = type(frame.SetScaleBase) == "function"
+                        and type(frame.SetPointBase) == "function"
+                        and type(frame.ClearAllPointsBase) == "function"
+                        and type(frame.SetShownBase) == "function"
+                        and type(frame.ShowBase) == "function"
+                        and type(frame.HideBase) == "function"
+                        and type(frame.IsShownBase) == "function"
+
+                    local originalSetShown = frame.SetShown
+                    local originalSetShownBase = frame.SetShownBase
+                    frame.SetShown = function() end
+                    local basePreserved = type(frame.SetShownBase) == "function"
+                        and frame.SetShownBase == originalSetShownBase
+                        and frame.SetShown ~= originalSetShownBase
+                    frame.SetShown = originalSetShown
+
+                    __editModeAliasesCallable = aliasesCallable
+                    __editModeSetShownBasePreserved = basePreserved
+                end
+
+                CreateFrame(
+                    "Frame",
+                    "EditModeActionBarAliasProbe",
+                    UIParent,
+                    "EditModeActionBarTemplate"
+                )
+                EditModeActionBarMixin.EditModeActionBar_OnLoad = originalOnLoad
+
+                return __editModeAliasesCallable == true,
+                    __editModeSetShownBasePreserved == true
+                "#,
+            )
+            .expect("EditMode ActionBar pre-initialization probe should run cleanly");
+
+        assert!(
+            aliases_callable,
+            "EditModeSystemMixin should seed all seven callable Base aliases before ActionBar OnLoad"
+        );
+        assert!(
+            base_preserved,
+            "SetShownBase should preserve the original callable when SetShown is overridden"
+        );
+    });
+}
+
 /// Pin that `ExtraActionBarFrame` has NO mixin — XML at
 /// `Shared/ExtraActionBar.xml:93` lacks `mixin=`, no
 /// `ExtraActionBarFrameMixin` global exists; behavioral wiring is the

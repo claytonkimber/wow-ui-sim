@@ -282,9 +282,8 @@ fn blizzard_matchmaking_queue_auto_discovered_on_every_screen() {
     }
 }
 
-#[test]
-fn blizzard_matchmaking_queue_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_matchmaking_queue_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -307,10 +306,10 @@ fn blizzard_matchmaking_queue_loads_without_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_matchmaking_queue_is_addon_loaded_after_auto_discovery() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_matchmaking_queue_is_addon_loaded_after_auto_discovery(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_MatchmakingQueueDisplay')")
@@ -323,10 +322,10 @@ fn blizzard_matchmaking_queue_is_addon_loaded_after_auto_discovery() {
          required"
     );
 }
+}
 
-#[test]
-fn blizzard_matchmaking_queue_publishes_five_mixin_globals_as_tables() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_matchmaking_queue_publishes_five_mixin_globals_as_tables(env: &WowLuaEnv) {
 
     for mixin in PUBLISHED_MIXINS {
         let kind: String = env
@@ -343,46 +342,46 @@ fn blizzard_matchmaking_queue_publishes_five_mixin_globals_as_tables() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_matchmaking_queue_type_selection_button_mixin_carries_six_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_matchmaking_queue_type_selection_button_mixin_carries_six_methods(env: &WowLuaEnv) {
     assert_mixin_methods_present(
         &env,
         "QueueTypeSelectionButtonMixin",
         QUEUE_TYPE_BUTTON_METHODS,
     );
 }
+}
 
-#[test]
-fn blizzard_matchmaking_queue_type_settings_frame_mixin_carries_eleven_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_matchmaking_queue_type_settings_frame_mixin_carries_eleven_methods(env: &WowLuaEnv) {
     assert_mixin_methods_present(
         &env,
         "QueueTypeSettingsFrameMixin",
         QUEUE_TYPE_SETTINGS_METHODS,
     );
 }
-
-#[test]
-fn blizzard_matchmaking_queue_ready_button_mixin_carries_six_methods() {
-    let env = load_full_game_ui();
-    assert_mixin_methods_present(&env, "QueueReadyButtonMixin", QUEUE_READY_BUTTON_METHODS);
 }
 
-#[test]
-fn blizzard_matchmaking_queue_frame_mixin_carries_seven_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_matchmaking_queue_ready_button_mixin_carries_six_methods(env: &WowLuaEnv) {
+    assert_mixin_methods_present(&env, "QueueReadyButtonMixin", QUEUE_READY_BUTTON_METHODS);
+}
+}
+
+prefork_full_ui_case! {
+fn blizzard_matchmaking_queue_frame_mixin_carries_seven_methods(env: &WowLuaEnv) {
     assert_mixin_methods_present(
         &env,
         "MatchmakingQueueFrameMixin",
         MATCHMAKING_QUEUE_FRAME_METHODS,
     );
 }
+}
 
-#[test]
-fn blizzard_matchmaking_queue_leave_queue_button_mixin_carries_single_onclick_method() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_matchmaking_queue_leave_queue_button_mixin_carries_single_onclick_method(env: &WowLuaEnv) {
 
     let onclick_kind: String = env
         .eval("return type(LeaveQueueButtonMixin.OnClick)")
@@ -397,10 +396,10 @@ fn blizzard_matchmaking_queue_leave_queue_button_mixin_carries_single_onclick_me
          button and the queue-cancellation flow"
     );
 }
+}
 
-#[test]
-fn blizzard_matchmaking_queue_file_local_helpers_not_exposed_globally() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_matchmaking_queue_file_local_helpers_not_exposed_globally(env: &WowLuaEnv) {
 
     for helper in FILE_LOCAL_HELPERS {
         let kind: String = env
@@ -418,10 +417,11 @@ fn blizzard_matchmaking_queue_file_local_helpers_not_exposed_globally() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_matchmaking_queue_six_virtual_templates_register_with_xml_template_registry() {
-    let _env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_matchmaking_queue_six_virtual_templates_register_with_xml_template_registry(env: &WowLuaEnv) {
+    let _env = env;
 
     for template in VIRTUAL_TEMPLATES {
         let entry = wow_ui_sim::xml::get_template(template);
@@ -444,10 +444,10 @@ fn blizzard_matchmaking_queue_six_virtual_templates_register_with_xml_template_r
         );
     }
 }
+}
 
-#[test]
-fn blizzard_matchmaking_queue_settings_frame_template_resolves_via_create_frame() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_matchmaking_queue_settings_frame_template_resolves_via_create_frame(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -473,10 +473,10 @@ fn blizzard_matchmaking_queue_settings_frame_template_resolves_via_create_frame(
          queueTypeString / queueTypeIcon / queueTypeIconSelected KeyValues set"
     );
 }
+}
 
-#[test]
-fn blizzard_matchmaking_queue_settings_frame_template_carries_four_queue_type_children() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_matchmaking_queue_settings_frame_template_carries_four_queue_type_children(env: &WowLuaEnv) {
 
     let queue_container_resolves: bool = env
         .eval(
@@ -498,10 +498,10 @@ fn blizzard_matchmaking_queue_settings_frame_template_carries_four_queue_type_ch
          (plunderstorm-glues-queueselector-* atlas paths)"
     );
 }
+}
 
-#[test]
-fn blizzard_matchmaking_queue_frame_template_carries_spinner_child() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_matchmaking_queue_frame_template_carries_spinner_child(env: &WowLuaEnv) {
 
     let spinner_resolves: bool = env
         .eval(
@@ -516,4 +516,5 @@ fn blizzard_matchmaking_queue_frame_template_carries_spinner_child() {
          the top of the queue-pending dialog; its OnShow / OnHide handlers (SpinnerMixin) \
          drive the Anim AnimationGroup's Rotation childKey=Ring duration=2 degrees=-360"
     );
+}
 }

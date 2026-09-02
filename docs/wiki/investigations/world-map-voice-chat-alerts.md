@@ -72,22 +72,25 @@ Additional follow-up before the fix:
 - Its bounds overlap `WorldMapFrame` horizontally (`x=2..29` versus world map starting at `x=16`) and vertically in the lower-left of the map.
 - A focused regression in [`tests/render_order.rs`](../../../tests/render_order.rs) confirmed that this button still rendered **before** `WorldMapFrame.BorderFrame`.
 
-Why it still rendered over the map body:
+Why the boundary fix was no longer sufficient:
 
-- `ChatFrameChannelButton` is `MEDIUM` strata, but its parent `ChatFrame1ButtonFrame` is `LOW`, so the button becomes its own `MEDIUM`-strata root.
-- The simulator's strata-root walk treated `UIParent` like an ordinary visible `MEDIUM` frame, so the entire world-map subtree was emitted as part of the `UIParent` DFS segment before independent `MEDIUM` roots such as `ChatFrameChannelButton`.
-- When cached strata buckets already existed, the incremental show repair path also climbed to `UIParent` as a same-strata ancestor and preserved that bad segment order.
+- `ChatFrameChannelButton` is `MEDIUM` strata, but its parent `ChatFrame1ButtonFrame` is `LOW`, so the button becomes its own `MEDIUM`-strata root around raw frame level 5.
+- `WorldMapFrameTemplate` is `toplevel="true"`, but the panel root remains near raw frame level 1.
+- Commit `783358874` correctly made explicit `Raise()`/`Lower()` use `raise_order` only as a same-raw-level tie-breaker. `set_frame_visible()` still implemented top-level auto-raise by calling that same function, so showing the map could not move its lower raw level above the chat button.
+- Same-target-strata map descendants reached `MEDIUM` through intermediate `LOW` wrappers and became independent roots. The resulting bucket split the map segment: the root and some descendants appeared before the chat button while later descendants appeared after it.
 
-Fix:
+Final fix:
 
-- Treat `UIParent` and `WorldFrame` as **strata root boundaries**, not normal render roots.
-- Stop the cached-bucket repair path at those boundaries so showing `WorldMapFrame` invalidates/rebuilds the relevant strata ordering instead of splicing under `UIParent`.
-- Use raw `frame_level` first and `raise_order` only as a same-level tie-breaker for intra-strata sort keys and internal `Raise()`/`Lower()` bookkeeping.
+- Keep explicit `Raise()`/`Lower()` constrained to same-level siblings.
+- Track a monotonic internal show order only for active top-level frames in `SimState`; this derived state does not consume storage on every `Frame`.
+- After normal per-strata emission, assign every emitted frame/region ID to its nearest active top-level ancestor across intermediate strata. Regular IDs retain their relative order, while top-level groups are appended contiguously in show order. The owning root anchors its segment and duplicate emitted IDs remain present.
+- `SetToplevel(true)` on an already shown frame initializes the order. Hiding removes the active order; showing again assigns a newer order. Nested top-level ownership uses the nearest active ancestor.
+- A top-level visibility transition invalidates cached buckets for a complete regroup instead of using the same-strata surgical repair path.
 
-Verification after the fix:
+Verification after the final fix:
 
-- [`tests/world_map_voice_button_order.rs`](../../../tests/world_map_voice_button_order.rs) now verifies that `ChatFrameChannelButton` renders before every overlapping `WorldMapFrame` widget in the live-like `1024x768` stack.
-- The existing combined-stack prompt regression still passes: voice prompts remain below `WorldMapFrame.BorderFrame`.
+- [`src/lua_api/state_render_tests.rs`](../../../src/lua_api/state_render_tests.rs) covers the cross-strata segment, explicit lower-level `Raise()` boundary, repeated hide/show ordering, and nearest nested top-level owner; the focused state-render filter passes 8/8.
+- [`tests/world_map_voice_button_order.rs`](../../../tests/world_map_voice_button_order.rs) verifies that `ChatFrameChannelButton` renders before every overlapping `WorldMapFrame` widget in the live-like `1024x768` stack; the exact regression passes 1/1 at commit `dfd997a05`.
 
 Inference:
 
@@ -99,7 +102,7 @@ Current conclusion:
 - The reduced harness issue was real and is now understood.
 - A live/full-stack **voice prompt** render-order bug has **not** been reproduced by this investigation.
 - The live-like `1024x768` overlap was a real render-order bug affecting `ChatFrameChannelButton`, not just a layout quirk.
-- The bug came from treating `UIParent` as a normal same-strata DFS root instead of a top-level root boundary.
+- `UIParent`/`WorldFrame` boundaries remain necessary, but the final regression came from conflating top-level show ordering with explicit same-level `Raise()` semantics and then splitting cross-strata descendants into separate roots.
 - If a user still sees the icon above the map in a real/full simulator run, that needs a separate reproduction against the exact frame/icon involved rather than more reduced-stack reasoning.
 
 ## Practical Fix Direction
@@ -117,8 +120,10 @@ Current conclusion:
 - [SocialToast.xml](../../../Interface/BlizzardUI/Blizzard_SocialToast/SocialToast.xml) — `SocialToastTemplate hidden="true"`
 - [FloatingChatFrameAlertFrame.xml](../../../Interface/BlizzardUI/Blizzard_ChatFrame/Mainline/FloatingChatFrameAlertFrame.xml) — real `ChatAlertFrame`
 - [ChatAlertFrameMixin.lua](../../../Interface/BlizzardUI/Blizzard_ChatFrameBase/Mainline/ChatAlertFrameMixin.lua) — real alert positioning behavior
-- [state_render.rs](../../../src/lua_api/state_render.rs) — strata root discovery, cached bucket repair, and `Raise()` ordering
-- [frame_collect.rs](../../../src/iced_app/frame_collect.rs) — effective raised level for intra-strata keys
+- [state_render.rs](../../../src/lua_api/state_render.rs) — strata root discovery, top-level show ordering, bucket grouping, cached repair, and explicit `Raise()` ordering
+- [state_render_tests.rs](../../../src/lua_api/state_render_tests.rs) — top-level cross-strata grouping and ordering boundaries
+- [world_map_voice_button_order.rs](../../../tests/world_map_voice_button_order.rs) — live-like overlap regression
+- [frame_collect.rs](../../../src/iced_app/frame_collect.rs) — rendered frame collection
 
 ## See Also
 

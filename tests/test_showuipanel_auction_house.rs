@@ -86,6 +86,7 @@ fn auction_house_auctions_tabs_show_seeded_owned_and_bid_groups() {
             end
 
             auctionsFrame:SetTab(1)
+            A_Admin.FireEvent("OWNED_AUCTIONS_UPDATED")
             local ownedProvider = auctionsFrame.SummaryList.ScrollBox:GetDataProvider()
             if ownedProvider:GetSize() ~= 3 then
                 return "owned_provider_size=" .. tostring(ownedProvider:GetSize())
@@ -102,6 +103,7 @@ fn auction_house_auctions_tabs_show_seeded_owned_and_bid_groups() {
             end
 
             auctionsFrame:SetTab(2)
+            A_Admin.FireEvent("BIDS_UPDATED")
             local bidProvider = auctionsFrame.SummaryList.ScrollBox:GetDataProvider()
             if bidProvider:GetSize() ~= 3 then
                 return "bid_provider_size=" .. tostring(bidProvider:GetSize())

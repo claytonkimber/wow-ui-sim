@@ -204,7 +204,7 @@ fn blizzard_group_finder_directory_ships_three_tocs_plus_three_subdirectories() 
 }
 
 #[test]
-fn blizzard_group_finder_tbc_toc_declares_two_deps_and_tbc_game_type() {
+fn blizzard_group_finder_tbc_toc_declares_three_deps_and_tbc_game_type() {
     let toc = TocFile::from_file(&group_finder_tbc_toc()).expect("TBC TOC should parse");
     assert!(
         toc.is_game_type_restricted(),
@@ -229,10 +229,10 @@ fn blizzard_group_finder_tbc_toc_declares_two_deps_and_tbc_game_type() {
         vec![
             "Blizzard_GameTooltip".to_string(),
             "Blizzard_UIPanelTemplates".to_string(),
+            "Blizzard_LFGUtil".to_string(),
         ],
-        "Blizzard_GroupFinder TBC declares exactly two deps — Blizzard_GameTooltip + \
-         Blizzard_UIPanelTemplates. The Mainline-only Blizzard_EditMode dep is dropped \
-         because Classic does not ship the EditMode layout system"
+        "Blizzard_GroupFinder TBC declares GameTooltip, UIPanelTemplates, and LFGUtil; \
+         the Mainline-only Blizzard_EditMode dependency remains absent on TBC"
     );
 }
 
@@ -297,9 +297,8 @@ fn blizzard_group_finder_excluded_from_all_glue_screen_discovery_passes() {
     }
 }
 
-#[test]
-fn blizzard_group_finder_loads_via_full_game_ui_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_group_finder_loads_via_full_game_ui_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let lua_errors: Vec<String> = env.state().borrow().lua_errors.clone();
     let related: Vec<&String> = lua_errors
@@ -322,10 +321,10 @@ fn blizzard_group_finder_loads_via_full_game_ui_without_addon_specific_lua_error
             .join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_group_finder_publishes_group_finder_frame_lifecycle_helpers() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_group_finder_publishes_group_finder_frame_lifecycle_helpers(env: &WowLuaEnv) {
 
     for helper in [
         "GroupFinderFrame_OnLoad",
@@ -351,10 +350,10 @@ fn blizzard_group_finder_publishes_group_finder_frame_lifecycle_helpers() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_group_finder_publishes_pve_frame_helpers() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_group_finder_publishes_pve_frame_helpers(env: &WowLuaEnv) {
 
     for helper in [
         "PVEFrame_ToggleFrame",
@@ -375,10 +374,10 @@ fn blizzard_group_finder_publishes_pve_frame_helpers() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_group_finder_publishes_pve_frame_mixin_with_lifecycle_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_group_finder_publishes_pve_frame_mixin_with_lifecycle_methods(env: &WowLuaEnv) {
 
     let mixin_exists: bool = env
         .eval("return type(_G['PVEFrameMixin']) == 'table'")
@@ -402,10 +401,10 @@ fn blizzard_group_finder_publishes_pve_frame_mixin_with_lifecycle_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_group_finder_publishes_pve_frame_global() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_group_finder_publishes_pve_frame_global(env: &WowLuaEnv) {
 
     let exists: bool = env
         .eval(
@@ -420,10 +419,10 @@ fn blizzard_group_finder_publishes_pve_frame_global() {
          toplevel=\"true\">` so the named non-virtual frame materializes as a runtime frame"
     );
 }
+}
 
-#[test]
-fn blizzard_group_finder_publishes_lfg_list_authenticator_messaging_mixin() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_group_finder_publishes_lfg_list_authenticator_messaging_mixin(env: &WowLuaEnv) {
 
     let mixin_exists: bool = env
         .eval("return type(_G['LFGAuthenticatorMessagingMixin']) == 'table'")
@@ -436,4 +435,5 @@ fn blizzard_group_finder_publishes_lfg_list_authenticator_messaging_mixin() {
          via CreateFromMixins. This is the foundation of the LFG-list authenticator-gated \
          input surfaces"
     );
+}
 }

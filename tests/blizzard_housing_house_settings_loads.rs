@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, find_toc_file, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
-use wow_ui_sim::startup::fire_startup_events_for_screen;
 use wow_ui_sim::toc::TocFile;
 
 fn blizzard_ui_dir() -> PathBuf {
@@ -21,32 +20,9 @@ fn settings_toc() -> PathBuf {
     settings_dir().join("Blizzard_HousingHouseSettings.toc")
 }
 
-fn load_full_game_ui_with_settings_lod() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-
-    wow_ui_sim::xml::register_intrinsic_templates();
-
-    let ui = blizzard_ui_dir();
-    let addons = discover_blizzard_addons_for_screen(&ui, ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    env.apply_post_load_workarounds();
-    fire_startup_events_for_screen(&env, ScreenKind::Game);
-
+fn load_housing_house_settings(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &settings_toc())
         .expect("Blizzard_HousingHouseSettings should load via explicit Rust loader call");
-
-    env
 }
 
 fn assert_mixin_methods(env: &WowLuaEnv, mixin: &str, methods: &[&str], rationale: &str) {
@@ -176,9 +152,9 @@ fn blizzard_housing_house_settings_excluded_from_all_screen_auto_discovery() {
     }
 }
 
-#[test]
-fn blizzard_housing_house_settings_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui_with_settings_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_house_settings_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
+    load_housing_house_settings(env);
 
     let lua_errors: Vec<String> = env.state().borrow().lua_errors.clone();
     let related: Vec<&String> = lua_errors
@@ -199,10 +175,11 @@ fn blizzard_housing_house_settings_loads_without_addon_specific_lua_errors() {
         related
     );
 }
+}
 
-#[test]
-fn blizzard_housing_house_settings_is_addon_loaded_via_explicit_lod_call() {
-    let env = load_full_game_ui_with_settings_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_house_settings_is_addon_loaded_via_explicit_lod_call(env: &WowLuaEnv) {
+    load_housing_house_settings(env);
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_HousingHouseSettings')")
         .expect("IsAddOnLoaded query should succeed");
@@ -212,10 +189,11 @@ fn blizzard_housing_house_settings_is_addon_loaded_via_explicit_lod_call() {
          explicit LoD load — proves the loader registered the addon name"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_house_settings_template_dependency_loads_via_game_screen_pass() {
-    let env = load_full_game_ui_with_settings_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_house_settings_template_dependency_loads_via_game_screen_pass(env: &WowLuaEnv) {
+    load_housing_house_settings(env);
     let templates_loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_HousingTemplates')")
         .expect("HousingTemplates IsAddOnLoaded query should succeed");
@@ -226,10 +204,11 @@ fn blizzard_housing_house_settings_template_dependency_loads_via_game_screen_pas
          LoadOnDemand so the auto-discovery sweep includes it"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_house_settings_publishes_main_frame_global() {
-    let env = load_full_game_ui_with_settings_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_house_settings_publishes_main_frame_global(env: &WowLuaEnv) {
+    load_housing_house_settings(env);
     let frame_type: String = env
         .eval("return type(HousingHouseSettingsFrame)")
         .expect("HousingHouseSettingsFrame type query should succeed");
@@ -244,10 +223,11 @@ fn blizzard_housing_house_settings_publishes_main_frame_global() {
         .expect("HousingHouseSettingsFrame:GetName query should succeed");
     assert_eq!(frame_name, "HousingHouseSettingsFrame");
 }
+}
 
-#[test]
-fn blizzard_housing_house_settings_publishes_abandon_dialog_global() {
-    let env = load_full_game_ui_with_settings_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_house_settings_publishes_abandon_dialog_global(env: &WowLuaEnv) {
+    load_housing_house_settings(env);
     let dialog_type: String = env
         .eval("return type(AbandonHouseConfirmationDialog)")
         .expect("AbandonHouseConfirmationDialog type query should succeed");
@@ -262,10 +242,11 @@ fn blizzard_housing_house_settings_publishes_abandon_dialog_global() {
         .expect("AbandonHouseConfirmationDialog:GetName query should succeed");
     assert_eq!(dialog_name, "AbandonHouseConfirmationDialog");
 }
+}
 
-#[test]
-fn blizzard_housing_house_settings_virtual_templates_stay_nil_in_globals() {
-    let env = load_full_game_ui_with_settings_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_house_settings_virtual_templates_stay_nil_in_globals(env: &WowLuaEnv) {
+    load_housing_house_settings(env);
     for template in [
         "HouseSettingsAccessOptionsTemplate",
         "HouseSettingsAccessButtonTemplate",
@@ -280,10 +261,11 @@ fn blizzard_housing_house_settings_virtual_templates_stay_nil_in_globals() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_house_settings_frame_mixin_publishes_thirteen_methods() {
-    let env = load_full_game_ui_with_settings_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_house_settings_frame_mixin_publishes_thirteen_methods(env: &WowLuaEnv) {
+    load_housing_house_settings(env);
     assert_mixin_methods(
         &env,
         "HousingHouseSettingsFrameMixin",
@@ -310,10 +292,11 @@ fn blizzard_housing_house_settings_frame_mixin_publishes_thirteen_methods() {
          panel, the abandon-house confirmation dialog, and the C_Housing.SaveHouseSettings RPC)",
     );
 }
+}
 
-#[test]
-fn blizzard_housing_house_settings_access_options_mixin_publishes_seven_methods() {
-    let env = load_full_game_ui_with_settings_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_house_settings_access_options_mixin_publishes_seven_methods(env: &WowLuaEnv) {
+    load_housing_house_settings(env);
     assert_mixin_methods(
         &env,
         "HouseSettingsAccessOptionsMixin",
@@ -335,10 +318,11 @@ fn blizzard_housing_house_settings_access_options_mixin_publishes_seven_methods(
          the Save button)",
     );
 }
+}
 
-#[test]
-fn blizzard_housing_house_settings_abandon_dialog_mixin_publishes_three_methods() {
-    let env = load_full_game_ui_with_settings_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_house_settings_abandon_dialog_mixin_publishes_three_methods(env: &WowLuaEnv) {
+    load_housing_house_settings(env);
     assert_mixin_methods(
         &env,
         "AbandonHouseConfirmationDialogMixin",
@@ -349,10 +333,11 @@ fn blizzard_housing_house_settings_abandon_dialog_mixin_publishes_three_methods(
          OnConfirmClicked (call C_Housing.AbandonHouse RPC then HideUIPanel)",
     );
 }
+}
 
-#[test]
-fn blizzard_housing_house_settings_main_frame_publishes_six_top_level_parent_keys() {
-    let env = load_full_game_ui_with_settings_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_house_settings_main_frame_publishes_six_top_level_parent_keys(env: &WowLuaEnv) {
+    load_housing_house_settings(env);
     for key in [
         "CloseButton",
         "PlotAccess",
@@ -371,10 +356,11 @@ fn blizzard_housing_house_settings_main_frame_publishes_six_top_level_parent_key
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_house_settings_access_options_inherit_template_methods() {
-    let env = load_full_game_ui_with_settings_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_house_settings_access_options_inherit_template_methods(env: &WowLuaEnv) {
+    load_housing_house_settings(env);
     for slot in ["PlotAccess", "HouseAccess"] {
         let inherits: bool = env
             .eval(&format!(
@@ -389,10 +375,11 @@ fn blizzard_housing_house_settings_access_options_inherit_template_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_house_settings_abandon_dialog_publishes_refund_money_frame_companion() {
-    let env = load_full_game_ui_with_settings_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_house_settings_abandon_dialog_publishes_refund_money_frame_companion(env: &WowLuaEnv) {
+    load_housing_house_settings(env);
     let global_type: String = env
         .eval("return type(AbandonHouseRefundMoneyFrame)")
         .expect("AbandonHouseRefundMoneyFrame type query should succeed");
@@ -405,10 +392,11 @@ fn blizzard_housing_house_settings_abandon_dialog_publishes_refund_money_frame_c
          can find via `_G`"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_house_settings_registers_ui_panel_with_center_area_and_pushable_zero() {
-    let env = load_full_game_ui_with_settings_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_house_settings_registers_ui_panel_with_center_area_and_pushable_zero(env: &WowLuaEnv) {
+    load_housing_house_settings(env);
     let area: String = env
         .eval("return UIPanelWindows['HousingHouseSettingsFrame'].area")
         .expect("UIPanelWindows area lookup should succeed");
@@ -426,4 +414,5 @@ fn blizzard_housing_house_settings_registers_ui_panel_with_center_area_and_pusha
         "Blizzard_HousingHouseSettingsRegistration.lua must register HousingHouseSettingsFrame \
          with pushable=0 — lowest displacement priority gets pushed by every higher-rank panel"
     );
+}
 }

@@ -262,9 +262,8 @@ fn token_frame_load_ui_global_published_by_uiparent_at_boot() {
     );
 }
 
-#[test]
-fn explicit_load_publishes_eleven_token_ui_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn explicit_load_publishes_eleven_token_ui_mixins(env: &WowLuaEnv) {
 
     for mixin in TOKEN_UI_MIXINS {
         let kind: String = env
@@ -281,10 +280,10 @@ fn explicit_load_publishes_eleven_token_ui_mixins() {
         );
     }
 }
+}
 
-#[test]
-fn explicit_load_publishes_thirteen_currency_transfer_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn explicit_load_publishes_thirteen_currency_transfer_mixins(env: &WowLuaEnv) {
 
     for mixin in CURRENCY_TRANSFER_MIXINS {
         let kind: String = env
@@ -301,10 +300,10 @@ fn explicit_load_publishes_thirteen_currency_transfer_mixins() {
         );
     }
 }
+}
 
-#[test]
-fn explicit_load_creates_five_named_toplevel_frames() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn explicit_load_creates_five_named_toplevel_frames(env: &WowLuaEnv) {
 
     for frame_name in NAMED_TOPLEVEL_FRAMES {
         let exists: bool = env
@@ -324,10 +323,10 @@ fn explicit_load_creates_five_named_toplevel_frames() {
         );
     }
 }
+}
 
-#[test]
-fn explicit_load_emits_no_addon_specific_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn explicit_load_emits_no_addon_specific_errors(env: &WowLuaEnv) {
 
     let errors: Vec<String> = env.state().borrow().lua_errors.clone();
     let addon_specific: Vec<&String> = errors
@@ -348,10 +347,10 @@ fn explicit_load_emits_no_addon_specific_errors() {
         addon_specific
     );
 }
+}
 
-#[test]
-fn token_ui_is_addon_loaded_after_game_sweep() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn token_ui_is_addon_loaded_after_game_sweep(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_TokenUI')")
@@ -363,4 +362,5 @@ fn token_ui_is_addon_loaded_after_game_sweep() {
          AllowLoad-absent defaults to Game-only, so the eager \
          discovery loop loads it directly"
     );
+}
 }

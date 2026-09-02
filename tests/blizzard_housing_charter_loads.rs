@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, find_toc_file, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
-use wow_ui_sim::startup::fire_startup_events_for_screen;
 use wow_ui_sim::toc::TocFile;
 
 fn blizzard_ui_dir() -> PathBuf {
@@ -21,32 +20,9 @@ fn housing_charter_toc() -> PathBuf {
     housing_charter_dir().join("Blizzard_HousingCharter.toc")
 }
 
-fn load_full_game_ui_with_housing_charter_lod() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-
-    wow_ui_sim::xml::register_intrinsic_templates();
-
-    let ui = blizzard_ui_dir();
-    let addons = discover_blizzard_addons_for_screen(&ui, ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    env.apply_post_load_workarounds();
-    fire_startup_events_for_screen(&env, ScreenKind::Game);
-
+fn load_housing_charter(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &housing_charter_toc())
         .expect("Blizzard_HousingCharter should load via explicit Rust loader call");
-
-    env
 }
 
 #[test]
@@ -218,9 +194,9 @@ fn blizzard_housing_charter_excluded_from_all_screen_auto_discovery_passes() {
     }
 }
 
-#[test]
-fn blizzard_housing_charter_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui_with_housing_charter_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_charter_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
+    load_housing_charter(env);
 
     let lua_errors: Vec<String> = env.state().borrow().lua_errors.clone();
     let related: Vec<&String> = lua_errors
@@ -242,10 +218,11 @@ fn blizzard_housing_charter_loads_without_addon_specific_lua_errors() {
             .join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_housing_charter_is_addon_loaded_returns_true_after_explicit_lod_load() {
-    let env = load_full_game_ui_with_housing_charter_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_charter_is_addon_loaded_returns_true_after_explicit_lod_load(env: &WowLuaEnv) {
+    load_housing_charter(env);
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_HousingCharter')")
@@ -258,10 +235,11 @@ fn blizzard_housing_charter_is_addon_loaded_returns_true_after_explicit_lod_load
          `C_AddOns.IsAddOnLoaded('Blizzard_HousingCharter')` should return true"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_charter_publishes_housing_charter_frame_global() {
-    let env = load_full_game_ui_with_housing_charter_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_charter_publishes_housing_charter_frame_global(env: &WowLuaEnv) {
+    load_housing_charter(env);
 
     let exists: bool = env
         .eval(
@@ -278,10 +256,11 @@ fn blizzard_housing_charter_publishes_housing_charter_frame_global() {
          frame as a left-area pushable UI panel with pushable rank 2 (vs HouseList's rank 1)"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_charter_publishes_request_signature_dialog_global() {
-    let env = load_full_game_ui_with_housing_charter_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_charter_publishes_request_signature_dialog_global(env: &WowLuaEnv) {
+    load_housing_charter(env);
 
     let exists: bool = env
         .eval(
@@ -301,10 +280,11 @@ fn blizzard_housing_charter_publishes_request_signature_dialog_global() {
          event handler addon)"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_charter_mixin_publishes_eleven_methods() {
-    let env = load_full_game_ui_with_housing_charter_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_charter_mixin_publishes_eleven_methods(env: &WowLuaEnv) {
+    load_housing_charter(env);
 
     for method in [
         "OnLoad",
@@ -347,10 +327,11 @@ fn blizzard_housing_charter_mixin_publishes_eleven_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_charter_mixin_does_not_publish_set_charter_info_method_alias() {
-    let env = load_full_game_ui_with_housing_charter_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_charter_mixin_does_not_publish_set_charter_info_method_alias(env: &WowLuaEnv) {
+    load_housing_charter(env);
 
     let exists: bool = env
         .eval("return type(HousingCharterMixin['SetCharterInfo']) == 'function'")
@@ -367,10 +348,11 @@ fn blizzard_housing_charter_mixin_does_not_publish_set_charter_info_method_alias
          HousingEventHandlerMixin:OpenCharter (line 332)"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_charter_request_signature_frame_mixin_publishes_four_methods() {
-    let env = load_full_game_ui_with_housing_charter_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_charter_request_signature_frame_mixin_publishes_four_methods(env: &WowLuaEnv) {
+    load_housing_charter(env);
 
     for method in ["OnLoad", "OnShow", "OnHide", "SetNeighborhoodInfo"] {
         let exists: bool = env
@@ -397,10 +379,11 @@ fn blizzard_housing_charter_request_signature_frame_mixin_publishes_four_methods
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_charter_does_not_publish_signature_template_global() {
-    let env = load_full_game_ui_with_housing_charter_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_charter_does_not_publish_signature_template_global(env: &WowLuaEnv) {
+    load_housing_charter(env);
 
     let template_published: bool = env
         .eval("return _G['HousingCharterSignatureTemplate'] ~= nil")
@@ -415,10 +398,11 @@ fn blizzard_housing_charter_does_not_publish_signature_template_global() {
          call in HousingCharterMixin:OnLoad, but the template name itself stays out of `_G`"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_charter_frame_publishes_all_named_children() {
-    let env = load_full_game_ui_with_housing_charter_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_charter_frame_publishes_all_named_children(env: &WowLuaEnv) {
+    load_housing_charter(env);
 
     for parent_key in [
         "Border",
@@ -456,10 +440,11 @@ fn blizzard_housing_charter_frame_publishes_all_named_children() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_charter_request_signature_dialog_publishes_named_children() {
-    let env = load_full_game_ui_with_housing_charter_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_charter_request_signature_dialog_publishes_named_children(env: &WowLuaEnv) {
+    load_housing_charter(env);
 
     for parent_key in [
         "TitleText",
@@ -488,10 +473,11 @@ fn blizzard_housing_charter_request_signature_dialog_publishes_named_children() 
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_charter_registers_charter_events_on_show() {
-    let env = load_full_game_ui_with_housing_charter_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_charter_registers_charter_events_on_show(env: &WowLuaEnv) {
+    load_housing_charter(env);
 
     env.eval::<()>("HousingCharterFrame:Show()")
         .expect("HousingCharterFrame:Show should succeed");
@@ -541,10 +527,11 @@ fn blizzard_housing_charter_registers_charter_events_on_show() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_charter_publishes_no_event_listeners_before_show() {
-    let env = load_full_game_ui_with_housing_charter_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_charter_publishes_no_event_listeners_before_show(env: &WowLuaEnv) {
+    load_housing_charter(env);
 
     let registered_before_show: bool = env
         .eval("return HousingCharterFrame:IsEventRegistered('OPEN_NEIGHBORHOOD_CHARTER')")
@@ -559,10 +546,11 @@ fn blizzard_housing_charter_publishes_no_event_listeners_before_show() {
          in the `area=\"left\"` slot pushes HousingCharterFrame off the visible stack)"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_charter_dependency_loads_via_game_screen_pass() {
-    let env = load_full_game_ui_with_housing_charter_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_charter_dependency_loads_via_game_screen_pass(env: &WowLuaEnv) {
+    load_housing_charter(env);
 
     let templates_loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_HousingTemplates')")
@@ -575,4 +563,5 @@ fn blizzard_housing_charter_dependency_loads_via_game_screen_pass() {
          Game-screen pass hits it via the normal discovery flow because HousingTemplates is \
          itself non-LoD with `## AllowLoad: Both` semantics"
     );
+}
 }

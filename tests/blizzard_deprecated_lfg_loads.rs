@@ -100,9 +100,8 @@ fn blizzard_deprecated_lfg_appears_in_game_discovery_only() {
     );
 }
 
-#[test]
-fn blizzard_deprecated_lfg_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_lfg_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -118,10 +117,10 @@ fn blizzard_deprecated_lfg_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_lfg_installs_is_premade_group_enabled_on_c_lfg_info() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_lfg_installs_is_premade_group_enabled_on_c_lfg_info(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(C_LFGInfo.IsPremadeGroupEnabled)")
@@ -156,10 +155,10 @@ fn blizzard_deprecated_lfg_installs_is_premade_group_enabled_on_c_lfg_info() {
          literally `function() return false end`)"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_lfg_installs_get_search_result_member_info_wrapper_on_c_lfg_list() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_lfg_installs_get_search_result_member_info_wrapper_on_c_lfg_list(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(C_LFGList.GetSearchResultMemberInfo)")
@@ -191,10 +190,10 @@ fn blizzard_deprecated_lfg_installs_get_search_result_member_info_wrapper_on_c_l
          nothing (all destructured locals are nil)"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_lfg_does_not_install_legacy_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_lfg_does_not_install_legacy_globals(env: &WowLuaEnv) {
 
     let no_legacy_globals: bool = env
         .eval(
@@ -210,10 +209,10 @@ fn blizzard_deprecated_lfg_does_not_install_legacy_globals() {
          `_G.IsPremadeGroupEnabled` and `_G.GetSearchResultMemberInfo` should remain nil"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_lfg_load_deprecation_fallbacks_cvar_is_default_on() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_lfg_load_deprecation_fallbacks_cvar_is_default_on(env: &WowLuaEnv) {
 
     let cvar_on: bool = env
         .eval("return GetCVarBool('loadDeprecationFallbacks')")
@@ -229,6 +228,7 @@ fn blizzard_deprecated_lfg_load_deprecation_fallbacks_cvar_is_default_on() {
          (because the namespace __index materializes one), but its multireturn shape would \
          silently differ from the legacy 5-tuple"
     );
+}
 }
 
 #[test]

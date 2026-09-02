@@ -94,9 +94,8 @@ fn blizzard_content_tracking_appears_in_game_discovery_only() {
     );
 }
 
-#[test]
-fn blizzard_content_tracking_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_content_tracking_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -117,10 +116,10 @@ fn blizzard_content_tracking_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_content_tracking_util_exposes_full_function_surface() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_content_tracking_util_exposes_full_function_surface(env: &WowLuaEnv) {
 
     let util_present: bool = env
         .eval(
@@ -147,10 +146,10 @@ fn blizzard_content_tracking_util_exposes_full_function_surface() {
          ContentTrackingManager.lua loads"
     );
 }
+}
 
-#[test]
-fn blizzard_content_tracking_combined_id_pack_and_split_round_trip() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_content_tracking_combined_id_pack_and_split_round_trip(env: &WowLuaEnv) {
 
     let round_trip_ok: bool = env
         .eval(
@@ -170,10 +169,10 @@ fn blizzard_content_tracking_combined_id_pack_and_split_round_trip() {
          must be lossless"
     );
 }
+}
 
-#[test]
-fn blizzard_content_tracking_element_mixin_methods_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_content_tracking_element_mixin_methods_are_defined(env: &WowLuaEnv) {
 
     let mixin_present: bool = env
         .eval(
@@ -195,10 +194,10 @@ fn blizzard_content_tracking_element_mixin_methods_are_defined() {
          HasTrackableSource, SetTrackingCheckmarkShown) after ContentTrackingElement.lua loads"
     );
 }
+}
 
-#[test]
-fn blizzard_content_tracking_checkmark_mixin_methods_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_content_tracking_checkmark_mixin_methods_are_defined(env: &WowLuaEnv) {
 
     let mixin_present: bool = env
         .eval(
@@ -213,10 +212,11 @@ fn blizzard_content_tracking_checkmark_mixin_methods_are_defined() {
          GameTooltip via the `checkmark-minimal` atlas template"
     );
 }
+}
 
-#[test]
-fn blizzard_content_tracking_xml_templates_are_registered() {
-    load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_content_tracking_xml_templates_are_registered(env: &WowLuaEnv) {
+    let _env = env;
 
     assert!(
         wow_ui_sim::xml::get_template("ContentTrackingElementTemplate").is_some(),
@@ -230,4 +230,5 @@ fn blizzard_content_tracking_xml_templates_are_registered() {
          mixin=\"ContentTrackingCheckmarkMixin\">` 20x19) should be registered in the texture \
          template registry"
     );
+}
 }

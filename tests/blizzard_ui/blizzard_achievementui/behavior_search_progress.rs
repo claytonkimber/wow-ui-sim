@@ -27,8 +27,8 @@
 //!
 //! ```lua
 //! -- lua:3295-3296 (the install site, inside _SearchBox_OnUpdate)
-//! if ( AchievementFrame.searchProgressBar:GetScript("OnUpdate") == nil ) then
-//!     AchievementFrame.searchProgressBar:SetScript("OnUpdate",
+//! if ( AchievementFrame.HeaderDetails.Filters.SearchBox.SearchProgressBar:GetScript("OnUpdate") == nil ) then
+//!     AchievementFrame.HeaderDetails.Filters.SearchBox.SearchProgressBar:SetScript("OnUpdate",
 //!         AchievementFrameSearchProgressBar_OnUpdate);
 //!     ...
 //! ```
@@ -76,7 +76,7 @@
 //! - **Presence half** (5): `_G.AchievementFrameSearchProgressBar_OnUpdate`,
 //!   `_G.GetAchievementSearchProgress`, `_G.GetAchievementSearchSize`,
 //!   and `_G.AchievementFrame_ShowSearchPreviewResults` are all
-//!   functions; `AchievementFrame.searchProgressBar:GetObjectType() ==
+//!   functions; `AchievementFrame.HeaderDetails.Filters.SearchBox.SearchProgressBar:GetObjectType() ==
 //!   "StatusBar"` (the XML widget at xml:2501 resolved into a real
 //!   StatusBar with `:GetMinMaxValues`/`:SetValue`/`:SetScript`).
 //! - **Behavior partial** (1): driving `_OnUpdate(bar, 0)` with
@@ -127,10 +127,10 @@ fn search_progress_bar_on_update_writes_ratio_times_max_then_self_clears_on_comp
             .eval(
                 r#"
                 assert(AchievementFrame, "AchievementFrame must exist after addon load")
-                assert(AchievementFrame.searchProgressBar,
-                    "AchievementFrame.searchProgressBar must exist (xml:2501)")
+                assert(AchievementFrame.HeaderDetails.Filters.SearchBox.SearchProgressBar,
+                    "AchievementFrame.HeaderDetails.Filters.SearchBox.SearchProgressBar must exist (xml:2501)")
 
-                local bar = AchievementFrame.searchProgressBar
+                local bar = AchievementFrame.HeaderDetails.Filters.SearchBox.SearchProgressBar
                 bar:SetMinMaxValues(0, 100)
                 bar:SetValue(0)
                 bar:SetScript("OnUpdate", AchievementFrameSearchProgressBar_OnUpdate)
@@ -233,7 +233,7 @@ fn search_progress_bar_on_update_writes_ratio_times_max_then_self_clears_on_comp
 
         assert_eq!(
             bar_object_type, "StatusBar",
-            "Expected `AchievementFrame.searchProgressBar:GetObjectType()` to be `\"StatusBar\"` \
+            "Expected `AchievementFrame.HeaderDetails.Filters.SearchBox.SearchProgressBar:GetObjectType()` to be `\"StatusBar\"` \
              — declared at xml:2501 as `<StatusBar parentKey=\"searchProgressBar\" \
              hidden=\"false\">`. Got `{bar_object_type:?}`. A `\"Frame\"` reading would mean the \
              XML parser fell back to a generic Frame (StatusBar-specific methods like \

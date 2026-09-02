@@ -1,4 +1,9 @@
-use super::{assert_ptr_source_omits_tokens, load_full_game_ui_with_all_lod};
+use super::{
+    assert_ptr_source_omits_qualified_methods, assert_ptr_source_omits_qualified_symbols,
+    assert_ptr_source_omits_tokens, load_full_game_ui_with_all_lod, ptr_source_files,
+};
+
+include!("strict_removals.rs");
 
 const SNAPSHOT_ONLY_SYMBOLS: &[&str] = &[
     "AddBehavioralMessagingTrayToStatusFrames",
@@ -178,15 +183,7 @@ const SNAPSHOT_ONLY_SYMBOLS: &[&str] = &[
     "WowSurveyStatusFrame_OnSurveyDelivered",
 ];
 
-/// Proves conservative source-absent additions remain absent after PTR startup.
-#[test]
-fn source_absent_additions_remain_absent() {
-    assert_ptr_source_omits_tokens(SNAPSHOT_ONLY_SYMBOLS);
-
-    let env = load_full_game_ui_with_all_lod();
-    let published_symbols: String = env
-        .eval(
-            r#"
+const SNAPSHOT_ONLY_RUNTIME_PROBE: &str = r#"
             local names = {
                 "AddBehavioralMessagingTrayToStatusFrames",
                 "AddFriendFrame_Show",
@@ -379,8 +376,15 @@ fn source_absent_additions_remain_absent() {
                 end
             end
             return table.concat(published, ",")
-            "#,
-        )
+            "#;
+
+#[test]
+fn source_absent_additions_remain_absent() {
+    assert_ptr_source_omits_tokens(SNAPSHOT_ONLY_SYMBOLS);
+
+    let env = load_full_game_ui_with_all_lod();
+    let published_symbols: String = env
+        .eval(SNAPSHOT_ONLY_RUNTIME_PROBE)
         .expect("source-absent runtime probe succeeds");
 
     assert_eq!(published_symbols, "", "unexpected PTR publications");

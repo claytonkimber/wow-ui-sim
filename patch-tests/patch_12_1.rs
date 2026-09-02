@@ -11,6 +11,10 @@ use wow_ui_sim::loader::{
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
 
+#[path = "patch_12_1/aura_container.rs"]
+mod aura_container;
+#[path = "patch_12_1/aura_tooltip.rs"]
+mod aura_tooltip;
 #[path = "patch_12_1/combat_audio.rs"]
 mod combat_audio;
 #[path = "patch_12_1/friends_list.rs"]

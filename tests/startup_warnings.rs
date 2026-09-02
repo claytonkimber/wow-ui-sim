@@ -9,6 +9,13 @@ use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
 use wow_ui_sim::toc::TocFile;
 
+#[path = "startup_warnings/diagnostics.rs"]
+mod diagnostics;
+
+use diagnostics::{
+    StartupDiagnostics, collect_addon_load_diagnostics, collect_handler_and_runtime_diagnostics,
+};
+
 const STARTUP_WARNING_GAME_FOUNDATIONS: &[&str] = &[
     "Blizzard_SharedXMLBase",
     "Blizzard_Menu",
@@ -45,94 +52,53 @@ fn drain_test_errors(env: &WowLuaEnv) -> Vec<String> {
     common::drain_string_table(env, "__test_errors")
 }
 
-/// Fire a single event, collecting handler errors via the Lua error handler.
 fn fire(env: &WowLuaEnv, event: &str, args: &[rilua::Val]) -> Vec<String> {
     env.fire_event_with_args(event, args).ok();
     drain_test_errors(env)
 }
 
-fn collect_addon_load_warnings(env: &WowLuaEnv, name: &str, toc_path: &Path) -> Vec<String> {
-    match load_addon(&env.loader_env(), toc_path) {
-        Ok(result) => result
-            .warnings
-            .into_iter()
-            .map(|warning| format!("[load {name}] {warning}"))
-            .collect(),
-        Err(error) => vec![format!("[load {name}] FAILED: {error}")],
-    }
-}
-
-/// Load all Blizzard addons and fire startup events, collecting all warnings.
-fn load_and_startup() -> Vec<String> {
+/// Load all Blizzard addons and fire startup events, collecting failures and diagnostics.
+fn load_and_startup() -> StartupDiagnostics {
     let env = WowLuaEnv::new().expect("Failed to create Lua environment");
     env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Login);
+    env.set_screen_mode(ScreenKind::Game);
+
+    install_test_error_handler(&env);
 
     let ui = blizzard_ui_dir();
     let addons = discover_blizzard_addons(&ui);
-    let mut warnings = Vec::new();
-
-    // Load addons
+    let mut diagnostics = StartupDiagnostics::default();
     for (name, toc_path) in &addons {
-        warnings.extend(collect_addon_load_warnings(&env, name, toc_path));
+        diagnostics.extend(collect_addon_load_diagnostics(&env, name, toc_path));
     }
 
-    // Apply workarounds (same as main.rs run_post_load_scripts)
     env.apply_post_load_workarounds();
-
-    // Install error handler before firing events
-    install_test_error_handler(&env);
-
-    // Fire startup events (same sequence as main.rs)
-    fire_startup_events(&env, &mut warnings);
-
-    // Keep only the most recent 500 warnings
-    if warnings.len() > 500 {
-        warnings.drain(..warnings.len() - 500);
-    }
-
-    warnings
-}
-
-fn fire_startup_events(env: &WowLuaEnv, warnings: &mut Vec<String>) {
-    warnings.extend(fire(env, "ADDON_LOADED", &[env.lua_string("WoWUISim")]));
-    for event in ["VARIABLES_LOADED", "PLAYER_LOGIN"] {
-        warnings.extend(fire(env, event, &[]));
-    }
-
-    env.fire_edit_mode_layouts_updated().ok();
-    warnings.extend(drain_test_errors(env));
-
-    common::call_global_if_present(env, "RequestTimePlayed");
-    warnings.extend(fire(
-        env,
-        "PLAYER_ENTERING_WORLD",
-        &[rilua::Val::Bool(true), rilua::Val::Bool(false)],
+    diagnostics.extend(collect_handler_and_runtime_diagnostics(
+        &env,
+        "post-load workarounds",
     ));
-    for event in [
-        "UPDATE_BINDINGS",
-        "DISPLAY_SIZE_CHANGED",
-        "UI_SCALE_CHANGED",
-        "PLAYER_LEAVING_WORLD",
-    ] {
-        warnings.extend(fire(env, event, &[]));
+
+    wow_ui_sim::startup::fire_startup_events_headless(&env);
+    diagnostics.extend(collect_handler_and_runtime_diagnostics(
+        &env,
+        "startup events",
+    ));
+
+    if let Err(error) = env.fire_on_update(0.016) {
+        diagnostics
+            .warnings
+            .push(format!("[OnUpdate] FAILED: {error}"));
     }
-
-    // Fire one OnUpdate tick to catch handler errors
-    env.fire_on_update(0.016).ok();
-    warnings.extend(drain_test_errors(env));
+    diagnostics.extend(collect_handler_and_runtime_diagnostics(&env, "OnUpdate"));
+    diagnostics
 }
-
-/// Known warning count from unimplemented APIs. Update this when adding stubs.
-/// Goal: drive this to zero over time by implementing missing APIs.
-const KNOWN_WARNING_COUNT: usize = 0;
 
 #[test]
 fn test_no_warnings_on_startup() {
     test_timeout! {
-        let warnings = load_and_startup();
-        let count = warnings.len();
-        let account_store_regressions: Vec<String> = warnings
+        let diagnostics = load_and_startup();
+        let account_store_regressions: Vec<String> = diagnostics
+            .warnings
             .iter()
             .filter(|warning| {
                 (warning.contains("attempt to index global 'AccountStoreFrame'")
@@ -148,17 +114,31 @@ fn test_no_warnings_on_startup() {
              Matching warnings:\n  {}",
             account_store_regressions.join("\n  ")
         );
-
-        if count > KNOWN_WARNING_COUNT {
-            let mut msg = format!(
-                "New warnings introduced! Expected at most {KNOWN_WARNING_COUNT}, got {count}.\n\
-                 All warnings:\n"
-            );
-            for w in &warnings {
-                msg.push_str(&format!("  {w}\n"));
-            }
-            panic!("{msg}");
-        }
+        assert!(
+            diagnostics
+                .nil_symbol_observations
+                .iter()
+                .all(|observation| !observation.attribution.addon_name.is_empty()),
+            "nil observations must retain addon attribution: {:?}",
+            diagnostics.nil_symbol_observations
+        );
+        assert!(
+            diagnostics
+                .missing_requirements
+                .iter()
+                .all(|requirement| !requirement.attribution.addon_name.is_empty()),
+            "missing requirements must retain addon attribution: {:?}",
+            diagnostics.missing_requirements
+        );
+        assert!(
+            diagnostics.warnings.is_empty(),
+            "Startup produced loader/runtime failures:\n  {}\n\
+             Nil observations retained: {}\n\
+             Missing requirements retained: {}",
+            diagnostics.warnings.join("\n  "),
+            diagnostics.nil_symbol_observations.len(),
+            diagnostics.missing_requirements.len()
+        );
     }
 }
 
@@ -192,7 +172,7 @@ fn test_edit_mode_layout_update_ignores_preset_layouts_during_startup() {
 fn load_all_addons() -> WowLuaEnv {
     let env = WowLuaEnv::new().expect("Failed to create Lua environment");
     env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Login);
+    env.set_screen_mode(ScreenKind::Game);
 
     let ui = blizzard_ui_dir();
     let addons = discover_blizzard_addons(&ui);
@@ -476,6 +456,27 @@ fn test_secure_env_annotated_files_load_cleanly() {
             noisy_secure.is_empty(),
             "secure-annotated files should load cleanly, got:\n{}",
             noisy_secure.join("\n")
+        );
+
+        let resolved_secure_publications = warnings
+            .iter()
+            .filter(|warning| {
+                [
+                    "StoreButton_OnShow",
+                    "StoreGoldButton_OnShow",
+                    "StoreEditBoxWithAutoCompleteTemplate_OnTextChanged",
+                    "VASCharacterSelection_ClearStoreTooltip",
+                    "WoWTokenButton_OnShow",
+                ]
+                .iter()
+                .any(|name| warning.contains(name))
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        assert!(
+            resolved_secure_publications.is_empty(),
+            "secure same-addon functions published by addon completion must not remain missing:\n{}",
+            resolved_secure_publications.join("\n")
         );
 
         // Downstream surfaces exposed by secure files.

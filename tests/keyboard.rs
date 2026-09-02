@@ -2,21 +2,14 @@
 //!
 //! Tests for key press simulation via `WowLuaEnv::send_key_press`.
 
+use crate::common::game_menu_fixture::setup_game_menu_env;
 use wow_ui_sim::lua_api::WowLuaEnv;
 
 // --- Existing GameMenuFrame toggle tests ---
 
 #[test]
 fn test_escape_shows_game_menu() {
-    let env = WowLuaEnv::new().unwrap();
-
-    env.exec(
-        r#"
-        GameMenuFrame = CreateFrame("Frame", "GameMenuFrame", UIParent)
-        GameMenuFrame:Hide()
-    "#,
-    )
-    .unwrap();
+    let env = setup_game_menu_env();
 
     let shown: bool = env.eval("return GameMenuFrame:IsShown()").unwrap();
     assert!(!shown, "GameMenuFrame should start hidden");
@@ -29,15 +22,9 @@ fn test_escape_shows_game_menu() {
 
 #[test]
 fn test_escape_hides_game_menu_when_shown() {
-    let env = WowLuaEnv::new().unwrap();
+    let env = setup_game_menu_env();
 
-    env.exec(
-        r#"
-        GameMenuFrame = CreateFrame("Frame", "GameMenuFrame", UIParent)
-        GameMenuFrame:Show()
-    "#,
-    )
-    .unwrap();
+    env.exec("GameMenuFrame:Show()").unwrap();
 
     let shown: bool = env.eval("return GameMenuFrame:IsShown()").unwrap();
     assert!(shown, "GameMenuFrame should start shown");
@@ -50,15 +37,7 @@ fn test_escape_hides_game_menu_when_shown() {
 
 #[test]
 fn test_escape_toggles_game_menu_twice() {
-    let env = WowLuaEnv::new().unwrap();
-
-    env.exec(
-        r#"
-        GameMenuFrame = CreateFrame("Frame", "GameMenuFrame", UIParent)
-        GameMenuFrame:Hide()
-    "#,
-    )
-    .unwrap();
+    let env = setup_game_menu_env();
 
     env.send_key_press("ESCAPE", None).unwrap();
     let shown: bool = env.eval("return GameMenuFrame:IsShown()").unwrap();
@@ -246,13 +225,11 @@ fn test_editbox_on_escape_pressed() {
 
 #[test]
 fn test_editbox_escape_not_consumed_falls_through() {
-    let env = WowLuaEnv::new().unwrap();
+    let env = setup_game_menu_env();
 
     env.exec(
         r#"
         _G.escape_fired = false
-        GameMenuFrame = CreateFrame("Frame", "GameMenuFrame", UIParent)
-        GameMenuFrame:Hide()
 
         local eb = CreateFrame("EditBox", "FallEditBox", UIParent)
         eb:SetFocus()
@@ -302,13 +279,10 @@ fn test_key_press_enter() {
 
 #[test]
 fn test_close_special_windows() {
-    let env = WowLuaEnv::new().unwrap();
+    let env = setup_game_menu_env();
 
     env.exec(
         r#"
-        GameMenuFrame = CreateFrame("Frame", "GameMenuFrame", UIParent)
-        GameMenuFrame:Hide()
-
         -- Create a special frame and register it
         local sf = CreateFrame("Frame", "SpecialTestFrame", UIParent)
         sf:Show()
@@ -337,14 +311,12 @@ fn test_close_special_windows() {
 
 #[test]
 fn test_escape_priority_chain() {
-    let env = WowLuaEnv::new().unwrap();
+    let env = setup_game_menu_env();
 
     // Set up all three layers: EditBox, special frame, GameMenuFrame
     env.exec(
         r#"
         _G.escape_order = {}
-        GameMenuFrame = CreateFrame("Frame", "GameMenuFrame", UIParent)
-        GameMenuFrame:Hide()
 
         local sf = CreateFrame("Frame", "PrioritySpecialFrame", UIParent)
         sf:Show()
@@ -569,15 +541,7 @@ fn test_tab_targets_enemy() {
 
 #[test]
 fn test_escape_clears_target() {
-    let env = WowLuaEnv::new().unwrap();
-
-    env.exec(
-        r#"
-        GameMenuFrame = CreateFrame("Frame", "GameMenuFrame", UIParent)
-        GameMenuFrame:Hide()
-    "#,
-    )
-    .unwrap();
+    let env = setup_game_menu_env();
 
     // Set a target first
     env.send_key_press("F1", None).unwrap();
@@ -599,15 +563,7 @@ fn test_escape_clears_target() {
 
 #[test]
 fn test_escape_no_target_opens_game_menu() {
-    let env = WowLuaEnv::new().unwrap();
-
-    env.exec(
-        r#"
-        GameMenuFrame = CreateFrame("Frame", "GameMenuFrame", UIParent)
-        GameMenuFrame:Hide()
-    "#,
-    )
-    .unwrap();
+    let env = setup_game_menu_env();
 
     // No target set, escape should toggle game menu
     env.send_key_press("ESCAPE", None).unwrap();
@@ -618,7 +574,7 @@ fn test_escape_no_target_opens_game_menu() {
 
 #[test]
 fn test_target_fires_player_target_changed() {
-    let env = WowLuaEnv::new().unwrap();
+    let env = setup_game_menu_env();
 
     env.exec(
         r#"

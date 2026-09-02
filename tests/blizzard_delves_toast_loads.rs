@@ -105,9 +105,8 @@ fn blizzard_delves_toast_is_absent_from_login_discovery() {
     );
 }
 
-#[test]
-fn blizzard_delves_toast_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_delves_toast_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -123,10 +122,10 @@ fn blizzard_delves_toast_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_delves_toast_frame_is_created_hidden_with_close_button() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_delves_toast_frame_is_created_hidden_with_close_button(env: &WowLuaEnv) {
 
     let frame_present: bool = env
         .eval(
@@ -145,10 +144,10 @@ fn blizzard_delves_toast_frame_is_created_hidden_with_close_button() {
          FontString (FriendsFont_Large, justified LEFT/MIDDLE)"
     );
 }
+}
 
-#[test]
-fn blizzard_delves_toast_mixin_is_published_with_lifecycle_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_delves_toast_mixin_is_published_with_lifecycle_methods(env: &WowLuaEnv) {
 
     let mixin_present: bool = env
         .eval(
@@ -174,10 +173,11 @@ fn blizzard_delves_toast_mixin_is_published_with_lifecycle_methods() {
          plays UI_BNET_TOAST + fires AlertFrame_ShowNewAlert)"
     );
 }
+}
 
-#[test]
-fn blizzard_delves_toast_xml_animation_templates_are_registered() {
-    load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_delves_toast_xml_animation_templates_are_registered(env: &WowLuaEnv) {
+    let _env = env;
 
     let anim_in = wow_ui_sim::xml::get_anim_group_template("DelvesToastAnimInTemplate");
     let anim_out = wow_ui_sim::xml::get_anim_group_template("DelvesToastAnimOutTemplate");
@@ -195,6 +195,7 @@ fn blizzard_delves_toast_xml_animation_templates_are_registered() {
          start delay; OnFinished method='OnFinished'; parentKey=waitAndAnimOut) should be \
          registered with the XML template registry"
     );
+}
 }
 
 #[test]

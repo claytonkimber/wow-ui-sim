@@ -101,9 +101,8 @@ fn blizzard_deprecated_chat_info_appears_in_game_discovery_only() {
     );
 }
 
-#[test]
-fn blizzard_deprecated_chat_info_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_chat_info_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -123,10 +122,10 @@ fn blizzard_deprecated_chat_info_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_chat_info_installs_chat_info_function_shims() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_chat_info_installs_chat_info_function_shims(env: &WowLuaEnv) {
 
     let installed: bool = env
         .eval(
@@ -144,10 +143,10 @@ fn blizzard_deprecated_chat_info_installs_chat_info_function_shims() {
          C_ChatInfo.CancelEmote and returns false; CancelEmote() → C_ChatInfo.CancelEmote"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_chat_info_installs_chat_constants() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_chat_info_installs_chat_constants(env: &WowLuaEnv) {
 
     let installed: bool = env
         .eval(
@@ -178,10 +177,10 @@ fn blizzard_deprecated_chat_info_installs_chat_constants() {
          NUM_CHAT_WINDOWS), and Constants.PartyCountdownConstants (MAX_COUNTDOWN_SECONDS)"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_chat_info_installs_chat_frame_util_aliases() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_chat_info_installs_chat_frame_util_aliases(env: &WowLuaEnv) {
 
     let installed: bool = env
         .eval(
@@ -216,10 +215,10 @@ fn blizzard_deprecated_chat_info_installs_chat_frame_util_aliases() {
          must each equal the matching ChatFrameUtil.* function reference"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_chat_info_installs_chat_frame_mixin_aliases() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_chat_info_installs_chat_frame_mixin_aliases(env: &WowLuaEnv) {
 
     let installed: bool = env
         .eval(
@@ -246,10 +245,10 @@ fn blizzard_deprecated_chat_info_installs_chat_frame_mixin_aliases() {
          free functions on a frame, where the modern code calls them as `chatFrame:Method()`)"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_chat_info_installs_chat_edit_box_mixin_aliases() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_chat_info_installs_chat_edit_box_mixin_aliases(env: &WowLuaEnv) {
 
     let installed: bool = env
         .eval(
@@ -277,10 +276,10 @@ fn blizzard_deprecated_chat_info_installs_chat_edit_box_mixin_aliases() {
          prefix"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_chat_info_load_deprecation_fallbacks_cvar_is_default_on() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_chat_info_load_deprecation_fallbacks_cvar_is_default_on(env: &WowLuaEnv) {
 
     let cvar_on: bool = env
         .eval("return GetCVarBool('loadDeprecationFallbacks')")
@@ -292,6 +291,7 @@ fn blizzard_deprecated_chat_info_load_deprecation_fallbacks_cvar_is_default_on()
          Deprecated_ChatFrame.lua:4 don't bail before any shim is defined. If this CVar \
          flips to false, ALL ~100 deprecated chat globals are skipped"
     );
+}
 }
 
 #[test]

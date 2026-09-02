@@ -154,6 +154,67 @@ fn test_patch_12_1_frame_texture_statusbar_method_surface() {
 
 #[cfg(feature = "retail-12-1-0")]
 #[test]
+fn test_patch_12_1_texture_radial_progress_surface_and_state() {
+    let env = WowLuaEnv::new().unwrap();
+    let result: String = env
+        .eval(
+            r#"
+            local texture = CreateFrame("Frame"):CreateTexture(nil, "ARTWORK")
+            if texture:GetObjectType() ~= "Texture" then return "receiver" end
+
+            local methods = {
+                "ClearRadialProgressBar",
+                "SetRadialProgressBarPercent",
+                "GetRadialProgressBarPercent",
+                "SetRadialProgressBarStartOffset",
+                "GetRadialProgressBarStartOffset",
+                "SetRadialProgressBarEndOffset",
+                "GetRadialProgressBarEndOffset",
+                "SetRadialProgressBarFeather",
+                "GetRadialProgressBarFeather",
+                "SetRadialProgressBarReverse",
+                "GetRadialProgressBarReverse",
+                "SetVisualRadialProgressBarMode",
+            }
+            for _, method in ipairs(methods) do
+                if type(texture[method]) ~= "function" then return "missing:" .. method end
+            end
+
+            if texture:GetRadialProgressBarPercent() ~= 0 then return "default-percent" end
+            if texture:GetRadialProgressBarStartOffset() ~= 0 then return "default-start" end
+            if texture:GetRadialProgressBarEndOffset() ~= 1 then return "default-end" end
+            if texture:GetRadialProgressBarFeather() ~= 0 then return "default-feather" end
+            if texture:GetRadialProgressBarReverse() ~= false then return "default-reverse" end
+
+            texture:SetRadialProgressBarPercent(0.75)
+            texture:SetRadialProgressBarStartOffset(0.25)
+            texture:SetRadialProgressBarEndOffset(0.875)
+            texture:SetRadialProgressBarFeather(0.125)
+            texture:SetRadialProgressBarReverse(true)
+            texture:SetVisualRadialProgressBarMode()
+
+            if texture:GetRadialProgressBarPercent() ~= 0.75 then return "set-percent" end
+            if texture:GetRadialProgressBarStartOffset() ~= 0.25 then return "set-start" end
+            if texture:GetRadialProgressBarEndOffset() ~= 0.875 then return "set-end" end
+            if texture:GetRadialProgressBarFeather() ~= 0.125 then return "set-feather" end
+            if texture:GetRadialProgressBarReverse() ~= true then return "set-reverse" end
+
+            texture:ClearRadialProgressBar()
+            if texture:GetRadialProgressBarPercent() ~= 0 then return "clear-percent" end
+            if texture:GetRadialProgressBarStartOffset() ~= 0 then return "clear-start" end
+            if texture:GetRadialProgressBarEndOffset() ~= 1 then return "clear-end" end
+            if texture:GetRadialProgressBarFeather() ~= 0 then return "clear-feather" end
+            if texture:GetRadialProgressBarReverse() ~= false then return "clear-reverse" end
+            return "ok"
+            "#,
+        )
+        .unwrap();
+
+    assert_eq!(result, "ok");
+}
+
+#[cfg(feature = "retail-12-1-0")]
+#[test]
 fn test_patch_12_1_forbidden_aspects_block_parent_and_layout_gain() {
     let env = WowLuaEnv::new().unwrap();
     let (parent_blocked, parent_allowed, layout_blocked, layout_allowed): (bool, bool, bool, bool) = env

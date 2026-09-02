@@ -103,9 +103,8 @@ fn blizzard_deprecated_item_socket_info_appears_in_game_discovery_only() {
     );
 }
 
-#[test]
-fn blizzard_deprecated_item_socket_info_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_item_socket_info_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -124,10 +123,10 @@ fn blizzard_deprecated_item_socket_info_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_item_socket_info_installs_all_13_function_shims() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_item_socket_info_installs_all_13_function_shims(env: &WowLuaEnv) {
 
     let installed: bool = env
         .eval(
@@ -159,10 +158,10 @@ fn blizzard_deprecated_item_socket_info_installs_all_13_function_shims() {
          __index metamethod"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_item_socket_info_globals_alias_c_item_socket_info_methods_by_identity() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_item_socket_info_globals_alias_c_item_socket_info_methods_by_identity(env: &WowLuaEnv) {
 
     let aliases_match: bool = env
         .eval(
@@ -189,10 +188,10 @@ fn blizzard_deprecated_item_socket_info_globals_alias_c_item_socket_info_methods
          the strongest verifiable invariant — confirms both sides see the same value object"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_item_socket_info_load_deprecation_fallbacks_cvar_is_default_on() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_item_socket_info_load_deprecation_fallbacks_cvar_is_default_on(env: &WowLuaEnv) {
 
     let cvar_on: bool = env
         .eval("return GetCVarBool('loadDeprecationFallbacks')")
@@ -205,6 +204,7 @@ fn blizzard_deprecated_item_socket_info_load_deprecation_fallbacks_cvar_is_defau
          are skipped and any legacy socketing addon calling CloseSocketInfo / \
          GetSocketItemInfo / AcceptSockets blows up with `attempt to call a nil value`"
     );
+}
 }
 
 #[test]

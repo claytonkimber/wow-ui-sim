@@ -1,0 +1,81 @@
+# Prefork Test Harness
+
+Linux-only custom test-runner core for reusing immutable parent-owned test state across isolated child cases without entering libtest worker threads. Migrated cases use explicit `prefork_full_ui_case!` marker bodies and a build-generated stable `<module>::<function>` registry.
+
+## Content
+
+`tests/common/prefork.rs` accepts a borrowed parent state and registered `fn(&S)` cases. Its lazy-state entry point parses selection before invoking setup: `--list` returns listing data, and zero selected cases return a successful zero-test result, without conformance or expensive preload. Each selected case forks into its own process, while the parent schedules at most the configured bounded worker count.
+
+Every fork is immediately preceded by a `/proc/self/task` count check requiring exactly one task. The child establishes its process group, reports setup status over a socket, and waits for the parent to verify `getpgid(child) == child` before the test body is released or the case counts as scheduled. Setup failure terminates and reaps the direct child without allowing test code to run.
+
+Parent-owned pipes and setup sockets use `OwnedFd`, so partial construction or setup failure closes every acquired descriptor through ownership. If any runner operation fails after cases have started, the parent sends `SIGKILL` to every active process group and direct child, reaps every direct child, then drops all remaining status/capture descriptors before returning the error.
+
+Each child catches panic payloads into a status channel and terminates with `_exit`. `Config` carries one `fn()` child setup hook, defaulting to a no-op; the child invokes it after process-group establishment and before the registered case body inside the same panic boundary. The parent classifies structured panic status, signals, unexpected exits, and timeouts. Captured mode redirects stdout and stderr into parent-drained pipes; successful output stays hidden, failed output is printed with stream labels, and `--nocapture` leaves both streams inherited.
+
+The Lua bytecode cache has three process-local modes. Production starts writable. The dedicated prefork parent enters `ParentBypass` before constructing `WowLuaEnv`, so cache lookups return misses without reading `pack.bin`, source compilation continues, and stores are skipped as non-failures. When caching is enabled, the parent seals the cache as empty and initialized after startup while recording whether the pack exists; disabled caching remains a successful no-op. Forked children then transition that inherited state to read-only, so they cannot reload the pack or mutate invalid/oversized removal, torn-pack truncation, standalone legacy migration, legacy-key promotion, append, replacement/compaction, temporary-file creation, rename, or cleanup paths.
+
+Prefork timeout handling remains separate: it signals the whole child process group with `SIGTERM`, waits the configured grace period, escalates to `SIGKILL`, and reaps the direct child. The runner defaults to two workers; worker selection honors `--test-threads` before `RUST_TEST_THREADS`, with both capped by the hard maximum.
+
+Ordinary Linux libtest cases wrapped by `test_timeout!`/`with_timeout` use a separate exact-test re-exec path, not the prefork runner. The parent launches exactly one named test in the current executable with `--exact`, `--include-ignored`, and `--test-threads=1`; ordinary timeout parents acquire one of two file-backed timeout-child slots before spawning, bounding aggregate concurrent `integration-*` processes across independent test binaries without changing default Cargo parallelism. Queueing occurs before the existing 120-second timeout budget, which starts after spawn; the slot remains held through child termination, descendant cleanup, output draining, handshake validation, and failure aggregation. Timeout conformance outer launchers that require both slots reserve the workload gate exclusively around their fixture subprocess; they mark descendants to bypass inherited workload-gate acquisition, so nested timeout children retain the one shared global two-slot cap instead of self-blocking behind the fixture reservation. A child panic or other non-success exit becomes a normal libtest failure in the parent, so sibling tests continue. A real timeout terminates the child process group/tree, reaps it, and reports a test failure; the conformance fixture alone uses `with_timeout(1, ...)` to prove timeout cleanup. Nested `with_timeout` calls in the guarded child execute their closures in that same child, record one handshake, and do not create a second re-exec boundary. Multi-shard tests that intentionally run several shards in one process therefore put one timeout around the outer loop and call inner shard bodies without timeout wrappers; that outer boundary governs the complete sequence. `--nocapture`, `--no-capture`, and `--show-output` are forwarded to the exact child, while captured output is replayed for failures. This path shares `configure_command_process_group`, `signal_process_group`, and `kill_process_group_and_child` from `tests/common/prefork_process.rs`, but does not share prefork preload, fork scheduling, or immutable parent state.
+
+Linux expensive workloads coordinate through `tests/common/workload_gate.rs`: a process-local poison-recovering `RwLock` prevents performance tests in one libtest process from overlapping, while a cross-process `flock` coordinates separate Cargo test processes. Ordinary `with_timeout`, prefork, and full-UI workloads acquire shared access; performance measurements acquire exclusive access. The permit is acquired before timeout-child launch and before measured timing, so waiting does not consume the 120-second child budget or contaminate performance samples. Conformance cases prove shared-reader overlap, exclusive exclusion, same-process serialization, and release after errors, panics, and process exit.
+
+`tests/prefork_full_ui.rs` runs runner conformance in a fresh subprocess before expensive setup during ordinary execution; successful conformance output stays hidden, while failure output is printed. Driver and process-tree fixture modes bypass that orchestration, and `--list` bypasses both conformance and preload.
+
+The target enters parent-bypass mode, then builds one 1024x768 default-retail game-screen `WowLuaEnv`: synced Blizzard UI path, stopped GC, source-compiled dependency-ordered eager addon discovery/loading, one `ADDON_LOADED` per successful addon, post-`Blizzard_EnvironmentCleanup` global restoration, string-metatable sync, post-load workarounds, bootstrap GC restart, and normal game startup events. It rejects partial setup with addon context when loading, addon events, EnvironmentCleanup restoration, startup Lua, GC restart, or cache sealing fails.
+
+`build.rs` parses explicit `prefork_full_ui_case! { fn name(env: &WowLuaEnv) { ... } }` items with `syn` and renders one registry with `quote`. Registry names are stable `<module>::<function>` paths. The prefork target includes the generated integration module tree, so mixed modules keep unmarked tests under libtest while marked bodies are registered only in the prefork runner. The patch-manifest validator accepts these generated marker cases as test references alongside ordinary `#[test]` functions. The nested fixture `prefork_full_ui_nested::fixture::preloaded_parent_has_normal_game_startup` proves both nested registry resolution and observable inherited Game startup state.
+
+After startup succeeds, enabled-cache sealing verifies that cache state was not initialized or populated, marks that state initialized with empty values/index, and records `pack.bin` existence without reading its contents. Disabled caching skips sealing as a successful no-op. The immutable parent snapshot backs each registered case, one child per case, with 120-second timeouts and read-only bytecode-cache child setup. Timeout handling still cleans up the whole child process tree. The initial nine-case benchmark below predates the registry expansion.
+
+The final eligibility audit records exactly 1,951 tests in the dedicated default-retail prefork target: 1,942 marker-generated full-environment cases and 9 manual/nested prefork cases. The ordinary startup-like scan found 304 remaining tests and zero eligible cases for the finalized shared parent. Final audit artifacts are `/tmp/prefork-final-eligibility.json` and `/tmp/prefork-final-registry-list.txt`; see [Final eligibility classification](#final-eligibility-classification) for rationale without duplicating all 304 rows.
+
+## Final eligibility classification
+
+The 304 ordinary startup-like tests are all excluded, with exact counts from `/tmp/prefork-final-eligibility.json`:
+
+| Category | Count | Rationale |
+|---|---:|---|
+| Pre-start custom fixture | 75 | Extra addon/state setup occurs before post-load workarounds or startup; the finalized parent is not equivalent. |
+| Non-equivalent lifecycle | 9 | Custom load omits or reorders startup lifecycle steps relative to the finalized parent. |
+| Partial/custom fixture | 113 | Curated addon/panel fixture, custom state/events, rendering, or locking differs from normal eager startup. |
+| Partial domain fixture | 13 | Curated addon graph and seeded domain state differ from normal startup. |
+| Partial template fixture | 3 | Minimal inline-template environment has no Blizzard startup. |
+| Partial thread-sensitive fixture | 55 | Custom keybinding/panel fixture seams, events, or environment locking differ from normal preload. |
+| Alternate screen | 15 | Glue Login/CharacterSelect/CharacterCreate startup is not the normal Game-screen parent. |
+| Render custom fixture | 12 | Render-sensitive fixture uses a custom startup lifecycle. |
+| Profile-specific | 7 | PTR/Mists-specific coverage remains ordinary libtest. |
+| Post-drop global state | 1 | Assertion depends on process-global state after dropping the environment. |
+| Version-specific | 1 | Patch-version-gated coverage remains ordinary libtest. |
+
+The exclusion boundary is deliberate: 75 pre-start cases and 9 lifecycle cases cannot use the finalized parent snapshot, while 211 partial/custom/glue/render/thread-sensitive setup-family cases are not normal-retail startup. The remaining 9 cases are profile-specific (7), post-drop global-state (1), or version-specific (1). Counts sum to 304; `eligible_remaining` is zero.
+
+Earlier SpellSearch, explicit, housing, and generic post-start batches use borrowed-environment child setup only where their load ordering matches the finalized parent contract. `Blizzard_SharedMapDataProviders` remains excluded because its nine-case fixture loads before post-load workarounds and omits startup events. Two PTR-only GuildBank/ItemUpgrade tests remain ordinary libtest with profile-specific full startup.
+
+Warm-cache conformance remains in a fresh subprocess with an isolated XDG cache root: it prewarms `pack.bin`, releases non-empty memory, compiles a unique child chunk without mutation, and proves the parent remains writable. Separate parent-bypass conformance reuses an existing pack, compiles unique parent and child chunks, requires a zero-byte seal result, and compares cache-tree bytes and metadata before and after both phases.
+
+## Measured result
+
+The committed parent-bypass target passed the initial nine migrated cases with one worker in 10.12 seconds, down 56.9% from the retained 23.49-second pre-migration serial baseline. `/usr/bin/time` process maximum RSS fell from 1,190,600 KiB to 788,236 KiB (33.8%), and sampled process-tree PSS fell from 1,189,511 KiB to 1,040,276 KiB (12.5%). Parent-only peak PSS was 768,995 KiB; the one-child phase produced the whole-tree PSS peak.
+
+Sampled process-tree RSS rose from 1,196,596 KiB to 1,523,432 KiB. This metric double-counts copy-on-write pages mapped by both parent and child; PSS is the aggregate host-footprint comparison because it apportions shared pages. The benchmark used the same nine-case filter and `--test-threads=1`, with `/usr/bin/time -v` plus 20 ms `/proc/*/smaps_rollup` sampling.
+
+## Sources
+
+- [Prefork test harness spec](../../specs/prefork-test-harness.md) — behavioral contract and current gaps
+- [Conformance target](../../../tests/prefork_full_ui.rs) — behavioral proof and fixture processes
+- [Reusable runner](../../../tests/common/prefork.rs) — current prefork implementation
+- [Linux timeout re-exec](../../../tests/common/timeout_reexec.rs) — exact named libtest replay, output forwarding, workload-gate acquisition, and bounded process-tree cleanup
+- [Linux workload gate](../../../tests/common/workload_gate.rs) — shared/exclusive local and cross-process coordination
+- [Workload-gate conformance](../../../tests/workload_gate.rs) — overlap, exclusion, cleanup, and timeout-boundary proofs
+- [Timeout re-exec conformance](../../../tests/timeout_reexec.rs) — panic/timeout aggregation, fixture-capacity reservation, sibling continuation, visible output, and descendant cleanup proofs
+- [Build registry](../../../build.rs) — `syn`/`quote` marker parsing and stable case generation
+- [Behavioral-messaging cases](../../../tests/blizzard_behavioral_messaging_loads.rs) — two marker-defined cases with remaining libtest tests
+- [Nested registry fixture](../../../tests/prefork_full_ui_nested/fixture.rs) — nested path and inherited-startup proof
+
+## See Also
+
+- [[blizzard-ui-test-lanes]] — existing Blizzard UI test organization
+- [[development-phases]] — broader test and performance work
+- [[test-runtime-optimization]] — measured test-runner alternatives and the exact dependency-closure fixture boundary
+- [[bytecode-cache-growth]] — cache size limits and persistence boundaries

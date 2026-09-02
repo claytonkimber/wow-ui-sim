@@ -1,4 +1,4 @@
-//! `PlayerIsTimerunning` + `PlayerGetTimerunningSeasonID` round-trip coverage.
+//! Timerunning globals backed by simulator season state.
 
 use wow_ui_sim::lua_api::WowLuaEnv;
 
@@ -10,6 +10,35 @@ fn timerunning_defaults_to_inactive() {
         .expect("both timerunning probes should return");
     assert!(!is_active, "default should not be in timerunning mode");
     assert_eq!(season_id, 0.0, "default season id should be 0");
+}
+
+#[test]
+fn legacy_timerunning_globals_follow_season_state_and_default_countdown() {
+    let env = WowLuaEnv::new().expect("env");
+
+    let (enabled, remaining_seconds): (bool, f64) = env
+        .eval("return IsTimerunningEnabled(), GetRemainingTimerunningSeasonSeconds()")
+        .expect("legacy timerunning globals should return");
+    assert!(!enabled, "timerunning should be disabled by default");
+    assert_eq!(remaining_seconds, 0.0, "countdown should default to zero");
+
+    env.exec("A_Admin.SetTimerunningSeasonID(2)").unwrap();
+    env.state()
+        .borrow_mut()
+        .timerunning_season_seconds_remaining = 86_400;
+
+    let (enabled, remaining_seconds): (bool, f64) = env
+        .eval("return IsTimerunningEnabled(), GetRemainingTimerunningSeasonSeconds()")
+        .expect("legacy timerunning globals should follow simulator state");
+    assert!(enabled, "an active season should enable timerunning");
+    assert_eq!(remaining_seconds, 86_400.0);
+
+    env.exec("A_Admin.SetTimerunningSeasonID(0)").unwrap();
+    let (enabled, remaining_seconds): (bool, f64) = env
+        .eval("return IsTimerunningEnabled(), GetRemainingTimerunningSeasonSeconds()")
+        .expect("cleared timerunning state should hide the stale countdown");
+    assert!(!enabled, "clearing the season should disable timerunning");
+    assert_eq!(remaining_seconds, 0.0);
 }
 
 #[test]

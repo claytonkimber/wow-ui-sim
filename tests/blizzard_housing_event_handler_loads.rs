@@ -180,9 +180,8 @@ fn blizzard_housing_event_handler_auto_discovered_on_game_screen_only() {
     }
 }
 
-#[test]
-fn blizzard_housing_event_handler_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_housing_event_handler_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let lua_errors: Vec<String> = env.state().borrow().lua_errors.clone();
     let related: Vec<&String> = lua_errors
@@ -205,10 +204,10 @@ fn blizzard_housing_event_handler_loads_without_addon_specific_lua_errors() {
             .join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_housing_event_handler_is_addon_loaded_via_game_screen_pass() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_housing_event_handler_is_addon_loaded_via_game_screen_pass(env: &WowLuaEnv) {
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_HousingEventHandler')")
         .expect("IsAddOnLoaded query should succeed");
@@ -219,10 +218,10 @@ fn blizzard_housing_event_handler_is_addon_loaded_via_game_screen_pass() {
          discovery pass alongside every other non-LoD Blizzard_* addon"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_event_handler_publishes_housing_frames_util_namespace() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_housing_event_handler_publishes_housing_frames_util_namespace(env: &WowLuaEnv) {
     let exists: bool = env
         .eval("return type(HousingFramesUtil) == 'table'")
         .expect("HousingFramesUtil global lookup should succeed");
@@ -235,10 +234,10 @@ fn blizzard_housing_event_handler_publishes_housing_frames_util_namespace() {
          dependency on any LoD housing addon"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_event_handler_frames_util_publishes_twenty_one_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_housing_event_handler_frames_util_publishes_twenty_one_methods(env: &WowLuaEnv) {
     assert_module_methods(
         &env,
         "HousingFramesUtil",
@@ -271,10 +270,10 @@ fn blizzard_housing_event_handler_frames_util_publishes_twenty_one_methods() {
          OpenFrameToTaskID are the LoadAddOn-pulling entry points",
     );
 }
+}
 
-#[test]
-fn blizzard_housing_event_handler_publishes_event_handler_mixin() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_housing_event_handler_publishes_event_handler_mixin(env: &WowLuaEnv) {
     let exists: bool = env
         .eval("return type(HousingEventHandlerMixin) == 'table'")
         .expect("HousingEventHandlerMixin global lookup should succeed");
@@ -286,10 +285,10 @@ fn blizzard_housing_event_handler_publishes_event_handler_mixin() {
          EventRegistry frame events"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_event_handler_mixin_publishes_fourteen_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_housing_event_handler_mixin_publishes_fourteen_methods(env: &WowLuaEnv) {
     assert_module_methods(
         &env,
         "HousingEventHandlerMixin",
@@ -320,10 +319,10 @@ fn blizzard_housing_event_handler_mixin_publishes_fourteen_methods() {
          ShowStairDirectionConfirmation / ShowHousingItemAcquiredAlert)",
     );
 }
+}
 
-#[test]
-fn blizzard_housing_event_handler_registers_thirteen_event_registry_callbacks() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_housing_event_handler_registers_thirteen_event_registry_callbacks(env: &WowLuaEnv) {
     for event in [
         "HOUSE_PLOT_ENTERED",
         "HOUSE_EDITOR_MODE_CHANGED",
@@ -352,10 +351,10 @@ fn blizzard_housing_event_handler_registers_thirteen_event_registry_callbacks() 
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_event_handler_registers_five_static_popup_dialogs() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_housing_event_handler_registers_five_static_popup_dialogs(env: &WowLuaEnv) {
     for dialog_key in [
         "CONFIRM_DESTROY_PREVIEW_DECOR",
         "HOUSING_FIXTURE_DECOR_ACTION_CONFIRM",
@@ -378,10 +377,10 @@ fn blizzard_housing_event_handler_registers_five_static_popup_dialogs() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_event_handler_fixture_dialog_uses_select_callback_by_index() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_housing_event_handler_fixture_dialog_uses_select_callback_by_index(env: &WowLuaEnv) {
     let select_by_index: bool = env
         .eval(
             "return StaticPopupDialogs['HOUSING_FIXTURE_DECOR_ACTION_CONFIRM'] and \
@@ -397,10 +396,10 @@ fn blizzard_housing_event_handler_fixture_dialog_uses_select_callback_by_index()
          dispatching by named handler"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_event_handler_singleton_handler_is_local_not_global() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_housing_event_handler_singleton_handler_is_local_not_global(env: &WowLuaEnv) {
     let exists_global: bool = env
         .eval("return _G['HousingEventHandler'] ~= nil")
         .expect("HousingEventHandler global lookup should succeed");
@@ -411,4 +410,5 @@ fn blizzard_housing_event_handler_singleton_handler_is_local_not_global() {
          to `_G`; only its 13 EventRegistry frame-event registrations expose its behaviour to \
          the rest of the UI"
     );
+}
 }

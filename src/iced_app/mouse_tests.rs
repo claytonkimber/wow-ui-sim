@@ -1,6 +1,90 @@
 use super::test_support::*;
 use super::*;
+use crate::iced_app::{CanvasMessage, Message};
 use crate::screen::ScreenKind;
+
+#[test]
+fn mouse_focus_order_tracks_gui_hover_after_raise_and_lower() {
+    let mut app = build_test_app(ScreenKind::Game);
+
+    {
+        let env = app.env.borrow();
+        env.exec(
+            r#"
+            MouseFocusLow = CreateFrame("Frame", nil, UIParent)
+            MouseFocusLow:SetAllPoints(UIParent)
+            MouseFocusLow:SetFrameStrata("DIALOG")
+            MouseFocusLow:SetFrameLevel(1)
+            MouseFocusLow:EnableMouse(true)
+            MouseFocusLow:Show()
+
+            MouseFocusHigh = CreateFrame("Frame", nil, UIParent)
+            MouseFocusHigh:SetAllPoints(UIParent)
+            MouseFocusHigh:SetFrameStrata("DIALOG")
+            MouseFocusHigh:SetFrameLevel(10)
+            MouseFocusHigh:EnableMouse(true)
+            MouseFocusHigh:Show()
+            "#,
+        )
+        .expect("mouse focus frame setup should succeed");
+
+        let raw_levels: (f64, f64) = env
+            .eval("return MouseFocusLow:GetFrameLevel(), MouseFocusHigh:GetFrameLevel()")
+            .expect("raw frame levels should be readable");
+        assert_eq!(raw_levels, (1.0, 10.0));
+    }
+
+    rebuild_hittable_cache(&app);
+    let cursor = Point::new(400.0, 300.0);
+
+    let _ = app.update(Message::CanvasEvent(CanvasMessage::MouseMove(cursor)));
+    let (before_get_mouse_focus, before_get_mouse_foci): (bool, bool) = app
+        .env
+        .borrow()
+        .eval("return GetMouseFocus() == MouseFocusHigh, GetMouseFoci()[1] == MouseFocusHigh")
+        .expect("before Raise mouse focus query should succeed");
+    assert!(before_get_mouse_focus);
+    assert!(before_get_mouse_foci);
+
+    app.env
+        .borrow()
+        .exec("MouseFocusLow:Raise()")
+        .expect("low frame Raise should succeed");
+    let _ = app.update(Message::CanvasEvent(CanvasMessage::MouseMove(cursor)));
+    let (after_raise_get_mouse_focus, after_raise_get_mouse_foci): (bool, bool) = app
+        .env
+        .borrow()
+        .eval("return GetMouseFocus() == MouseFocusHigh, GetMouseFoci()[1] == MouseFocusHigh")
+        .expect("after low Raise mouse focus query should succeed");
+    assert!(after_raise_get_mouse_focus);
+    assert!(after_raise_get_mouse_foci);
+
+    app.env
+        .borrow()
+        .exec("MouseFocusHigh:Lower()")
+        .expect("high frame Lower should succeed");
+    let _ = app.update(Message::CanvasEvent(CanvasMessage::MouseMove(cursor)));
+    let (after_lower_get_mouse_focus, after_lower_get_mouse_foci): (bool, bool) = app
+        .env
+        .borrow()
+        .eval("return GetMouseFocus() == MouseFocusHigh, GetMouseFoci()[1] == MouseFocusHigh")
+        .expect("after high Lower mouse focus query should succeed");
+    assert!(after_lower_get_mouse_focus);
+    assert!(after_lower_get_mouse_foci);
+
+    app.env
+        .borrow()
+        .exec("MouseFocusLow:Hide(); MouseFocusHigh:Hide()")
+        .expect("mouse focus frames should hide");
+    let _ = app.update(Message::CanvasEvent(CanvasMessage::MouseMove(cursor)));
+
+    let focus_cleared: (bool, bool) = app
+        .env
+        .borrow()
+        .eval("return GetMouseFocus() == nil, GetMouseFoci()[1] == nil")
+        .expect("cleared mouse focus should be readable");
+    assert_eq!(focus_cleared, (true, true));
+}
 
 #[cfg(feature = "client-mists")]
 #[test]

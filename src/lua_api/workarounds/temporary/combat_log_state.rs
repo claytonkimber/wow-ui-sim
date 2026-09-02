@@ -28,6 +28,7 @@ if type(state) ~= "table" then
         entries = {},
         currentIndex = nil,
         createdMessages = {},
+        filterSettings = nil,
     }
     rawset(_G, "__wow_combat_log_state", state)
 end
@@ -180,23 +181,30 @@ end
 
 if rawget(C_CombatLog, "SetMessageLimit") == nil then
     function C_CombatLog.SetMessageLimit(limit)
-        CombatLogState().messageLimit = tonumber(limit) or 0
+        local currentState = CombatLogState()
+        currentState.messageLimit = tonumber(limit) or 0
+        FireEvent("COMBAT_LOG_MESSAGE_LIMIT_CHANGED", currentState.messageLimit)
     end
 end
 
 if rawget(C_CombatLog, "ClearEntries") == nil then
     function C_CombatLog.ClearEntries()
         ClearEntries(CombatLogState())
+        FireEvent("COMBAT_LOG_ENTRIES_CLEARED")
     end
 end
 
 if rawget(C_CombatLog, "ApplyFilterSettings") == nil then
-    function C_CombatLog.ApplyFilterSettings(_settings)
+    function C_CombatLog.ApplyFilterSettings(settings)
+        local currentState = CombatLogState()
+        currentState.filterSettings = settings
+        FireEvent("COMBAT_LOG_APPLY_FILTER_SETTINGS", settings)
     end
 end
 
 if rawget(C_CombatLog, "RefilterEntries") == nil then
     function C_CombatLog.RefilterEntries()
+        FireEvent("COMBAT_LOG_REFILTER_ENTRIES")
     end
 end
 
@@ -247,6 +255,7 @@ end
 if rawget(C_CombatLogSecure, "CreateCombatLogMessage") == nil then
     function C_CombatLogSecure.CreateCombatLogMessage(message, red, green, blue, order)
         StoreMessage(CombatLogState(), message, red, green, blue, order)
+        FireEvent("COMBAT_LOG_MESSAGE", message, red, green, blue, order)
         return true
     end
 end
@@ -315,6 +324,127 @@ pub(crate) fn apply_bootstrap(lua: &mut rilua::Lua) -> crate::Result<()> {
 #[cfg(test)]
 mod tests {
     use crate::lua_api::WowLuaEnv;
+
+    #[cfg(feature = "retail-12-0-0")]
+    #[test]
+    fn patch_12_0_0_combat_log_producers_dispatch_exact_notifications() {
+        let env = WowLuaEnv::new().expect("lua env should initialize");
+
+        let result: String = env
+            .eval(
+                r##"
+                local probe = { events = {}, callbacks = {} }
+                local frame = CreateFrame("Frame")
+                local ordinary_events = {
+                    "COMBAT_LOG_ENTRIES_CLEARED",
+                    "COMBAT_LOG_MESSAGE",
+                    "COMBAT_LOG_MESSAGE_LIMIT_CHANGED",
+                }
+                for _, event_name in ipairs(ordinary_events) do
+                    frame:RegisterEvent(event_name)
+                end
+                frame:SetScript("OnEvent", function(_, event_name, ...)
+                    local event = probe.events[event_name]
+                    if event == nil then
+                        event = { count = 0 }
+                        probe.events[event_name] = event
+                    end
+                    event.count = event.count + 1
+                    event.values = { ... }
+                end)
+
+                local callback_frame = CreateFrame("Frame")
+                for _, event_name in ipairs({
+                    "COMBAT_LOG_APPLY_FILTER_SETTINGS",
+                    "COMBAT_LOG_REFILTER_ENTRIES",
+                }) do
+                    local registered = callback_frame:RegisterEventCallback(event_name, function(_, ...)
+                        local event = probe.callbacks[event_name]
+                        if event == nil then
+                            event = { count = 0 }
+                            probe.callbacks[event_name] = event
+                        end
+                        event.count = event.count + 1
+                        event.values = { ... }
+                    end)
+                    if registered ~= false then
+                        return "callback_registration:" .. event_name
+                    end
+                end
+
+                local function event(name)
+                    return probe.events[name]
+                end
+
+                local function callback(name)
+                    return probe.callbacks[name]
+                end
+
+                local first_settings = { combat = true, spell = false }
+                C_CombatLog.ApplyFilterSettings(first_settings)
+                local applied = callback("COMBAT_LOG_APPLY_FILTER_SETTINGS")
+                if applied == nil or applied.count ~= 1 then return "apply:count" end
+                if #applied.values ~= 1 or type(applied.values[1]) ~= "table" or applied.values[1] ~= first_settings then
+                    return "apply:payload"
+                end
+                if C_CombatLog._state.filterSettings ~= first_settings then return "apply:state" end
+
+                local second_settings = { combat = false, spell = true }
+                C_CombatLog.ApplyFilterSettings(second_settings)
+                applied = callback("COMBAT_LOG_APPLY_FILTER_SETTINGS")
+                if applied.count ~= 2 or applied.values[1] ~= second_settings then return "apply:repeat" end
+                if C_CombatLog._state.filterSettings ~= second_settings then return "apply:repeat_state" end
+
+                C_CombatLog.RefilterEntries()
+                C_CombatLog.RefilterEntries()
+                local refiltered = callback("COMBAT_LOG_REFILTER_ENTRIES")
+                if refiltered == nil or refiltered.count ~= 2 then return "refilter:count" end
+                if #refiltered.values ~= 0 then return "refilter:payload" end
+
+                C_CombatLog._state.entries = { { "first" }, { "second" } }
+                C_CombatLog.ClearEntries()
+                local cleared = event("COMBAT_LOG_ENTRIES_CLEARED")
+                if cleared == nil or cleared.count ~= 1 or #cleared.values ~= 0 then return "clear:first" end
+                if C_CombatLog.GetEntryCount() ~= 0 then return "clear:state" end
+                C_CombatLog.ClearEntries()
+                cleared = event("COMBAT_LOG_ENTRIES_CLEARED")
+                if cleared.count ~= 2 or #cleared.values ~= 0 then return "clear:repeat" end
+
+                C_CombatLog.SetMessageLimit(41)
+                C_CombatLog.SetMessageLimit(42)
+                local limited = event("COMBAT_LOG_MESSAGE_LIMIT_CHANGED")
+                if limited == nil or limited.count ~= 2 or #limited.values ~= 1 then return "limit:count" end
+                if type(limited.values[1]) ~= "number" or limited.values[1] ~= 42 then return "limit:payload" end
+                if C_CombatLog.GetMessageLimit() ~= 42 then return "limit:state" end
+
+                local order = Enum.CombatLogMessageOrder.Oldest
+                C_CombatLogSecure.CreateCombatLogMessage("created", 0.1, 0.2, 0.3, order)
+                C_CombatLogSecure.CreateCombatLogMessage("second", 0.4, 0.5, 0.6, order)
+                local messages = event("COMBAT_LOG_MESSAGE")
+                if messages == nil or messages.count ~= 2 or #messages.values ~= 5 then return "message:count" end
+                if type(messages.values[1]) ~= "string" or messages.values[1] ~= "second"
+                    or type(messages.values[2]) ~= "number" or messages.values[2] ~= 0.4
+                    or type(messages.values[3]) ~= "number" or messages.values[3] ~= 0.5
+                    or type(messages.values[4]) ~= "number" or messages.values[4] ~= 0.6
+                    or type(messages.values[5]) ~= "number" or messages.values[5] ~= order then
+                    return "message:payload"
+                end
+                if #C_CombatLog._state.createdMessages ~= 2 then return "message:state_count" end
+                if C_CombatLog._state.createdMessages[1].message ~= "created"
+                    or C_CombatLog._state.createdMessages[2].message ~= "second" then
+                    return "message:state"
+                end
+
+                return "ok"
+                "##,
+            )
+            .expect("combat-log producer probe should run");
+
+        assert_eq!(
+            result, "ok",
+            "retail 12.0.0 combat-log producer mismatch: {result}"
+        );
+    }
 
     #[test]
     fn installs_shared_combat_log_state_and_navigation() {

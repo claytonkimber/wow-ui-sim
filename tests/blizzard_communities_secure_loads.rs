@@ -78,9 +78,8 @@ fn blizzard_communities_secure_appears_in_game_discovery() {
     );
 }
 
-#[test]
-fn blizzard_communities_secure_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_communities_secure_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -100,10 +99,10 @@ fn blizzard_communities_secure_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_communities_secure_dialog_frames_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_communities_secure_dialog_frames_are_defined(env: &WowLuaEnv) {
 
     let frames_present: bool = env
         .eval(
@@ -120,10 +119,10 @@ fn blizzard_communities_secure_dialog_frames_are_defined() {
          CommunitiesAddDialog.xml under a `<ScopedModifier forbidden=\"true\">` block)"
     );
 }
+}
 
-#[test]
-fn blizzard_communities_secure_mixins_are_defined_in_secureenv() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_communities_secure_mixins_are_defined_in_secureenv(env: &WowLuaEnv) {
 
     let mixins_present: bool = env
         .eval(
@@ -157,10 +156,10 @@ fn blizzard_communities_secure_mixins_are_defined_in_secureenv() {
          should be defined in __secureenv after CommunitiesAddDialog.lua loads"
     );
 }
+}
 
-#[test]
-fn blizzard_communities_secure_outbound_bridge_is_in_secureenv() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_communities_secure_outbound_bridge_is_in_secureenv(env: &WowLuaEnv) {
 
     let outbound_present: bool = env
         .eval(
@@ -183,10 +182,10 @@ fn blizzard_communities_secure_outbound_bridge_is_in_secureenv() {
          SwapToGlobalEnvironment, then assigns `secureEnv.CommunitiesOutbound = CommunitiesOutbound`"
     );
 }
+}
 
-#[test]
-fn blizzard_communities_secure_global_button_handlers_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_communities_secure_global_button_handlers_are_defined(env: &WowLuaEnv) {
 
     let handlers_present: bool = env
         .eval(
@@ -218,10 +217,10 @@ fn blizzard_communities_secure_global_button_handlers_are_defined() {
          secure-env XML script tags, so they live in __secureenv"
     );
 }
+}
 
-#[test]
-fn blizzard_communities_secure_dialog_attribute_setshown_toggles_visibility() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_communities_secure_dialog_attribute_setshown_toggles_visibility(env: &WowLuaEnv) {
 
     let attr_routes_to_show: bool = env
         .eval(
@@ -240,4 +239,5 @@ fn blizzard_communities_secure_dialog_attribute_setshown_toggles_visibility() {
          self:SetShown(value), so insecure callers can toggle the dialog's visibility through the \
          attribute bridge without touching the protected frame directly"
     );
+}
 }

@@ -24,6 +24,10 @@ mod xml_lifecycle;
 mod xml_texture;
 
 use crate::lua_api::LoaderEnv;
+pub use crate::lua_api::state::{
+    LoadDiagnosticAttribution, LoadDiagnostics, MissingRequirement, MissingRequirementKind,
+    NilSymbolEnvironment, NilSymbolObservation, NilSymbolObservationKind,
+};
 use crate::saved_variables::SavedVariablesManager;
 use crate::screen::ScreenKind;
 use crate::toc::TocFile;
@@ -32,6 +36,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
 
+pub(crate) use addon::{append_pending_nested_addon_diagnostics, begin_addon_load};
 pub use addon_order::sort_addons_by_dependencies;
 use addon_order::{topological_sort_addons, topological_sort_addons_with_extra_dependencies};
 pub use error::LoadError;
@@ -40,6 +45,21 @@ pub(crate) use load_addon_trace::{
 };
 pub use xml_frame::create_frame_from_xml;
 pub use xml_frame::{fast_create_frame_profile_body_report, fast_create_frame_profile_report};
+
+#[doc(hidden)]
+pub fn enter_bytecode_cache_parent_bypass_mode() {
+    bytecode_cache::enter_parent_bypass_mode();
+}
+
+#[doc(hidden)]
+pub fn enter_bytecode_cache_read_only_mode() {
+    bytecode_cache::enter_read_only_mode();
+}
+
+#[doc(hidden)]
+pub fn release_prefork_parent_bytecode_cache_memory() -> Result<usize, String> {
+    bytecode_cache::release_prefork_parent_memory()
+}
 
 const ENV_PROFILE_LUA_FILES: &str = "WOW_SIM_PROFILE_LUA_FILES";
 
@@ -133,6 +153,24 @@ fn implicit_blizzard_startup_dependencies() -> HashMap<String, Vec<String>> {
             "Blizzard_ObjectiveTracker".to_string(),
             vec!["Blizzard_POIButton".to_string()],
         ),
+        (
+            "Blizzard_Game".to_string(),
+            vec![
+                "Blizzard_TimeManager".to_string(),
+                "Blizzard_CooldownBroadcaster".to_string(),
+                "Blizzard_BoostTutorial".to_string(),
+                "Blizzard_CombatLog".to_string(),
+            ],
+        ),
+        (
+            "Blizzard_RaidUI".to_string(),
+            vec!["Blizzard_RaidFrame".to_string()],
+        ),
+        ("Blizzard_MacroUI".to_string(), vec![]),
+        ("Blizzard_TrainerUI".to_string(), vec![]),
+        ("Blizzard_AchievementUI".to_string(), vec![]),
+        ("Blizzard_Transmog".to_string(), vec![]),
+        ("Blizzard_ArdenwealdGardening".to_string(), vec![]),
     ])
 }
 
@@ -265,8 +303,30 @@ pub struct LoadResult {
     pub xml_files: usize,
     /// Time breakdown
     pub timing: LoadTiming,
-    /// Errors encountered (non-fatal)
+    /// Actual loader, XML, Lua, or runtime failures encountered during loading.
     pub warnings: Vec<String>,
+    /// Regular-global nil accesses retained as non-fatal diagnostics.
+    pub nil_symbol_observations: Vec<NilSymbolObservation>,
+    /// Missing `C_*` namespaces and members retained as strict API requirements.
+    pub missing_requirements: Vec<MissingRequirement>,
+}
+
+impl LoadResult {
+    pub fn diagnostics(&self) -> LoadDiagnostics {
+        LoadDiagnostics {
+            warnings: self.warnings.clone(),
+            nil_symbol_observations: self.nil_symbol_observations.clone(),
+            missing_requirements: self.missing_requirements.clone(),
+        }
+    }
+
+    pub(crate) fn extend_diagnostics(&mut self, diagnostics: LoadDiagnostics) {
+        self.warnings.extend(diagnostics.warnings);
+        self.nil_symbol_observations
+            .extend(diagnostics.nil_symbol_observations);
+        self.missing_requirements
+            .extend(diagnostics.missing_requirements);
+    }
 }
 
 /// Timing breakdown for addon loading.
@@ -407,23 +467,35 @@ fn load_addon_path(
     if let Ok(Some(result)) =
         crate::mists::character_frame_preload::ensure_before_addon(env, &toc, toc_path)
     {
-        for warning in &result.warnings {
-            trace_load_addon(
-                LoadAddonTraceOrigin::Toc,
-                format!("warning {}: {warning}", result.name),
-            );
-        }
+        trace_load_result_diagnostics(LoadAddonTraceOrigin::Toc, &result.name, &result);
     }
     trace_load_addon(LoadAddonTraceOrigin::Toc, format!("files {addon_name}"));
     let result = addon::load_addon_internal(env, &toc, saved_vars_mgr)?;
-    for warning in &result.warnings {
-        trace_load_addon(
-            LoadAddonTraceOrigin::Toc,
-            format!("warning {addon_name}: {warning}"),
-        );
-    }
+    trace_load_result_diagnostics(LoadAddonTraceOrigin::Toc, addon_name, &result);
     trace_load_addon(LoadAddonTraceOrigin::Toc, format!("loaded {addon_name}"));
     Ok(result)
+}
+
+pub(crate) fn trace_load_result_diagnostics(
+    origin: LoadAddonTraceOrigin,
+    addon_name: &str,
+    result: &LoadResult,
+) {
+    for warning in &result.warnings {
+        trace_load_addon(origin, format!("warning {addon_name}: {warning}"));
+    }
+    for observation in &result.nil_symbol_observations {
+        trace_load_addon(
+            origin,
+            format!("nil observation {addon_name}: {observation}"),
+        );
+    }
+    for requirement in &result.missing_requirements {
+        trace_load_addon(
+            origin,
+            format!("missing requirement {addon_name}: {requirement}"),
+        );
+    }
 }
 
 /// Load an addon from a parsed TOC.
@@ -450,13 +522,13 @@ pub fn discover_blizzard_addons(blizzard_ui_dir: &Path) -> Vec<(String, PathBuf)
 
 /// Discover every Blizzard addon directory in a BlizzardUI tree, including LoadOnDemand addons.
 ///
-/// This is stricter than `discover_blizzard_addons_for_screen`: it includes all
-/// `Blizzard_*` directories present in the checkout, regardless of screen restrictions
-/// or `LoadOnDemand`, then sorts them by dependencies. Foundational shared XML
-/// addons (`Blizzard_SharedXMLBase`, `Blizzard_SharedXML`, `Blizzard_SharedXMLGame`)
-/// are emitted first via the eager LoadFirst pass so dependency-free LoadOnDemand
-/// frames that inherit their templates resolve against a fully-registered
-/// template chain.
+/// This includes every parseable `Blizzard_*` directory regardless of screen restrictions
+/// or `LoadOnDemand`, plus the transitive `## Dependencies:` closure of those roots. This
+/// admits hard non-Blizzard dependencies (for example `middleclass`) without eagerly loading
+/// unrelated non-Blizzard directories. Foundational shared XML addons
+/// (`Blizzard_SharedXMLBase`, `Blizzard_SharedXML`, `Blizzard_SharedXMLGame`) are emitted first
+/// via the eager LoadFirst pass so dependency-free LoadOnDemand frames that inherit their
+/// templates resolve against a fully-registered template chain.
 pub fn discover_all_blizzard_addons(blizzard_ui_dir: &Path) -> Vec<(String, PathBuf)> {
     let entries = match std::fs::read_dir(blizzard_ui_dir) {
         Ok(entries) => entries,
@@ -473,9 +545,6 @@ pub fn discover_all_blizzard_addons(blizzard_ui_dir: &Path) -> Vec<(String, Path
         let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
             continue;
         };
-        if !name.starts_with("Blizzard_") {
-            continue;
-        }
         let Some(toc_path) = find_toc_file(&path) else {
             continue;
         };
@@ -483,10 +552,12 @@ pub fn discover_all_blizzard_addons(blizzard_ui_dir: &Path) -> Vec<(String, Path
             Ok(toc) => {
                 toc_map.insert(name.to_string(), (toc_path, toc));
             }
-            Err(_) => unparsed.push((name.to_string(), toc_path)),
+            Err(_) if name.starts_with("Blizzard_") => unparsed.push((name.to_string(), toc_path)),
+            Err(_) => {}
         }
     }
 
+    retain_blizzard_roots_and_required_dependencies(&mut toc_map);
     promote_foundational_addons_to_load_first(&mut toc_map);
     let mut sorted = topological_sort_addons(toc_map);
     sorted.extend(unparsed);
@@ -506,7 +577,7 @@ pub fn discover_blizzard_addons_for_screen(
 
     let extra_dependencies = implicit_blizzard_startup_dependencies();
     // Pull LOD addons that are required by non-LOD addons or implicit startup deps.
-    pull_required_lod_addons(&mut addons, &mut lod_pool, &extra_dependencies);
+    pull_required_dependency_addons(&mut addons, &mut lod_pool, &extra_dependencies);
 
     promote_foundational_addons_to_load_first(&mut addons);
     topological_sort_addons_with_extra_dependencies(addons, &extra_dependencies)
@@ -620,6 +691,30 @@ fn queue_pending_addon(name: String, pending: &mut Vec<String>, queued: &mut Has
     }
 }
 
+fn retain_blizzard_roots_and_required_dependencies(
+    toc_map: &mut HashMap<String, (PathBuf, TocFile)>,
+) {
+    let mut pending: Vec<String> = toc_map
+        .keys()
+        .filter(|name| name.starts_with("Blizzard_"))
+        .cloned()
+        .collect();
+    let mut retained: HashSet<String> = pending.iter().cloned().collect();
+
+    while let Some(name) = pending.pop() {
+        let Some((_, toc)) = toc_map.get(&name) else {
+            continue;
+        };
+        for dependency in toc.dependencies() {
+            if toc_map.contains_key(&dependency) && retained.insert(dependency.clone()) {
+                pending.push(dependency);
+            }
+        }
+    }
+
+    toc_map.retain(|name, _| retained.contains(name));
+}
+
 fn build_extra_roots_map<'a>(
     overrides: &'a [BlizzardAddonOverride<'a>],
 ) -> HashMap<&'a str, Vec<&'a str>> {
@@ -658,7 +753,7 @@ fn discover_blizzard_addon_toc_pools_for_screen(
 )> {
     let entries = std::fs::read_dir(blizzard_ui_dir).ok()?;
     let mut addons: HashMap<String, (PathBuf, TocFile)> = HashMap::new();
-    let mut lod_pool: HashMap<String, (PathBuf, TocFile)> = HashMap::new();
+    let mut dependency_pool: HashMap<String, (PathBuf, TocFile)> = HashMap::new();
 
     for entry in entries.flatten() {
         let path = entry.path();
@@ -666,12 +761,6 @@ fn discover_blizzard_addon_toc_pools_for_screen(
             continue;
         }
         let dir_name = path.file_name().unwrap().to_str().unwrap().to_string();
-        if !dir_name.starts_with("Blizzard_")
-            || excluded_addons_for_screen(screen).contains(&dir_name.as_str())
-            || excluded_addons_for_active_profile().contains(&dir_name.as_str())
-        {
-            continue;
-        }
         let Some(toc_path) = find_toc_file(&path) else {
             continue;
         };
@@ -681,15 +770,18 @@ fn discover_blizzard_addon_toc_pools_for_screen(
         if !toc.allows_screen(screen) || toc.is_ptr_only() || toc.is_game_type_restricted() {
             continue;
         }
-        let pool = if toc.is_load_on_demand() {
-            &mut lod_pool
+
+        let is_blizzard_root = dir_name.starts_with("Blizzard_")
+            && !excluded_addons_for_screen(screen).contains(&dir_name.as_str())
+            && !excluded_addons_for_active_profile().contains(&dir_name.as_str());
+        if is_blizzard_root && !toc.is_load_on_demand() {
+            addons.insert(dir_name, (toc_path, toc));
         } else {
-            &mut addons
-        };
-        pool.insert(dir_name, (toc_path, toc));
+            dependency_pool.insert(dir_name, (toc_path, toc));
+        }
     }
 
-    Some((addons, lod_pool))
+    Some((addons, dependency_pool))
 }
 
 fn excluded_addons_for_screen(screen: ScreenKind) -> &'static [&'static str] {
@@ -734,8 +826,12 @@ fn excluded_addons_for_active_profile() -> &'static [&'static str] {
     }
 }
 
-/// Recursively pull LoadOnDemand addons into the main set when required by loaded addons.
-fn pull_required_lod_addons(
+/// Recursively pull hard dependencies into the main set when required by Blizzard roots.
+///
+/// The candidate pool contains LoadOnDemand Blizzard addons and every eligible non-Blizzard
+/// TOC, so unrelated non-Blizzard directories remain excluded unless a retained root requires
+/// them through `## Dependencies:`.
+fn pull_required_dependency_addons(
     addons: &mut HashMap<String, (PathBuf, TocFile)>,
     lod_pool: &mut HashMap<String, (PathBuf, TocFile)>,
     extra_dependencies: &HashMap<String, Vec<String>>,
@@ -747,6 +843,12 @@ fn pull_required_lod_addons(
             addons
                 .keys()
                 .flat_map(|name| extra_dependencies.get(name).into_iter().flatten().cloned()),
+        )
+        .chain(
+            extra_dependencies
+                .keys()
+                .filter(|name| lod_pool.contains_key(*name))
+                .cloned(),
         )
         .filter(|dep| lod_pool.contains_key(dep))
         .collect();

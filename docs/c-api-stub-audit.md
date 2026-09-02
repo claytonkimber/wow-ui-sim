@@ -77,11 +77,11 @@ glue-screen (login/character creation) or legacy/removed APIs.
 | IsContainerFiltered | Stubbed |
 | GetBagName | Stubbed |
 | ContainerIDToInventoryID | Stubbed |
-| GetBagSlotFlag | Stubbed |
-| SetBagSlotFlag | Stubbed |
-| GetBackpackAutosortDisabled | Stubbed |
+| GetBagSlotFlag | Implemented |
+| SetBagSlotFlag | Implemented |
+| GetBackpackAutosortDisabled | Implemented |
 | SetBackpackAutosortDisabled | Stubbed |
-| GetBackpackSellJunkDisabled | Stubbed |
+| GetBackpackSellJunkDisabled | Implemented |
 | SetBackpackSellJunkDisabled | Stubbed |
 | GetContainerItemPurchaseInfo | Stubbed |
 | UseContainerItem | Stubbed |

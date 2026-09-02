@@ -39,9 +39,15 @@ Two environments share the same Lua state:
 - **genv** (`_G`): addon code; `Blizzard_EnvironmentCleanup` nils secure APIs here
 - **secureenv**: shallow copy of `_G` at startup with no `__index = _G` fallback; retains secure APIs after cleanup; addons with `UseSecureEnvironment: 1` in TOC run here via `setfenv`
 
+The shallow copy preserves table references that existed at initialization: `tests/secureenv_isolation.rs::shared_table_mutation_propagates_both_ways` dynamically finds a table present in both environments and verifies a secure-side mutation through the shared reference is visible from `_G`. Primitive values and later `_G` bindings remain separate; later global tables are not visible to secureenv without explicit export.
+
 Retail probe result, 2026-06-20: wrapping `_G.CooldownFrame_Set` and `_G.CooldownFrame_Clear` printed for normal CooldownViewer callers but did not print from `Blizzard_PrivateAurasUI` during a Mythic+ private-aura display. PrivateAurasUI is `UseSecureEnvironment: 1`, so its cooldown code did not reach the live `_G` override. That falsifies the simulator's previous `secureenv` metatable fallback model.
 
-Blizzard source also matches this: outbound bridge files explicitly capture `local secureEnv = GetCurrentEnvironment()`, call `SwapToGlobalEnvironment()`, then assign bridge tables back into `secureEnv` (for example `secureEnv.WowTokenOutbound = WowTokenOutbound`). Those manual exports are necessary only when secureenv does not fall through to `_G`.
+Blizzard source also matches this: outbound bridge files explicitly capture `local secureEnv = GetCurrentEnvironment()`, call `SwapToGlobalEnvironment()`, then assign bridge tables back into `secureEnv` (for example `secureEnv.WowTokenOutbound = WowTokenOutbound`). In the current retail contract, inbound Wow Token callbacks and `RedeemFailed` publish to `_G`, while `WowTokenOutbound` is stored only in `__secureenv`; these are explicit source-level exports, not generic mirroring.
+
+For shared Blizzard libraries, publication into secureenv is an explicit loader allowlist, not generic global mirroring. The allowlist replays `Blizzard_CombatLogBase` and `Blizzard_CatalogShopSharedUtil` so secure consumers receive `CombatLogUtil` and `CatalogShopUtil`; focused tests verify both `_G` and `__secureenv` bindings. See [[addon-loading]] for the complete allowlist and replay lifecycle.
+
+When no click-binding profile is modeled, `C_ClickBindings.GetBindingType()` reports `Enum.ClickBindingType.None` and `ExecuteBinding()` does nothing. This leaves Blizzard secure-button `type`/`*typeN` attributes in control; fabricated fallback targeting would bypass focus/assist dispatch.
 
 `set_in_both_envs_rilua(key, value)` registers named frames in both environments so frame globals are visible from both.
 
@@ -126,6 +132,7 @@ Remaining audit gaps are branch-specific coverage gaps, not known missing implem
 - [protected-frame-enforcement.md](../../protected-frame-enforcement.md) — protected-frame behavior and remaining gaps
 - `src/lua_api/frame/methods/methods_helpers.rs` — protected-state gating and `ADDON_ACTION_BLOCKED`
 - `src/lua_api/globals/security.rs` — taint helpers, `securecallmethod`, SecureHandler fallback, state/attribute drivers, secure environment
+- `src/lua_api/workarounds/temporary/click_bindings_defaults.rs` — no-profile click-binding behavior
 - `src/lua_api/state.rs` — `secure_attribute_drivers` storage
 - `src/loader/lua_file.rs` — per-addon compiled-closure taint stamping
 - `src/lua_api/env.rs` — frame script-handler taint stamping
@@ -141,7 +148,9 @@ Removed/stale paths that older docs may mention:
 
 ## See Also
 
-- [[lua-api]] — issecure, securecall, hooksecurefunc globals
+- [[lua-api]] — Lua-facing compatibility surfaces and modeled boundaries
+- [[addon-loading]] — explicit secure replay allowlist and addon load lifecycle
+- [[post-load-workaround-audit]] — cleanup restoration ownership
 - [[event-system]] — ADDON_ACTION_BLOCKED event firing
 - [[frame-data-flow]] — frame is_protected field and Protect() method
 - [[protected-frames]] — focused protected-frame enforcement notes

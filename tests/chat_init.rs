@@ -143,6 +143,9 @@ fn show_chat_frame_sets_default_chat_frame_and_fake_chat() {
     )
     .unwrap();
 
+    let edit_box_is_absent: bool = env.eval("return ChatFrame1EditBox == nil").unwrap();
+    assert!(edit_box_is_absent, "test requires no ChatFrame1EditBox");
+
     wow_ui_sim::lua_api::chat_init::show_chat_frame(&env);
 
     // DEFAULT_CHAT_FRAME should now point to ChatFrame1.

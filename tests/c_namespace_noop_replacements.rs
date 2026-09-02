@@ -414,27 +414,41 @@ fn encounter_journal_global_filters_and_tier_are_numeric() {
         tier_type,
         class_before,
         spec_before,
-        class_after,
-        spec_after,
+        numeric_class,
+        numeric_spec,
+        string_class,
+        nil_spec,
+        invalid_class,
+        non_integral_spec,
         tier_after,
         has_valid_difficulty,
-    ): (String, i64, i64, i64, i64, i64, bool) = env
+    ): (String, i64, i64, i64, i64, i64, i64, i64, i64, i64, bool) = env
         .eval(
             r#"
             local tierBefore = EJ_GetCurrentTier()
             local classBefore, specBefore = EJ_GetLootFilter()
 
-            EJ_SetLootFilter("3", nil)
-            local classAfter, specAfter = EJ_GetLootFilter()
+            EJ_SetLootFilter(4, 7)
+            local numericClass, numericSpec = EJ_GetLootFilter()
 
-            EJ_SelectTier("11")
+            EJ_SetLootFilter("3", nil)
+            local stringClass, nilSpec = EJ_GetLootFilter()
+
+            EJ_SetLootFilter("invalid", 2.5)
+            local invalidClass, nonIntegralSpec = EJ_GetLootFilter()
+
+            EJ_SelectTier(11)
             local tierAfter = EJ_GetCurrentTier()
 
             return type(tierBefore),
                 classBefore,
                 specBefore,
-                classAfter,
-                specAfter,
+                numericClass,
+                numericSpec,
+                stringClass,
+                nilSpec,
+                invalidClass,
+                nonIntegralSpec,
                 tierAfter,
                 EJ_IsValidInstanceDifficulty(14)
             "#,
@@ -445,10 +459,23 @@ fn encounter_journal_global_filters_and_tier_are_numeric() {
     assert!(class_before >= 0, "default class filter should be numeric");
     assert!(spec_before >= 0, "default spec filter should be numeric");
     assert_eq!(
-        class_after, 3,
-        "class filter should normalize numeric input"
+        numeric_class, 4,
+        "numeric class filters should be preserved"
     );
-    assert_eq!(spec_after, 0, "spec filter should normalize nil input to 0");
+    assert_eq!(numeric_spec, 7, "numeric spec filters should be preserved");
+    assert_eq!(
+        string_class, 3,
+        "class filter should normalize numeric strings"
+    );
+    assert_eq!(nil_spec, 0, "spec filter should normalize nil input to 0");
+    assert_eq!(
+        invalid_class, 0,
+        "class filter should normalize invalid strings to 0"
+    );
+    assert_eq!(
+        non_integral_spec, 0,
+        "spec filter should normalize non-integral numbers to 0"
+    );
     assert_eq!(tier_after, 11, "EJ_SelectTier should update current tier");
     assert!(
         has_valid_difficulty,

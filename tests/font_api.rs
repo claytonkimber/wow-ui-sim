@@ -84,6 +84,32 @@ fn test_copy_font_object_accepts_xml_style_font_fields() {
 }
 
 #[test]
+fn test_set_font_object_prefers_canonical_fields_over_legacy_aliases() {
+    let env = env();
+    let (path, height, flags): (String, f64, String) = env
+        .eval(
+            r#"
+            local font = {
+                __fontPath = "Fonts\\ARIALN.TTF",
+                __font = "Fonts\\FRIZQT__.TTF",
+                __fontHeight = 24,
+                __height = 12,
+                __fontFlags = "OUTLINE",
+                __outline = "",
+            }
+            local fontString = UIParent:CreateFontString("CanonicalFontFieldsProbe", "ARTWORK")
+            fontString:SetFontObject(font)
+            return fontString:GetFont()
+            "#,
+        )
+        .unwrap();
+
+    assert_eq!(path, "Fonts\\ARIALN.TTF");
+    assert_eq!(height, 24.0);
+    assert_eq!(flags, "OUTLINE");
+}
+
+#[test]
 fn test_set_font_nil_path_does_not_clear_existing_font() {
     let env = env();
     let (result, path, height): (bool, String, f64) = env

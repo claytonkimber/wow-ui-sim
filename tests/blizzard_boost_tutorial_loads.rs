@@ -63,9 +63,8 @@ fn boost_tutorial_required_globals_exist() {
     );
 }
 
-#[test]
-fn blizzard_boost_tutorial_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_boost_tutorial_loads_without_errors(env: &WowLuaEnv) {
 
     load_addon(&env.loader_env(), &dispatcher_toc()).expect("Blizzard_Dispatcher should load");
 
@@ -106,10 +105,10 @@ fn blizzard_boost_tutorial_loads_without_errors() {
         "BoostTutorial frames and mixin globals should be defined after load"
     );
 }
+}
 
-#[test]
-fn boost_tutorial_unhighlight_runs_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn boost_tutorial_unhighlight_runs_without_errors(env: &WowLuaEnv) {
 
     load_addon(&env.loader_env(), &dispatcher_toc()).expect("Blizzard_Dispatcher should load");
     load_addon(&env.loader_env(), &boost_tutorial_toc())
@@ -131,4 +130,5 @@ fn boost_tutorial_unhighlight_runs_without_errors() {
         "BoostTutorial:UnhighlightSpells emitted Lua errors:\n  {}",
         errors.join("\n  ")
     );
+}
 }

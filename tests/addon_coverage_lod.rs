@@ -424,13 +424,20 @@ fn run_load_on_demand_blizzard_addon_shard_body(shard_index: usize, shard_count:
     );
 }
 
-fn run_load_on_demand_blizzard_addon_shard(shard_index: usize, shard_count: usize) {
+fn run_load_on_demand_blizzard_addon_shard_without_timeout(
+    shard_index: usize,
+    shard_count: usize,
+) {
     with_isolated_addon_coverage_state(|| {
         common::with_perf_lock(|| {
-            common::with_timeout(600, move || {
-                run_load_on_demand_blizzard_addon_shard_body(shard_index, shard_count);
-            })
+            run_load_on_demand_blizzard_addon_shard_body(shard_index, shard_count);
         })
+    })
+}
+
+fn run_load_on_demand_blizzard_addon_shard(shard_index: usize, shard_count: usize) {
+    common::with_timeout(600, move || {
+        run_load_on_demand_blizzard_addon_shard_without_timeout(shard_index, shard_count);
     })
 }
 
@@ -583,9 +590,11 @@ fn contribution_runtime_load_survives_post_startup_state() {
 
 #[test]
 fn shard_14_runtime_load_survives_prior_runtime_shards_in_process() {
-    for shard_index in 9..14 {
-        run_load_on_demand_blizzard_addon_shard(shard_index, 16);
-    }
+    common::with_timeout(600, move || {
+        for shard_index in 9..14 {
+            run_load_on_demand_blizzard_addon_shard_without_timeout(shard_index, 16);
+        }
+    })
 }
 
 #[test]

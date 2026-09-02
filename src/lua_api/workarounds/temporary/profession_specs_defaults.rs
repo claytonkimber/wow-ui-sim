@@ -66,8 +66,8 @@ if rawget(C_ProfSpecs, "GetCurrencyInfoForSkillLine") == nil then
     end
 end
 if rawget(C_ProfSpecs, "SkillLineHasSpecialization") == nil then
-    function C_ProfSpecs.SkillLineHasSpecialization(_skillLineID)
-        return false
+    function C_ProfSpecs.SkillLineHasSpecialization(skillLineID)
+        return tonumber(skillLineID) == 164
     end
 end
 "#;
@@ -108,7 +108,8 @@ mod tests {
                 if tabInfo.rootNodeID ~= 1001 then return "root_node" end
                 if C_ProfSpecs.GetSpecTabInfo().enabled ~= false then return "spec_tab" end
                 if C_ProfSpecs.GetCurrencyInfoForSkillLine(164).numAvailable ~= 0 then return "currency" end
-                if C_ProfSpecs.SkillLineHasSpecialization(164) ~= false then return "specialization" end
+                if C_ProfSpecs.SkillLineHasSpecialization(164) ~= true then return "blacksmithing_specialization" end
+                if C_ProfSpecs.SkillLineHasSpecialization(165) ~= false then return "unrelated_specialization" end
                 return "ok"
                 "#,
             )

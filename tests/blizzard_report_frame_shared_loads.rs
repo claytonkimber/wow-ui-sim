@@ -181,14 +181,13 @@ fn toc_declares_optional_dep_singular_advisory_only() {
          Blizzard_GlueParent` — the SINGULAR `OptionalDep` form. The TOC parser at src/toc.rs:96 \
          stores keys verbatim so the metadata HashMap holds `OptionalDep` (singular) as the key"
     );
-    assert!(
-        toc.optional_deps().is_empty(),
-        "TocFile::optional_deps() at src/toc.rs:229-234 only reads the PLURAL `OptionalDeps` key \
-         — so for this addon's `## OptionalDep:` (singular) form, the helper returns an EMPTY \
-         vec. This is a real parser-vs-WoW-source divergence: the WoW format permits both \
-         singular and plural variants, but our helper recognises only the plural. Effect on \
-         loading is nil because optional deps are advisory and never block dependency \
-         resolution; effect on tooling is that `optional_deps()` underreports for this addon"
+    assert_eq!(
+        toc.optional_deps(),
+        vec![
+            "Blizzard_UIParent".to_string(),
+            "Blizzard_GlueParent".to_string(),
+        ],
+        "the singular `## OptionalDep:` directive must expose both advisory dependencies"
     );
 }
 
@@ -276,9 +275,8 @@ fn root_directory_holds_two_files_next_to_toc() {
     );
 }
 
-#[test]
-fn loads_without_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn loads_without_lua_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -304,10 +302,10 @@ fn loads_without_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn is_addon_loaded_after_eager_sweep() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn is_addon_loaded_after_eager_sweep(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_ReportFrameShared')")
@@ -320,10 +318,10 @@ fn is_addon_loaded_after_eager_sweep() {
          dependency-resolution to mark the dep as already-loaded"
     );
 }
+}
 
-#[test]
-fn six_public_mixin_tables_publish() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn six_public_mixin_tables_publish(env: &WowLuaEnv) {
 
     for mixin in PUBLIC_MIXIN_TABLES {
         let kind: String = env
@@ -344,10 +342,10 @@ fn six_public_mixin_tables_publish() {
         );
     }
 }
+}
 
-#[test]
-fn shared_report_frame_mixin_exposes_full_lifecycle_surface() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn shared_report_frame_mixin_exposes_full_lifecycle_surface(env: &WowLuaEnv) {
 
     for method in SHARED_FRAME_LIFECYCLE_METHODS {
         let kind: String = env
@@ -371,10 +369,10 @@ fn shared_report_frame_mixin_exposes_full_lifecycle_surface() {
         );
     }
 }
+}
 
-#[test]
-fn report_info_factory_publishes_nine_create_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn report_info_factory_publishes_nine_create_methods(env: &WowLuaEnv) {
 
     for method in REPORT_INFO_FACTORY_METHODS {
         let kind: String = env
@@ -396,10 +394,10 @@ fn report_info_factory_publishes_nine_create_methods() {
         );
     }
 }
+}
 
-#[test]
-fn report_info_mixin_publishes_setters_and_clear() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn report_info_mixin_publishes_setters_and_clear(env: &WowLuaEnv) {
 
     for method in REPORT_INFO_MIXIN_SETTERS {
         let kind: String = env
@@ -416,10 +414,10 @@ fn report_info_mixin_publishes_setters_and_clear() {
         );
     }
 }
+}
 
-#[test]
-fn screenshot_mode_frame_mixin_drives_alt_top_level_parent_camera_mode() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn screenshot_mode_frame_mixin_drives_alt_top_level_parent_camera_mode(env: &WowLuaEnv) {
 
     let probe: bool = env
         .eval(
@@ -440,10 +438,10 @@ fn screenshot_mode_frame_mixin_drives_alt_top_level_parent_camera_mode() {
          calls C_ReportSystem.TakeReportScreenshot"
     );
 }
+}
 
-#[test]
-fn report_screenshot_mode_frame_publishes_under_implicit_root() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn report_screenshot_mode_frame_publishes_under_implicit_root(env: &WowLuaEnv) {
 
     let frame_kind: String = env
         .eval("return type(ReportScreenshotModeFrame)")
@@ -471,10 +469,10 @@ fn report_screenshot_mode_frame_publishes_under_implicit_root() {
          screenshot capture"
     );
 }
+}
 
-#[test]
-fn virtual_templates_stay_off_global_scope() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn virtual_templates_stay_off_global_scope(env: &WowLuaEnv) {
 
     for template in VIRTUAL_TEMPLATES {
         let kind: String = env
@@ -495,10 +493,10 @@ fn virtual_templates_stay_off_global_scope() {
         );
     }
 }
+}
 
-#[test]
-fn module_locals_stay_file_scoped() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn module_locals_stay_file_scoped(env: &WowLuaEnv) {
 
     let no_module_local_leak: bool = env
         .eval(
@@ -520,6 +518,7 @@ fn module_locals_stay_file_scoped() {
          allow-set that gates the deep-copy). All scoped via the `do ... end` block at \
          lines 517-573 plus inner `local` declarations"
     );
+}
 }
 
 #[test]

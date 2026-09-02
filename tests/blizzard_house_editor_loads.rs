@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, find_toc_file, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
-use wow_ui_sim::startup::fire_startup_events_for_screen;
 use wow_ui_sim::toc::TocFile;
 
 fn blizzard_ui_dir() -> PathBuf {
@@ -21,32 +20,9 @@ fn house_editor_toc() -> PathBuf {
     house_editor_dir().join("Blizzard_HouseEditor.toc")
 }
 
-fn load_full_game_ui_with_house_editor_lod() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-
-    wow_ui_sim::xml::register_intrinsic_templates();
-
-    let ui = blizzard_ui_dir();
-    let addons = discover_blizzard_addons_for_screen(&ui, ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    env.apply_post_load_workarounds();
-    fire_startup_events_for_screen(&env, ScreenKind::Game);
-
+fn load_house_editor(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &house_editor_toc())
         .expect("Blizzard_HouseEditor should load via explicit Rust loader call");
-
-    env
 }
 
 #[test]
@@ -228,9 +204,9 @@ fn blizzard_house_editor_excluded_from_all_screen_auto_discovery_passes() {
     }
 }
 
-#[test]
-fn blizzard_house_editor_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui_with_house_editor_lod();
+prefork_full_ui_case! {
+fn blizzard_house_editor_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
+    load_house_editor(env);
 
     let lua_errors: Vec<String> = env.state().borrow().lua_errors.clone();
     let related: Vec<&String> = lua_errors
@@ -255,10 +231,11 @@ fn blizzard_house_editor_loads_without_addon_specific_lua_errors() {
             .join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_house_editor_is_addon_loaded_returns_true_after_explicit_lod_load() {
-    let env = load_full_game_ui_with_house_editor_lod();
+prefork_full_ui_case! {
+fn blizzard_house_editor_is_addon_loaded_returns_true_after_explicit_lod_load(env: &WowLuaEnv) {
+    load_house_editor(env);
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_HouseEditor')")
@@ -270,10 +247,11 @@ fn blizzard_house_editor_is_addon_loaded_returns_true_after_explicit_lod_load() 
          LoadOnDemand), `C_AddOns.IsAddOnLoaded('Blizzard_HouseEditor')` should return true"
     );
 }
+}
 
-#[test]
-fn blizzard_house_editor_publishes_house_editor_frame_global() {
-    let env = load_full_game_ui_with_house_editor_lod();
+prefork_full_ui_case! {
+fn blizzard_house_editor_publishes_house_editor_frame_global(env: &WowLuaEnv) {
+    load_house_editor(env);
 
     let exists: bool = env
         .eval(
@@ -290,10 +268,11 @@ fn blizzard_house_editor_publishes_house_editor_frame_global() {
          {{area=\"full\", pushable=0}})` to register the frame as a full-area UI panel"
     );
 }
+}
 
-#[test]
-fn blizzard_house_editor_publishes_two_free_helpers() {
-    let env = load_full_game_ui_with_house_editor_lod();
+prefork_full_ui_case! {
+fn blizzard_house_editor_publishes_two_free_helpers(env: &WowLuaEnv) {
+    load_house_editor(env);
 
     for helper in ["HouseEditorFrame_GetFrame", "HouseEditorFrame_IsShown"] {
         let exists: bool = env
@@ -308,10 +287,11 @@ fn blizzard_house_editor_publishes_two_free_helpers() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_house_editor_frame_mixin_publishes_sixteen_methods() {
-    let env = load_full_game_ui_with_house_editor_lod();
+prefork_full_ui_case! {
+fn blizzard_house_editor_frame_mixin_publishes_sixteen_methods(env: &WowLuaEnv) {
+    load_house_editor(env);
 
     for method in [
         "OnLoad",
@@ -348,10 +328,11 @@ fn blizzard_house_editor_frame_mixin_publishes_sixteen_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_house_editor_publishes_six_mode_mixins_inheriting_base() {
-    let env = load_full_game_ui_with_house_editor_lod();
+prefork_full_ui_case! {
+fn blizzard_house_editor_publishes_six_mode_mixins_inheriting_base(env: &WowLuaEnv) {
+    load_house_editor(env);
 
     for mode_mixin in [
         "BaseHouseEditorModeMixin",
@@ -377,10 +358,11 @@ fn blizzard_house_editor_publishes_six_mode_mixins_inheriting_base() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_house_editor_publishes_dye_and_room_component_mixins() {
-    let env = load_full_game_ui_with_house_editor_lod();
+prefork_full_ui_case! {
+fn blizzard_house_editor_publishes_dye_and_room_component_mixins(env: &WowLuaEnv) {
+    load_house_editor(env);
 
     for mixin in [
         "HousingDyePaneMixin",
@@ -409,10 +391,11 @@ fn blizzard_house_editor_publishes_dye_and_room_component_mixins() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_house_editor_publishes_layout_and_pin_mixins() {
-    let env = load_full_game_ui_with_house_editor_lod();
+prefork_full_ui_case! {
+fn blizzard_house_editor_publishes_layout_and_pin_mixins(env: &WowLuaEnv) {
+    load_house_editor(env);
 
     for mixin in [
         "HouseEditorLayoutFloorLineMixin",
@@ -435,10 +418,11 @@ fn blizzard_house_editor_publishes_layout_and_pin_mixins() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_house_editor_publishes_exterior_dropdown_mixins() {
-    let env = load_full_game_ui_with_house_editor_lod();
+prefork_full_ui_case! {
+fn blizzard_house_editor_publishes_exterior_dropdown_mixins(env: &WowLuaEnv) {
+    load_house_editor(env);
 
     for mixin in [
         "HousingExteriorFixturePointMixin",
@@ -463,10 +447,11 @@ fn blizzard_house_editor_publishes_exterior_dropdown_mixins() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_house_editor_publishes_modes_bar_and_button_mixins() {
-    let env = load_full_game_ui_with_house_editor_lod();
+prefork_full_ui_case! {
+fn blizzard_house_editor_publishes_modes_bar_and_button_mixins(env: &WowLuaEnv) {
+    load_house_editor(env);
 
     for mixin in [
         "BaseHouseEditorModesBarMixin",
@@ -491,10 +476,11 @@ fn blizzard_house_editor_publishes_modes_bar_and_button_mixins() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_house_editor_publishes_storage_and_placed_decor_mixins() {
-    let env = load_full_game_ui_with_house_editor_lod();
+prefork_full_ui_case! {
+fn blizzard_house_editor_publishes_storage_and_placed_decor_mixins(env: &WowLuaEnv) {
+    load_house_editor(env);
 
     for mixin in [
         "HouseEditorStorageButtonMixin",
@@ -515,10 +501,11 @@ fn blizzard_house_editor_publishes_storage_and_placed_decor_mixins() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_house_editor_publishes_template_count_and_instruction_mixins() {
-    let env = load_full_game_ui_with_house_editor_lod();
+prefork_full_ui_case! {
+fn blizzard_house_editor_publishes_template_count_and_instruction_mixins(env: &WowLuaEnv) {
+    load_house_editor(env);
 
     for mixin in [
         "HouseEditorInstructionsContainerMixin",
@@ -540,10 +527,11 @@ fn blizzard_house_editor_publishes_template_count_and_instruction_mixins() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_house_editor_publishes_house_exterior_color_names_table() {
-    let env = load_full_game_ui_with_house_editor_lod();
+prefork_full_ui_case! {
+fn blizzard_house_editor_publishes_house_exterior_color_names_table(env: &WowLuaEnv) {
+    load_house_editor(env);
 
     let exists: bool = env
         .eval("return type(HouseExteriorColorNames) == 'table'")
@@ -557,10 +545,11 @@ fn blizzard_house_editor_publishes_house_exterior_color_names_table() {
          dropdowns)"
     );
 }
+}
 
-#[test]
-fn blizzard_house_editor_house_editor_mode_enum_publishes_six_modes() {
-    let env = load_full_game_ui_with_house_editor_lod();
+prefork_full_ui_case! {
+fn blizzard_house_editor_house_editor_mode_enum_publishes_six_modes(env: &WowLuaEnv) {
+    load_house_editor(env);
 
     for mode in [
         "BasicDecor",
@@ -584,4 +573,5 @@ fn blizzard_house_editor_house_editor_mode_enum_publishes_six_modes() {
              src/lua_api/globals/enum_data/missing_enums.lua line 6592"
         );
     }
+}
 }

@@ -358,8 +358,8 @@ fn test_vertex_offset_all_four_corners() {
 #[test]
 fn test_reset_tex_coord_restores_defaults() {
     let env = env();
-    // After SetTexCoord + ResetTexCoord, GetTexCoord should return defaults (0,1,0,1)
-    let (l, r, t, b): (f64, f64, f64, f64) = env
+    // After SetTexCoord + ResetTexCoord, GetTexCoord should return default corners.
+    let (tlx, tly, blx, bly, trx, try_, brx, bry): (f64, f64, f64, f64, f64, f64, f64, f64) = env
         .eval(
             r#"
             local tex = CreateFrame("Frame"):CreateTexture()
@@ -369,7 +369,10 @@ fn test_reset_tex_coord_restores_defaults() {
             "#,
         )
         .unwrap();
-    assert_eq!((l, r, t, b), (0.0, 1.0, 0.0, 1.0));
+    assert_eq!(
+        (tlx, tly, blx, bly, trx, try_, brx, bry),
+        (0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 1.0, 1.0),
+    );
 }
 
 // ---------------------------------------------------------------------------

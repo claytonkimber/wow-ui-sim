@@ -250,9 +250,8 @@ fn blizzard_paged_content_appears_on_every_screen_eager_discovery() {
     }
 }
 
-#[test]
-fn blizzard_paged_content_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_paged_content_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -275,10 +274,10 @@ fn blizzard_paged_content_loads_without_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_paged_content_is_addon_loaded_after_eager_sweep() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_paged_content_is_addon_loaded_after_eager_sweep(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_PagedContent')")
@@ -289,10 +288,10 @@ fn blizzard_paged_content_is_addon_loaded_after_eager_sweep() {
          Game-screen sweep — LoadOnDemand: 0 puts the addon in the eager set"
     );
 }
+}
 
-#[test]
-fn blizzard_paged_content_publishes_nine_mixin_tables() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_paged_content_publishes_nine_mixin_tables(env: &WowLuaEnv) {
 
     for mixin in PUBLIC_MIXINS {
         let kind: String = env
@@ -320,10 +319,10 @@ fn blizzard_paged_content_publishes_nine_mixin_tables() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_paged_content_does_not_leak_virtual_templates_to_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_paged_content_does_not_leak_virtual_templates_to_globals(env: &WowLuaEnv) {
 
     for template in VIRTUAL_TEMPLATES_NOT_IN_GLOBALS {
         let kind: String = env
@@ -339,10 +338,10 @@ fn blizzard_paged_content_does_not_leak_virtual_templates_to_globals() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_paged_content_frame_base_mixin_publishes_callback_event() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_paged_content_frame_base_mixin_publishes_callback_event(env: &WowLuaEnv) {
 
     let callback_present: bool = env
         .eval(
@@ -360,4 +359,5 @@ fn blizzard_paged_content_frame_base_mixin_publishes_callback_event() {
          `myFrame:RegisterCallback(PagedContentFrameBaseMixin.Event.OnUpdate, handler, owner)` \
          — without the callback registry, every consumer would have to poll for changes"
     );
+}
 }

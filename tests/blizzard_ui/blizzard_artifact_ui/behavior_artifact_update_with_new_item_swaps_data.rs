@@ -156,7 +156,7 @@ local function expect(condition, message)
     end
 end
 
-local _, _, _, expectedIcon = C_ArtifactUI.GetArtifactInfo()
+local expectedIcon = 1121487
 local ok, errorMessage = pcall(function()
     FireEvent("ARTIFACT_UPDATE", true)
 end)

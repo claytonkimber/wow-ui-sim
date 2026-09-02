@@ -95,9 +95,8 @@ fn black_market_defaults_match_view_only_empty_state() {
     assert_eq!(num_items, 0.0, "GetNumItems default should report 0");
 }
 
-#[test]
-fn blizzard_black_market_ui_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_black_market_ui_loads_without_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -134,6 +133,7 @@ fn blizzard_black_market_ui_loads_without_errors() {
         "BlackMarket frames, mixin, and globals should be defined after load"
     );
 }
+}
 
 #[cfg(feature = "client-ptr")]
 #[test]
@@ -162,9 +162,8 @@ fn ptr_black_market_does_not_publish_reversed_hide_wrapper() {
     assert_eq!(result, ("function".to_string(), true, true, true));
 }
 
-#[test]
-fn black_market_show_runs_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn black_market_show_runs_without_errors(env: &WowLuaEnv) {
 
     load_addon(&env.loader_env(), &black_market_toc()).expect("BlackMarketUI should load");
 
@@ -184,4 +183,5 @@ fn black_market_show_runs_without_errors() {
         "BlackMarketFrame Show/Hide emitted Lua errors:\n  {}",
         errors.join("\n  ")
     );
+}
 }

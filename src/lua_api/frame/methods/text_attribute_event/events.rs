@@ -167,9 +167,15 @@ pub(super) fn register_event_callback(state: &mut LuaState) -> LuaResult<u32> {
             event
         )));
     }
+    let callback = stack_val(state, 3);
+    if !matches!(callback, Val::Function(_)) {
+        state.push(Val::Bool(false));
+        return Ok(1);
+    }
     borrow_state_mut(state)?
         .widgets
         .register_event_listener(id, &event);
+    super::callbacks::register_frame_event_callback(state, id, &event, callback)?;
     let restricted = crate::event::is_restricted_event(&event);
     rilua_hlist_register_individual(state, id, &event)?;
     state.push(Val::Bool(!restricted));

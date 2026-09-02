@@ -1,21 +1,26 @@
 #![cfg(feature = "client-retail")]
 use std::path::PathBuf;
-use wow_ui_sim::loader::load_addon;
+use wow_ui_sim::loader::{find_toc_file, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
 
 fn blizzard_ui_dir() -> PathBuf {
-    wow_ui_sim::client_profile::blizzard_ui_addons_dir_under(std::path::Path::new(env!(
-        "CARGO_MANIFEST_DIR"
-    )))
+    wow_ui_sim::paths::default_blizzard_ui_addons_path()
+        .expect("Blizzard UI cache should be available")
 }
 
-fn blizzard_toc(addon: &str, toc_name: &str) -> PathBuf {
-    blizzard_ui_dir().join(addon).join(toc_name)
+fn blizzard_toc(addon: &str) -> PathBuf {
+    let addon_dir = blizzard_ui_dir().join(addon);
+    find_toc_file(&addon_dir).unwrap_or_else(|| {
+        panic!(
+            "current active-profile TOC for `{addon}` must resolve at {}",
+            addon_dir.display()
+        )
+    })
 }
 
 #[test]
 fn test_load_blizzard_shared_xml_base() {
-    let toc_path = blizzard_toc("Blizzard_SharedXMLBase", "Blizzard_SharedXMLBase.toc");
+    let toc_path = blizzard_toc("Blizzard_SharedXMLBase");
     let env = WowLuaEnv::new().expect("Failed to create Lua environment");
     let result = load_addon(&env.loader_env(), &toc_path).expect("Failed to load addon");
 
@@ -41,7 +46,7 @@ fn test_load_blizzard_shared_xml_base() {
 
 #[test]
 fn test_mixin_functionality_after_load() {
-    let toc_path = blizzard_toc("Blizzard_SharedXMLBase", "Blizzard_SharedXMLBase.toc");
+    let toc_path = blizzard_toc("Blizzard_SharedXMLBase");
     let env = WowLuaEnv::new().expect("Failed to create Lua environment");
     load_addon(&env.loader_env(), &toc_path).expect("Failed to load addon");
 
@@ -64,7 +69,7 @@ fn test_mixin_functionality_after_load() {
 
 #[test]
 fn test_table_util_after_load() {
-    let toc_path = blizzard_toc("Blizzard_SharedXMLBase", "Blizzard_SharedXMLBase.toc");
+    let toc_path = blizzard_toc("Blizzard_SharedXMLBase");
     let env = WowLuaEnv::new().expect("Failed to create Lua environment");
     let result = load_addon(&env.loader_env(), &toc_path);
 
@@ -86,7 +91,7 @@ fn test_table_util_after_load() {
 fn test_load_blizzard_shared_xml() {
     let env = WowLuaEnv::new().expect("Failed to create Lua environment");
 
-    let base_toc = blizzard_toc("Blizzard_SharedXMLBase", "Blizzard_SharedXMLBase.toc");
+    let base_toc = blizzard_toc("Blizzard_SharedXMLBase");
     let base_result =
         load_addon(&env.loader_env(), &base_toc).expect("Failed to load SharedXMLBase");
     println!(
@@ -97,7 +102,7 @@ fn test_load_blizzard_shared_xml() {
         base_result.warnings.len()
     );
 
-    let toc_path = blizzard_toc("Blizzard_SharedXML", "Blizzard_SharedXML_Mainline.toc");
+    let toc_path = blizzard_toc("Blizzard_SharedXML");
     let result = load_addon(&env.loader_env(), &toc_path).expect("Failed to load addon");
 
     println!("Loaded addon: {}", result.name);
@@ -121,17 +126,17 @@ fn test_load_blizzard_shared_xml() {
 fn env_with_addon_list() -> WowLuaEnv {
     let env = WowLuaEnv::new().expect("Failed to create Lua environment");
 
-    let base_toc = blizzard_toc("Blizzard_SharedXMLBase", "Blizzard_SharedXMLBase.toc");
+    let base_toc = blizzard_toc("Blizzard_SharedXMLBase");
     if let Err(e) = load_addon(&env.loader_env(), &base_toc) {
         eprintln!("Warning: Failed to load SharedXMLBase: {}", e);
     }
 
-    let shared_toc = blizzard_toc("Blizzard_SharedXML", "Blizzard_SharedXML_Mainline.toc");
+    let shared_toc = blizzard_toc("Blizzard_SharedXML");
     if let Err(e) = load_addon(&env.loader_env(), &shared_toc) {
         eprintln!("Warning: Failed to load SharedXML: {}", e);
     }
 
-    let addon_list_toc = blizzard_toc("Blizzard_AddOnList", "Blizzard_AddOnList.toc");
+    let addon_list_toc = blizzard_toc("Blizzard_AddOnList");
     let result =
         load_addon(&env.loader_env(), &addon_list_toc).expect("Failed to load Blizzard_AddOnList");
     println!(

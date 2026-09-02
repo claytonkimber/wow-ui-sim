@@ -1,64 +1,9 @@
-//! Load smoke for `Blizzard_AchievementUI`.
+//! Load contracts for current retail `Blizzard_AchievementUI`.
 //!
-//! TOC reference (`Interface/BlizzardUI/Blizzard_AchievementUI/
-//! Blizzard_AchievementUI_Mainline.toc`):
-//!
-//! ```text
-//! ## Title: Blizzard_AchievementUI
-//! ## Secure: 1
-//! ## Author: Blizzard Entertainment
-//! ## Version: 1.0
-//! ## LoadOnDemand: 1
-//! ## AllowLoadGameType: mainline
-//! Mainline\Blizzard_AchievementUI.lua
-//! Mainline\Blizzard_AchievementUI.xml
-//! Mainline\Localization.lua
-//! ```
-//!
-//! Why this lane uses the game-shape `with_blizzard_addon_smoke_shape`
-//! harness rather than the glue counterpart: the TOC carries no
-//! `## AllowLoad:` directive, which defaults to game-screen visibility
-//! (the closure walker's `allows_screen(Game)` returns true). The lane
-//! also relies on the panel-addons baseline that the smoke-shape harness
-//! pre-loads via `load_panel_addons` (`tests/common/panel_fixtures.rs:53-56`):
-//! `Blizzard_AchievementUI.lua:2` writes
-//! `UIPanelWindows["AchievementFrame"] = { area = "doublewide", ... }` at
-//! file scope, which requires `UIPanelWindows` to already exist as a
-//! table — provided by `Blizzard_UIParentPanelManager` in the panel
-//! baseline. Without that baseline this assignment would either build a
-//! stray global table or trip the panel manager's missing-frame
-//! invariants when the achievement frame is later opened.
-//!
-//! Why the closure-walked `loaded` set is expected to contain ONLY the
-//! root: the TOC declares neither `## Dependencies:` nor any flavour of
-//! `## OptionalDep[s]:`. The closure walker therefore pulls nothing
-//! transitively. Every parent template the addon's XML inherits from
-//! (`TooltipBackdropTemplate`, `GameFontNormal*`, `_SearchBarLg`,
-//! `TooltipBorderBackdropTemplate`, etc., per
-//! `Mainline/Blizzard_AchievementUI.xml`) lives in `Blizzard_SharedXML` /
-//! `Blizzard_FrameXML`, which the panel-addons baseline preloads. A
-//! future change that DOES add a `## Dependencies:` line would land in
-//! `dependency_closure_includes_only_the_root` as a new entry in
-//! `loaded`, surfacing the new dep without silently changing the
-//! contract.
-//!
-//! Why `## AllowLoadGameType: mainline` matters here: the simulator
-//! discovers the TOC with the suffix matching the active game type
-//! (`Blizzard_AchievementUI_Mainline.toc`); a Mists-suffixed sibling
-//! exists at `Blizzard_AchievementUI_Mists.toc`. The closure walker
-//! resolves the right TOC via the screen+gameType filters; this load
-//! smoke pins the mainline lane only.
-//!
-//! Assertion pinned: loading the smoke-shape closure rooted at
-//! `Blizzard_AchievementUI` completes cleanly with zero lane-specific
-//! Lua errors recorded. The lane's single Lua chunk
-//! (`Mainline/Blizzard_AchievementUI.lua`) plus its XML sibling registers
-//! ten `Achievement*Mixin` globals, the `AchievementFrameFilters` table,
-//! and the `ACHIEVEMENT_FUNCTIONS` / `GUILD_ACHIEVEMENT_FUNCTIONS` /
-//! `STAT_FUNCTIONS` / `COMPARISON_*_FUNCTIONS` dispatch tables at file
-//! scope; any nil-call, missing global, or template-resolution failure
-//! would be recorded into `state.lua_errors` and surface in the filtered
-//! list below.
+//! Retail 12.1.0.69497 uses `Blizzard_AchievementUI_Mainline.toc`, loads on
+//! demand in the mainline game client, and declares `Blizzard_FrameXMLUtil`
+//! plus optional `Blizzard_Plunderstorm`. Its bootstrap precedes the Lua, XML,
+//! and localization files.
 
 use crate::common::blizzard_addon_harness::with_blizzard_addon_smoke_shape;
 use crate::common::panel_fixtures::blizzard_ui_dir;
@@ -132,22 +77,35 @@ fn achievement_ui_load_emits_no_lane_specific_lua_errors() {
     });
 }
 
+const CURRENT_TOC_DEPENDENCIES: &[&str] = &["Blizzard_FrameXMLUtil", "Blizzard_Plunderstorm"];
+const PANEL_ADDON_DEPENDENCIES: &[&str] = &["Blizzard_FrameXMLUtil"];
+const STANDARD_GAME_TYPE_FILTERED_DEPENDENCIES: &[&str] = &["Blizzard_Plunderstorm"];
+const CLOSURE_LOADED_ADDONS: &[&str] = &[ROOT];
+
 #[test]
-fn achievement_ui_dependency_closure_includes_only_the_root() {
-    with_blizzard_addon_smoke_shape(&[ROOT], &[], |_env, loaded| {
-        assert_eq!(
-            loaded,
-            &[ROOT.to_string()],
-            "The closure-walked `loaded` set MUST contain ONLY `{ROOT}` because the TOC \
-             (`Blizzard_AchievementUI_Mainline.toc`) declares neither `## Dependencies:` nor any \
-             flavour of `## OptionalDep[s]:`. Every XML parent template the addon inherits from \
-             (`TooltipBackdropTemplate`, `GameFontNormal*`, `_SearchBarLg`, \
-             `TooltipBorderBackdropTemplate`) lives in `Blizzard_SharedXML` / `Blizzard_FrameXML`, \
-             which the panel-addons baseline (`tests/common/panel_fixtures.rs:53-56`) preloads \
-             OUTSIDE the closure walker — so they don't appear here. A regression that adds a \
-             `## Dependencies:` line, OR that pollutes the closure with panel-addon entries, \
-             would change this set and surface the contract drift. Got: {loaded:?}"
-        );
+fn achievement_ui_dependency_closure_includes_current_declared_dependencies() {
+    with_blizzard_addon_smoke_shape(&[ROOT], &[], |env, loaded| {
+        for required in PANEL_ADDON_DEPENDENCIES {
+            let is_loaded: bool = env
+                .eval(&format!(r#"return C_AddOns.IsAddOnLoaded("{required}")"#))
+                .expect("panel baseline dependency load-state probe must run cleanly");
+
+            assert!(
+                is_loaded,
+                "`{required}` is a declared AchievementUI dependency already loaded by \
+                 PANEL_ADDONS. Validate its runtime loaded state through C_AddOns rather than \
+                 requiring it in this harness's newly-loaded closure result."
+            );
+        }
+
+        for required in CLOSURE_LOADED_ADDONS {
+            assert!(
+                loaded.iter().any(|entry| entry == required),
+                "The AchievementUI closure must newly load its requested root `{required}`. \
+                 `Blizzard_FrameXMLUtil` is already in PANEL_ADDONS, while optional \
+                 `Blizzard_Plunderstorm` is excluded by its game-type restriction. Got: {loaded:?}"
+            );
+        }
     });
 }
 
@@ -224,21 +182,8 @@ fn achievement_ui_load_on_demand_root_executes_file_scope_code() {
     });
 }
 
-/// Pin the TOC-driven dependency contract via direct parser dispatch.
-///
-/// Earlier `achievement_ui_dependency_closure_includes_only_the_root` asserts
-/// the literal `loaded == [ROOT]` set, which is correct but reads the contract
-/// as a constant. THIS test grounds the contract in the TOC file via
-/// `TocFile::from_file`: parses `Blizzard_AchievementUI_Mainline.toc`, extracts
-/// `dependencies()` and `optional_deps()`, and asserts every entry appears in
-/// `loaded`. For this addon both lists are currently empty, so the forward
-/// inclusion is vacuous — but the auxiliary "no extras beyond ROOT" check on
-/// the reverse side AND the "TOC has zero deps" parser-grounded assertion
-/// together hold the contract under change: a future PR adding a `##
-/// Dependencies:` line either (a) gets pulled by the closure walker and
-/// satisfies the forward inclusion, OR (b) gets dropped and trips the
-/// inclusion. Either way the empty-list assertion forces the PR to also
-/// update this test, surfacing the contract drift.
+/// Verify the parser and closure walker preserve retail's direct TOC dependencies.
+
 #[test]
 fn achievement_ui_loaded_set_contains_every_declared_toc_dependency() {
     let toc_path = blizzard_ui_dir().join(ROOT).join(ROOT_TOC_FILE);
@@ -254,46 +199,40 @@ fn achievement_ui_loaded_set_contains_every_declared_toc_dependency() {
     let mut declared_deps: Vec<String> = toc.dependencies();
     declared_deps.extend(toc.optional_deps());
 
-    assert!(
-        declared_deps.is_empty(),
-        "`{ROOT_TOC_FILE}` currently declares NO `## Dependencies:` and NO `## OptionalDeps:` \
-         entries — the parser-extracted set is `{declared_deps:?}`. If a future PR adds either \
-         line, this assertion will trip; that PR must (a) update this expected list AND (b) \
-         either confirm the closure walker pulls the new dep (the forward inclusion below \
-         passes) or fix the closure walker. The plural `## OptionalDeps:` form is the only \
-         one the parser recognises (src/toc.rs:229-234) — singular `## OptionalDep:` is silently \
-         ignored, so a future singular-form addition would NOT change `declared_deps` and would \
-         NOT trip this guard but WOULD silently fail to pull the dep."
+    assert_eq!(
+        declared_deps,
+        CURRENT_TOC_DEPENDENCIES,
+        "`{ROOT_TOC_FILE}` currently declares these direct dependencies. Update this source \
+         contract with the TOC if retail changes it."
     );
 
-    with_blizzard_addon_smoke_shape(&[ROOT], &[], |_env, loaded| {
+    with_blizzard_addon_smoke_shape(&[ROOT], &[], |env, loaded| {
         for dep in &declared_deps {
-            assert!(
-                loaded.iter().any(|name| name == dep),
-                "Declared TOC dependency `{dep}` (parsed from \
-                 `{ROOT_TOC_FILE}` via `TocFile::from_file`) MUST appear in the closure-walked \
-                 `loaded` set. The walker calls `toc.dependencies().chain(toc.optional_deps())` \
-                 (src/loader/mod.rs:454) to pull deps transitively. A missing entry here means \
-                 the walker dropped the dep — downstream addons inheriting templates from this \
-                 dep would fail to resolve. Loaded set: {loaded:?}"
-            );
+            let is_loaded: bool = env
+                .eval(&format!(r#"return C_AddOns.IsAddOnLoaded("{dep}")"#))
+                .expect("declared dependency load-state probe must run cleanly");
+
+            if PANEL_ADDON_DEPENDENCIES.contains(&dep.as_str()) {
+                assert!(
+                    is_loaded,
+                    "Declared TOC dependency `{dep}` is already loaded by PANEL_ADDONS, so \
+                     C_AddOns.IsAddOnLoaded must report it at runtime."
+                );
+            } else if STANDARD_GAME_TYPE_FILTERED_DEPENDENCIES.contains(&dep.as_str()) {
+                assert!(
+                    !is_loaded,
+                    "Declared TOC dependency `{dep}` is restricted to the plunderstorm game \
+                     type, so the standard retail panel fixture must not load it."
+                );
+            } else {
+                panic!("unclassified declared AchievementUI dependency `{dep}`");
+            }
         }
 
-        for entry in loaded {
-            if entry == ROOT {
-                continue;
-            }
-            assert!(
-                declared_deps.iter().any(|dep| dep == entry),
-                "Closure-walked `loaded` entry `{entry}` is NOT declared as a TOC dependency in \
-                 `{ROOT_TOC_FILE}` — the parser extracted `{declared_deps:?}` from the file's \
-                 `## Dependencies:` and `## OptionalDeps:` lines. An extra entry here means \
-                 either (a) the closure walker pulled an addon that wasn't requested (e.g. via \
-                 a panel-baseline leak into the closure pool), OR (b) the TOC declares a dep \
-                 in a form the parser doesn't recognise (e.g. singular `## OptionalDep:`). \
-                 Loaded set: {loaded:?}"
-            );
-        }
+        assert!(
+            loaded.iter().any(|name| name == ROOT),
+            "The newly-loaded closure must include its requested root `{ROOT}`. Got: {loaded:?}"
+        );
     });
 }
 

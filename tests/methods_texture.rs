@@ -40,6 +40,28 @@ fn assert_coords_close(actual: [f64; 8], expected: [f64; 8]) {
     }
 }
 
+#[test]
+fn duplicate_named_textures_keep_first_global_binding() {
+    let env = env();
+    let result: (bool, bool, bool, i64) = env
+        .eval(
+            r#"
+            local parent = CreateFrame("Frame", "DuplicateTextureParent", UIParent)
+            local first = parent:CreateTexture("DuplicateTextureRegion", "BACKGROUND")
+            local second = parent:CreateTexture("DuplicateTextureRegion", "ARTWORK")
+            second:SetPoint("LEFT", DuplicateTextureRegion, "RIGHT")
+            local _, relativeTo = second:GetPoint(1)
+            return first ~= second,
+                   DuplicateTextureRegion == first,
+                   relativeTo == first,
+                   parent:GetNumRegions()
+            "#,
+        )
+        .expect("duplicate named texture probe should succeed");
+
+    assert_eq!(result, (true, true, true, 2));
+}
+
 // ============================================================================
 // SetTexture / GetTexture
 // ============================================================================

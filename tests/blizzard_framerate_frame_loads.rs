@@ -146,9 +146,8 @@ fn blizzard_framerate_frame_auto_loads_on_game_screen_only() {
     );
 }
 
-#[test]
-fn blizzard_framerate_frame_loads_via_full_game_ui_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_framerate_frame_loads_via_full_game_ui_without_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -167,10 +166,10 @@ fn blizzard_framerate_frame_loads_via_full_game_ui_without_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_framerate_frame_is_addon_loaded_returns_true_after_full_game_ui_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_framerate_frame_is_addon_loaded_returns_true_after_full_game_ui_load(env: &WowLuaEnv) {
 
     let post_load: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_FramerateFrame') and true or false")
@@ -182,10 +181,10 @@ fn blizzard_framerate_frame_is_addon_loaded_returns_true_after_full_game_ui_load
          `mark_addon_loaded` registers it"
     );
 }
+}
 
-#[test]
-fn blizzard_framerate_frame_singleton_publishes_with_world_frame_parent() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_framerate_frame_singleton_publishes_with_world_frame_parent(env: &WowLuaEnv) {
 
     let info: (String, String, bool) = env
         .eval(
@@ -209,10 +208,10 @@ fn blizzard_framerate_frame_singleton_publishes_with_world_frame_parent() {
          toggle calls Toggle()"
     );
 }
+}
 
-#[test]
-fn blizzard_framerate_frame_publishes_label_and_framerate_text_children() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_framerate_frame_publishes_label_and_framerate_text_children(env: &WowLuaEnv) {
 
     let children_present: (bool, bool) = env
         .eval(
@@ -233,10 +232,10 @@ fn blizzard_framerate_frame_publishes_label_and_framerate_text_children() {
          frame size from ResizeLayoutFrame"
     );
 }
+}
 
-#[test]
-fn blizzard_framerate_frame_publishes_mixin_with_lifecycle_and_benchmark_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_framerate_frame_publishes_mixin_with_lifecycle_and_benchmark_methods(env: &WowLuaEnv) {
 
     let methods_present: (bool, bool, bool, bool, bool, bool) = env
         .eval(
@@ -263,10 +262,10 @@ fn blizzard_framerate_frame_publishes_mixin_with_lifecycle_and_benchmark_methods
          marks self.benchmark=true + Show)"
     );
 }
+}
 
-#[test]
-fn blizzard_framerate_frame_publishes_micro_menu_anchoring_and_position_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_framerate_frame_publishes_micro_menu_anchoring_and_position_methods(env: &WowLuaEnv) {
 
     let methods_present: (bool, bool, bool) = env
         .eval(
@@ -290,10 +289,10 @@ fn blizzard_framerate_frame_publishes_micro_menu_anchoring_and_position_methods(
          drive position changes in response to user-dragged micro-menu repositioning"
     );
 }
+}
 
-#[test]
-fn blizzard_framerate_frame_inherits_resize_layout_frame_layout_method() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_framerate_frame_inherits_resize_layout_frame_layout_method(env: &WowLuaEnv) {
 
     let layout_method_present: bool = env
         .eval("return type(FramerateFrame.Layout) == 'function'")
@@ -308,10 +307,10 @@ fn blizzard_framerate_frame_inherits_resize_layout_frame_layout_method() {
          error"
     );
 }
+}
 
-#[test]
-fn blizzard_framerate_frame_label_inherits_system_font_shadow_med1() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_framerate_frame_label_inherits_system_font_shadow_med1(env: &WowLuaEnv) {
 
     let label_text: String = env
         .eval(
@@ -327,4 +326,5 @@ fn blizzard_framerate_frame_label_inherits_system_font_shadow_med1() {
          (en-US). Empty text would mean the localization global was nil at \
          FontString creation time"
     );
+}
 }

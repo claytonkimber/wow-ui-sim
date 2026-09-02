@@ -1,0 +1,403 @@
+{
+  "schema": "patch-api-source-register/v1",
+  "patch": "12.1.0",
+  "source": {
+    "audit": "docs/wiki/investigations/patch-12-1-api-audit.md",
+    "scope": "Broader non-FrameXML 12.1 behavioral fidelity boundaries excluded from the 432-row symbol snapshot.",
+    "normalization": "Each independently testable behavior is a changed occurrence grouped by the existing eight audit families."
+  },
+  "candidate_status_totals": {
+    "best-effort": 33,
+    "unsafe": 21,
+    "impossible": 0,
+    "total": 54
+  },
+  "candidate_states": {
+    "best_effort": [
+      "Patch12_1.AuraContainer.CreationTypes",
+      "Patch12_1.AuraContainer.Assignment",
+      "Patch12_1.AuraContainer.Filtering",
+      "Patch12_1.AuraContainer.Sorting",
+      "Patch12_1.AuraContainer.PartitionPlacement",
+      "Patch12_1.AuraContainer.ManagedButtonLifecycle",
+      "Patch12_1.AuraContainer.TooltipBinding",
+      "Patch12_1.DurationTextBinding.Lifetime",
+      "Patch12_1.DurationTextBinding.StableIdentity",
+      "Patch12_1.DurationTextBinding.Formatter",
+      "Patch12_1.DurationTextBinding.ColorCurve",
+      "Patch12_1.DurationTextBinding.FontStringUpdate",
+      "Patch12_1.Service.Discord.OAuthState",
+      "Patch12_1.Service.Discord.GuildState",
+      "Patch12_1.Service.Discord.ServerChannelPayload",
+      "Patch12_1.Service.Housing.OwnedHouseState",
+      "Patch12_1.Service.Housing.BlueprintPayload",
+      "Patch12_1.Service.Housing.AvailabilityCodes",
+      "Patch12_1.Service.Housing.EditorDecorLayoutPayload",
+      "Patch12_1.Service.BattleNet.FriendInvitePayload",
+      "Patch12_1.Service.BattleNet.TitleFriendPayload",
+      "Patch12_1.Service.BattleNet.TitleFriendUnitInvite",
+      "Patch12_1.Service.EncounterJournal.DifficultyPayload",
+      "Patch12_1.Service.Cooldown.Payloads",
+      "Patch12_1.Service.Pet.Payloads",
+      "Patch12_1.Service.LFG.Payloads",
+      "Patch12_1.Service.PlayerChoice.Payloads",
+      "Patch12_1.Service.TieredEntrance.Payloads",
+      "Patch12_1.StrictRemoval.BlizzardLoadCompatibility",
+      "Patch12_1.StrictRemoval.PostStartupHiding",
+      "Patch12_1.TextureRadialProgress.Surface",
+      "Patch12_1.TextureRadialProgress.MethodDispatch",
+      "Patch12_1.TextureRadialProgress.StateBehavior"
+    ],
+    "unsafe": [
+      "Patch12_1.UnitAura.AddonSecretError",
+      "Patch12_1.UnitAura.BlizzardSecretAccess",
+      "Patch12_1.UnitAura.SecretAuraData",
+      "Patch12_1.UnitAura.SecretEventPayload",
+      "Patch12_1.PrivateScriptObjects.PrivateIdentity",
+      "Patch12_1.PrivateScriptObjects.InaccessiblePublicKeys",
+      "Patch12_1.PrivateScriptObjects.ChildVisibility",
+      "Patch12_1.PrivateScriptObjects.HookBoundary",
+      "Patch12_1.PrivateScriptObjects.ScriptStorage",
+      "Patch12_1.PrivateScriptObjects.SecureDelegateEnforcement",
+      "Patch12_1.ForbiddenAspects.UntrustedScriptExecution",
+      "Patch12_1.ForbiddenAspects.UntrustedLayoutScriptExecution",
+      "Patch12_1.ForbiddenAspects.EventRegistrations",
+      "Patch12_1.ForbiddenAspects.AlwaysPropagateInput",
+      "Patch12_1.ForbiddenAspects.ScriptedInput",
+      "Patch12_1.ForbiddenAspects.QueryFocus",
+      "Patch12_1.AuraContainer.SecretVisibility",
+      "Patch12_1.Service.PrivateAura.Payloads",
+      "Patch12_1.StrictRemoval.PreStartupVisibility",
+      "Patch12_1.StrictRemoval.WrapperTiming",
+      "Patch12_1.DurationTextBinding.RepresentationFidelity"
+    ],
+    "impossible": [],
+    "note": "Candidate states guide re-triage only. Machine status remains neutral until focused evidence or item-specific exception approval exists."
+  },
+  "occurrences": [
+    {
+      "direction": "changed",
+      "category": "UnitAura secrecy",
+      "symbol": "Patch12_1.UnitAura.AddonSecretError",
+      "detail": "Addon-tainted UnitAura and aura access raise the retail secret-value error shape."
+    },
+    {
+      "direction": "changed",
+      "category": "UnitAura secrecy",
+      "symbol": "Patch12_1.UnitAura.BlizzardSecretAccess",
+      "detail": "Blizzard/internal callers receive the permitted secret-aura behavior distinct from addon-tainted callers."
+    },
+    {
+      "direction": "changed",
+      "category": "UnitAura secrecy",
+      "symbol": "Patch12_1.UnitAura.SecretAuraData",
+      "detail": "Fully secret AuraData fields remain inaccessible to addons while preserving the retail object shape."
+    },
+    {
+      "direction": "changed",
+      "category": "UnitAura secrecy",
+      "symbol": "Patch12_1.UnitAura.SecretEventPayload",
+      "detail": "Secret UNIT_AURA payload values preserve retail secrecy and tuple shape."
+    },
+    {
+      "direction": "changed",
+      "category": "Private Script Objects",
+      "symbol": "Patch12_1.PrivateScriptObjects.PrivateIdentity",
+      "detail": "Private or forbidden objects have identity distinct from their public frame view."
+    },
+    {
+      "direction": "changed",
+      "category": "Private Script Objects",
+      "symbol": "Patch12_1.PrivateScriptObjects.InaccessiblePublicKeys",
+      "detail": "Private keys remain inaccessible through the public object."
+    },
+    {
+      "direction": "changed",
+      "category": "Private Script Objects",
+      "symbol": "Patch12_1.PrivateScriptObjects.ChildVisibility",
+      "detail": "Public traversal cannot expose forbidden or private children."
+    },
+    {
+      "direction": "changed",
+      "category": "Private Script Objects",
+      "symbol": "Patch12_1.PrivateScriptObjects.HookBoundary",
+      "detail": "Hooks cannot cross private or forbidden partitions except through permitted delegates."
+    },
+    {
+      "direction": "changed",
+      "category": "Private Script Objects",
+      "symbol": "Patch12_1.PrivateScriptObjects.ScriptStorage",
+      "detail": "Script handlers stored in private partitions are not publicly readable or writable."
+    },
+    {
+      "direction": "changed",
+      "category": "Private Script Objects",
+      "symbol": "Patch12_1.PrivateScriptObjects.SecureDelegateEnforcement",
+      "detail": "Public delegates invoke permitted private behavior without exposing private receiver state."
+    },
+    {
+      "direction": "changed",
+      "category": "Forbidden Aspects",
+      "symbol": "Patch12_1.ForbiddenAspects.UntrustedScriptExecution",
+      "detail": "Operations requiring trusted script execution reject insecure callers."
+    },
+    {
+      "direction": "changed",
+      "category": "Forbidden Aspects",
+      "symbol": "Patch12_1.ForbiddenAspects.UntrustedLayoutScriptExecution",
+      "detail": "Layout-script operations reject insecure callers lacking the required aspect."
+    },
+    {
+      "direction": "changed",
+      "category": "Forbidden Aspects",
+      "symbol": "Patch12_1.ForbiddenAspects.EventRegistrations",
+      "detail": "Event registration operations enforce the EventRegistrations aspect restriction."
+    },
+    {
+      "direction": "changed",
+      "category": "Forbidden Aspects",
+      "symbol": "Patch12_1.ForbiddenAspects.AlwaysPropagateInput",
+      "detail": "Input propagation changes enforce the AlwaysPropagateInput aspect restriction."
+    },
+    {
+      "direction": "changed",
+      "category": "Forbidden Aspects",
+      "symbol": "Patch12_1.ForbiddenAspects.ScriptedInput",
+      "detail": "Scripted-input operations enforce the ScriptedInput aspect restriction."
+    },
+    {
+      "direction": "changed",
+      "category": "Forbidden Aspects",
+      "symbol": "Patch12_1.ForbiddenAspects.QueryFocus",
+      "detail": "Focus-query operations enforce the QueryFocus aspect restriction."
+    },
+    {
+      "direction": "changed",
+      "category": "AuraContainer",
+      "symbol": "Patch12_1.AuraContainer.CreationTypes",
+      "detail": "AuraContainer, AuraButton, and ManagedAuraContainer can be created with compatible object types."
+    },
+    {
+      "direction": "changed",
+      "category": "AuraContainer",
+      "symbol": "Patch12_1.AuraContainer.Assignment",
+      "detail": "Aura data can be assigned to container and button objects with compatible ownership."
+    },
+    {
+      "direction": "changed",
+      "category": "AuraContainer",
+      "symbol": "Patch12_1.AuraContainer.Filtering",
+      "detail": "Helpful, harmful, and player filters select a compatible aura subset."
+    },
+    {
+      "direction": "changed",
+      "category": "AuraContainer",
+      "symbol": "Patch12_1.AuraContainer.Sorting",
+      "detail": "Aura entries use a documented compatible ordering."
+    },
+    {
+      "direction": "changed",
+      "category": "AuraContainer",
+      "symbol": "Patch12_1.AuraContainer.PartitionPlacement",
+      "detail": "Public and private aura data lands in the compatible object partition."
+    },
+    {
+      "direction": "changed",
+      "category": "AuraContainer",
+      "symbol": "Patch12_1.AuraContainer.ManagedButtonLifecycle",
+      "detail": "Managed containers create, reuse, and release aura buttons compatibly."
+    },
+    {
+      "direction": "changed",
+      "category": "AuraContainer",
+      "symbol": "Patch12_1.AuraContainer.TooltipBinding",
+      "detail": "Aura buttons bind compatible aura tooltip data."
+    },
+    {
+      "direction": "changed",
+      "category": "AuraContainer",
+      "symbol": "Patch12_1.AuraContainer.SecretVisibility",
+      "detail": "Secret aura values remain hidden while container and button structure stays usable."
+    },
+    {
+      "direction": "changed",
+      "category": "Texture radial progress",
+      "symbol": "Patch12_1.TextureRadialProgress.Surface",
+      "detail": "A created Texture exposes the radial method family; no standalone constructor or object claim is made."
+    },
+    {
+      "direction": "changed",
+      "category": "Texture radial progress",
+      "symbol": "Patch12_1.TextureRadialProgress.MethodDispatch",
+      "detail": "Radial progress methods dispatch on a Texture receiver."
+    },
+    {
+      "direction": "changed",
+      "category": "Texture radial progress",
+      "symbol": "Patch12_1.TextureRadialProgress.StateBehavior",
+      "detail": "Texture-backed radial progress defaults, setters/getters, visual mode, and Clear reset are modeled."
+    },
+    {
+      "direction": "changed",
+      "category": "DurationTextBinding",
+      "symbol": "Patch12_1.DurationTextBinding.Lifetime",
+      "detail": "A binding remains usable while retained by Lua references; exact Blizzard ownership and invalidation semantics remain unproven."
+    },
+    {
+      "direction": "changed",
+      "category": "DurationTextBinding",
+      "symbol": "Patch12_1.DurationTextBinding.StableIdentity",
+      "detail": "Factory calls return distinct Lua tables with stable object identity and method lookup while referenced."
+    },
+    {
+      "direction": "changed",
+      "category": "DurationTextBinding",
+      "symbol": "Patch12_1.DurationTextBinding.RepresentationFidelity",
+      "detail": "The binding type, metatable, userdata representation, finalization, and ownership match Blizzard exactly."
+    },
+    {
+      "direction": "changed",
+      "category": "DurationTextBinding",
+      "symbol": "Patch12_1.DurationTextBinding.Formatter",
+      "detail": "Duration formatting and interpolation use the documented compatible contract."
+    },
+    {
+      "direction": "changed",
+      "category": "DurationTextBinding",
+      "symbol": "Patch12_1.DurationTextBinding.ColorCurve",
+      "detail": "Color-curve methods preserve compatible binding state."
+    },
+    {
+      "direction": "changed",
+      "category": "DurationTextBinding",
+      "symbol": "Patch12_1.DurationTextBinding.FontStringUpdate",
+      "detail": "The binding updates a FontString through a documented compatible lifetime and update contract."
+    },
+    {
+      "direction": "changed",
+      "category": "Service payloads",
+      "symbol": "Patch12_1.Service.Discord.OAuthState",
+      "detail": "Discord authorization and refresh state transitions expose compatible result payloads."
+    },
+    {
+      "direction": "changed",
+      "category": "Service payloads",
+      "symbol": "Patch12_1.Service.Discord.GuildState",
+      "detail": "Discord guild link, unlink, and setting operations expose compatible state payloads."
+    },
+    {
+      "direction": "changed",
+      "category": "Service payloads",
+      "symbol": "Patch12_1.Service.Discord.ServerChannelPayload",
+      "detail": "Discord server and channel lists, names, counts, and linkable-channel payloads are compatible."
+    },
+    {
+      "direction": "changed",
+      "category": "Service payloads",
+      "symbol": "Patch12_1.Service.Housing.OwnedHouseState",
+      "detail": "Owned-house and plot state plus ResetHouse behavior follow the local compatibility model."
+    },
+    {
+      "direction": "changed",
+      "category": "Service payloads",
+      "symbol": "Patch12_1.Service.Housing.BlueprintPayload",
+      "detail": "Housing blueprint export, import, and share-code payloads follow the local compatibility model."
+    },
+    {
+      "direction": "changed",
+      "category": "Service payloads",
+      "symbol": "Patch12_1.Service.Housing.AvailabilityCodes",
+      "detail": "Housing availability and result codes plus import validation follow the local compatibility model."
+    },
+    {
+      "direction": "changed",
+      "category": "Service payloads",
+      "symbol": "Patch12_1.Service.Housing.EditorDecorLayoutPayload",
+      "detail": "Housing editor, decor, room, budget, and floorplan payloads follow the local compatibility model."
+    },
+    {
+      "direction": "changed",
+      "category": "Service payloads",
+      "symbol": "Patch12_1.Service.BattleNet.FriendInvitePayload",
+      "detail": "Verified Battle.net friend invite creation, deduplication, and info fields follow the local compatibility model."
+    },
+    {
+      "direction": "changed",
+      "category": "Service payloads",
+      "symbol": "Patch12_1.Service.BattleNet.TitleFriendPayload",
+      "detail": "Battle.net title-friend custom names, tags, feature flags, and appear-offline state follow the local compatibility model."
+    },
+    {
+      "direction": "changed",
+      "category": "Service payloads",
+      "symbol": "Patch12_1.Service.BattleNet.TitleFriendUnitInvite",
+      "detail": "Battle.net title-friend unit invite eligibility uses a documented deterministic compatibility result."
+    },
+    {
+      "direction": "changed",
+      "category": "Service payloads",
+      "symbol": "Patch12_1.Service.EncounterJournal.DifficultyPayload",
+      "detail": "Encounter Journal base and valid difficulty IDs follow generated instance-data guesses."
+    },
+    {
+      "direction": "changed",
+      "category": "Service payloads",
+      "symbol": "Patch12_1.Service.Cooldown.Payloads",
+      "detail": "Cooldown query structures, secret fields, and update payloads follow a documented compatibility contract."
+    },
+    {
+      "direction": "changed",
+      "category": "Service payloads",
+      "symbol": "Patch12_1.Service.Pet.Payloads",
+      "detail": "Pet-related structures and state payloads follow a documented compatibility contract."
+    },
+    {
+      "direction": "changed",
+      "category": "Service payloads",
+      "symbol": "Patch12_1.Service.LFG.Payloads",
+      "detail": "LFG service-result structures follow a documented compatibility contract."
+    },
+    {
+      "direction": "changed",
+      "category": "Service payloads",
+      "symbol": "Patch12_1.Service.PlayerChoice.Payloads",
+      "detail": "Player-choice structures, options, and state payloads follow a documented compatibility contract."
+    },
+    {
+      "direction": "changed",
+      "category": "Service payloads",
+      "symbol": "Patch12_1.Service.TieredEntrance.Payloads",
+      "detail": "C_DelvesUI TieredEntranceTierInfo rows expose tier, suggestedILvl, unlocked, tierDescription, modifierUIWidgetSetID, lockedReason, and rewards containing id, quantity, rewardType, and context."
+    },
+    {
+      "direction": "changed",
+      "category": "Service payloads",
+      "symbol": "Patch12_1.Service.PrivateAura.Payloads",
+      "detail": "Private-aura payloads preserve inaccessible and secret structural boundaries."
+    },
+    {
+      "direction": "changed",
+      "category": "Strict removal timing",
+      "symbol": "Patch12_1.StrictRemoval.PreStartupVisibility",
+      "detail": "Removed APIs are absent from addon-facing globals before Blizzard startup completes."
+    },
+    {
+      "direction": "changed",
+      "category": "Strict removal timing",
+      "symbol": "Patch12_1.StrictRemoval.BlizzardLoadCompatibility",
+      "detail": "Pinned Blizzard UI loads while required removed symbols remain temporarily available."
+    },
+    {
+      "direction": "changed",
+      "category": "Strict removal timing",
+      "symbol": "Patch12_1.StrictRemoval.PostStartupHiding",
+      "detail": "Removed symbols are hidden from addon-facing checks after startup."
+    },
+    {
+      "direction": "changed",
+      "category": "Strict removal timing",
+      "symbol": "Patch12_1.StrictRemoval.WrapperTiming",
+      "detail": "Deprecated wrappers remain available exactly until their required Blizzard callers finish."
+    }
+  ]
+}

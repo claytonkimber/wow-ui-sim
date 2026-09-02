@@ -36,9 +36,8 @@ fn load_full_game_ui() -> WowLuaEnv {
     env
 }
 
-#[test]
-fn blizzard_class_trial_secure_frame_and_mixin_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_class_trial_secure_frame_and_mixin_are_defined(env: &WowLuaEnv) {
 
     let frame_present: bool = env
         .eval(
@@ -65,10 +64,10 @@ fn blizzard_class_trial_secure_frame_and_mixin_are_defined() {
         "ClassTrialSecureFrameMixin should be defined after load"
     );
 }
+}
 
-#[test]
-fn class_trial_outbound_helpers_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn class_trial_outbound_helpers_are_defined(env: &WowLuaEnv) {
 
     let helpers_present: bool = env
         .eval(
@@ -87,4 +86,5 @@ fn class_trial_outbound_helpers_are_defined() {
         helpers_present,
         "ClassTrialOutbound table and its four functions should be defined after load"
     );
+}
 }

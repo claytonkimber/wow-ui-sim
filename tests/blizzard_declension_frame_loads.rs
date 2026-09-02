@@ -92,9 +92,8 @@ fn blizzard_declension_frame_appears_in_game_discovery() {
     );
 }
 
-#[test]
-fn blizzard_declension_frame_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_declension_frame_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -109,6 +108,7 @@ fn blizzard_declension_frame_loads_without_errors() {
         "Blizzard_DeclensionFrame emitted Lua errors during load:\n  {}",
         addon_errors.join("\n  ")
     );
+}
 }
 
 #[test]
@@ -134,9 +134,8 @@ fn blizzard_declension_frame_mainline_stub_files_are_intentionally_empty() {
     );
 }
 
-#[test]
-fn blizzard_declension_frame_publishes_no_globals_in_mainline_stub() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_declension_frame_publishes_no_globals_in_mainline_stub(env: &WowLuaEnv) {
 
     let no_globals: bool = env
         .eval(
@@ -158,6 +157,7 @@ fn blizzard_declension_frame_publishes_no_globals_in_mainline_stub() {
          for BATTLEPET_FORCE_NAME_DECLENSION / PET_FORCE_NAME_DECLENSION handling — those \
          events are still registered by FrameXML but go unhandled in non-declension locales"
     );
+}
 }
 
 #[test]

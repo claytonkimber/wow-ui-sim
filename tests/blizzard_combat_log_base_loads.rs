@@ -72,9 +72,8 @@ fn blizzard_combat_log_base_appears_in_game_discovery_via_dependency_pull() {
     );
 }
 
-#[test]
-fn blizzard_combat_log_base_is_loaded_as_combatlog_dependency() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_combat_log_base_is_loaded_as_combatlog_dependency(env: &WowLuaEnv) {
 
     let already_loaded: bool = env
         .eval(
@@ -90,10 +89,10 @@ fn blizzard_combat_log_base_is_loaded_as_combatlog_dependency() {
          runtime-LoadAddOns) and Blizzard_CombatLogProcessor"
     );
 }
+}
 
-#[test]
-fn blizzard_combat_log_base_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_combat_log_base_loads_without_errors(env: &WowLuaEnv) {
 
     let base_errors: Vec<String> = env
         .state()
@@ -109,10 +108,10 @@ fn blizzard_combat_log_base_loads_without_errors() {
         base_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_combat_log_base_filter_constants_are_populated() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_combat_log_base_filter_constants_are_populated(env: &WowLuaEnv) {
 
     let filters_present: bool = env
         .eval(
@@ -133,10 +132,10 @@ fn blizzard_combat_log_base_filter_constants_are_populated() {
          Blizzard_CombatLogBase/Shared/CombatLogFilters.lua should be populated"
     );
 }
+}
 
-#[test]
-fn blizzard_combat_log_base_mainline_constants_are_populated() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_combat_log_base_mainline_constants_are_populated(env: &WowLuaEnv) {
 
     let constants_present: bool = env
         .eval(
@@ -154,10 +153,10 @@ fn blizzard_combat_log_base_mainline_constants_are_populated() {
          COMBAT_LOG_SCHOOL_MASK_NONE should equal Enum.Damageclass.MaskNone"
     );
 }
+}
 
-#[test]
-fn blizzard_combat_log_base_default_colors_are_populated() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_combat_log_base_default_colors_are_populated(env: &WowLuaEnv) {
 
     let colors_present: bool = env
         .eval(
@@ -178,10 +177,10 @@ fn blizzard_combat_log_base_default_colors_are_populated() {
          eventColoring/highlightedEvents subtables with the documented entries"
     );
 }
+}
 
-#[test]
-fn blizzard_combat_log_base_combat_log_util_methods_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_combat_log_base_combat_log_util_methods_are_defined(env: &WowLuaEnv) {
 
     let util_present: bool = env
         .eval(
@@ -207,10 +206,10 @@ fn blizzard_combat_log_base_combat_log_util_methods_are_defined() {
          GenerateDamageResultString) should be defined after load"
     );
 }
+}
 
-#[test]
-fn blizzard_combat_log_base_wrap_text_in_color_works() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_combat_log_base_wrap_text_in_color_works(env: &WowLuaEnv) {
 
     let wrapped: String = env
         .eval("return CombatLogUtil.WrapTextInColor('hi', {r = 1.0, g = 0.5, b = 0.25, a = 1.0})")
@@ -220,10 +219,10 @@ fn blizzard_combat_log_base_wrap_text_in_color_works() {
         "WrapTextInColor should emit `|cffRRGGBBtext|r` with channels scaled to 0–255"
     );
 }
+}
 
-#[test]
-fn blizzard_combat_log_base_raid_target_brace_code_is_localized() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_combat_log_base_raid_target_brace_code_is_localized(env: &WowLuaEnv) {
 
     let bracketed: bool = env
         .eval(
@@ -239,4 +238,5 @@ fn blizzard_combat_log_base_raid_target_brace_code_is_localized() {
         "GetRaidTargetBraceCode(Raidtarget1) should return a brace-wrapped lowercased \
          RAID_TARGET_1 token, and GetRaidTargetBraceCode(nil) should return the empty string"
     );
+}
 }

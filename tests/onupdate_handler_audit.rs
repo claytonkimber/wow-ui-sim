@@ -236,8 +236,14 @@ fn leave_instance_group_button_queries_group_state_even_when_mutators_noop() {
         assert_eq!(walk_in_calls, 1, "walk-in query should still run each tick");
         assert_eq!(can_leave_calls, 1, "leave-instance eligibility should still run each tick");
         assert_eq!(in_group_calls, 2, "PartyUtil.CanLeaveInstance should still re-check group state twice");
-        assert_eq!(in_instance_calls, 1, "PartyUtil.CanLeaveInstance should still query instance state");
-        assert_eq!(lfg_id_calls, 1, "PartyUtil.CanLeaveInstance should still query LFG state");
+        assert_eq!(
+            in_instance_calls, 0,
+            "solo state should return before querying instance state"
+        );
+        assert_eq!(
+            lfg_id_calls, 0,
+            "solo state should return before querying LFG state"
+        );
         assert_eq!(set_text_calls, 1, "button text setter is still invoked from the handler");
         assert_eq!(set_enabled_calls, 1, "button enabled setter is still invoked from the handler");
         assert_eq!(

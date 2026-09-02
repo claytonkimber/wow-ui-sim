@@ -64,55 +64,32 @@ fn find_toc_file_resolves_bare_toc() {
 }
 
 #[test]
-fn dependencies_accessor_returns_shared_xml_via_required_dep_key() {
+fn dependencies_accessor_returns_all_repeated_dep_values() {
     let toc = TocFile::from_file(&simple_checkout_toc()).expect("TOC parses");
 
-    let deps = toc.dependencies();
     assert_eq!(
-        deps,
-        vec!["Blizzard_SharedXML"],
-        "SimpleCheckout uses the proper `## RequiredDep:` key, which the \
-         simulator's `dependencies()` accessor at src/toc.rs:210-217 \
-         honors (alongside `Dependencies` and `RequiredDeps`). The \
-         singular `## Dep:` shorthand is the form that gets dropped — \
-         this addon avoids that pitfall by spelling out RequiredDep. \
-         Got: {deps:?}"
+        toc.dependencies(),
+        vec!["Blizzard_SharedXML".to_string()],
+        "SimpleCheckout's sole `## Dep: Blizzard_SharedXML` directive must be exposed"
     );
 }
 
 #[test]
-fn optional_deps_accessor_drops_singular_form() {
+fn optional_deps_accessor_is_empty_without_optional_directives() {
     let toc = TocFile::from_file(&simple_checkout_toc()).expect("TOC parses");
 
-    let optional = toc.optional_deps();
     assert!(
-        optional.is_empty(),
-        "OBSERVATIONAL QUIRK: SimpleCheckout uses `## OptionalDep:` \
-         (singular form, comma-separated body) but the simulator's \
-         `optional_deps()` accessor at src/toc.rs:229-234 ONLY reads the \
-         plural `OptionalDeps` key. This is an ASYMMETRY with \
-         `dependencies()` which honors both singular `RequiredDep` and \
-         plural `RequiredDeps`. Both optional targets (Blizzard_UIParent, \
-         Blizzard_GlueParent) still load on Game / Login screens because \
-         they are themselves eager non-LOD addons. The dropped optional \
-         dep edge is invisible at load time but matters for any audit \
-         that walks the optional-dep graph. Got: {optional:?}"
+        toc.optional_deps().is_empty(),
+        "SimpleCheckout declares screen-specific required deps and no optional dependencies"
     );
 }
 
 #[test]
-fn raw_bytes_pin_optional_dep_directive() {
+fn raw_bytes_pin_shared_xml_dep_without_optional_directives() {
     let raw = std::fs::read_to_string(simple_checkout_toc()).expect("TOC reads utf-8");
 
-    assert!(
-        raw.contains("## OptionalDep: Blizzard_UIParent, Blizzard_GlueParent"),
-        "Raw bytes MUST pin the singular `## OptionalDep:` line — \
-         SimpleCheckout floats above either UIParent (in-game / catalog \
-         shop / housing editor flows) OR GlueParent (Battle.net glue \
-         screen flow). The optional declaration documents the \
-         either-or parent surface; FixupToParent picks the right one at \
-         runtime"
-    );
+    assert!(raw.contains("## Dep: Blizzard_SharedXML"));
+    assert!(!raw.contains("## OptionalDep"));
 }
 
 #[test]
@@ -164,7 +141,7 @@ fn toc_raw_bytes_pin_minimal_metadata_surface() {
 
     assert!(raw.contains("## Title: Blizzard_SimpleCheckout"));
     assert!(raw.contains("## AllowLoad: Both"));
-    assert!(raw.contains("## RequiredDep: Blizzard_SharedXML"));
+    assert!(raw.contains("## Dep: Blizzard_SharedXML"));
     assert!(raw.contains("## UseSecureEnvironment: 1"));
 
     assert!(!raw.contains("## Author"));
@@ -175,8 +152,8 @@ fn toc_raw_bytes_pin_minimal_metadata_surface() {
     assert!(!raw.contains("## LoadFirst"));
     assert!(!raw.contains("## SavedVariables"));
     assert!(!raw.contains("## Dependencies"));
-    assert!(!raw.contains("## RequiredDeps"));
-    assert!(!raw.contains("## OptionalDeps"));
+    assert!(!raw.contains("## RequiredDep"));
+    assert!(!raw.contains("## OptionalDep"));
 }
 
 #[test]

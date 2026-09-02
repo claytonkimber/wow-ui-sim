@@ -49,7 +49,7 @@ fn lowest_rank_index(world: &crate::lua_api::state_types::WorldState) -> i32 {
 }
 
 /// `GuildInvite(name)` — append a GuildMember at the lowest rank.
-fn guild_invite(state: &mut LuaState) -> LuaResult<u32> {
+pub(crate) fn guild_invite(state: &mut LuaState) -> LuaResult<u32> {
     let Some(name) = required_string(state, 1) else {
         return Ok(0);
     };
@@ -68,7 +68,7 @@ fn guild_invite(state: &mut LuaState) -> LuaResult<u32> {
 }
 
 /// `GuildUninvite(name)` — remove by name. Silent no-op when missing.
-fn guild_uninvite(state: &mut LuaState) -> LuaResult<u32> {
+pub(crate) fn guild_uninvite(state: &mut LuaState) -> LuaResult<u32> {
     let Some(name) = required_string(state, 1) else {
         return Ok(0);
     };
@@ -95,7 +95,7 @@ fn guild_kick(state: &mut LuaState) -> LuaResult<u32> {
 }
 
 /// `GuildLeave()` — clear guild identity + roster, fire roster update.
-fn guild_leave(state: &mut LuaState) -> LuaResult<u32> {
+pub(crate) fn guild_leave(state: &mut LuaState) -> LuaResult<u32> {
     {
         let mut st = borrow_state_mut(state)?;
         st.world.guild_name = None;
@@ -112,7 +112,7 @@ fn guild_leave(state: &mut LuaState) -> LuaResult<u32> {
 
 /// `GuildPromote(name)` — bump the named member up one rank (minimum 1 =
 /// Guild Master). Silent no-op for unknown names.
-fn guild_promote(state: &mut LuaState) -> LuaResult<u32> {
+pub(crate) fn guild_promote(state: &mut LuaState) -> LuaResult<u32> {
     let Some(name) = required_string(state, 1) else {
         return Ok(0);
     };

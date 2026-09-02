@@ -113,9 +113,8 @@ fn blizzard_dispatcher_excluded_from_login_discovery_no_glue_dependents() {
     );
 }
 
-#[test]
-fn blizzard_dispatcher_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_dispatcher_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -131,10 +130,10 @@ fn blizzard_dispatcher_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_dispatcher_global_table_installed_with_simulator_marker() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_dispatcher_global_table_installed_with_simulator_marker(env: &WowLuaEnv) {
 
     let installed: bool = env
         .eval(
@@ -153,10 +152,10 @@ fn blizzard_dispatcher_global_table_installed_with_simulator_marker() {
          body — preserving the simulator's marker and the addon never overwrites the table"
     );
 }
+}
 
-#[test]
-fn blizzard_dispatcher_version_is_two_dot_zero() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_dispatcher_version_is_two_dot_zero(env: &WowLuaEnv) {
 
     let version: f64 = env
         .eval("return DISPATCHER_VERSION")
@@ -169,10 +168,10 @@ fn blizzard_dispatcher_version_is_two_dot_zero() {
          Either source path produces the same numeric value"
     );
 }
+}
 
-#[test]
-fn blizzard_dispatcher_exposes_event_and_function_and_script_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_dispatcher_exposes_event_and_function_and_script_methods(env: &WowLuaEnv) {
 
     let kinds: (String, String, String, String, String, String) = env
         .eval(
@@ -202,10 +201,10 @@ fn blizzard_dispatcher_exposes_event_and_function_and_script_methods() {
          events/hooks"
     );
 }
+}
 
-#[test]
-fn blizzard_dispatcher_unregister_all_aggregates_three_categories() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_dispatcher_unregister_all_aggregates_three_categories(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(Dispatcher.UnregisterAll)")
@@ -218,10 +217,10 @@ fn blizzard_dispatcher_unregister_all_aggregates_three_categories() {
          call to unhook every callback owned by a frame/object when it is destroyed"
     );
 }
+}
 
-#[test]
-fn blizzard_dispatcher_initialize_creates_dispatcher_frame() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_dispatcher_initialize_creates_dispatcher_frame(env: &WowLuaEnv) {
 
     let frame_ok: bool = env
         .eval(
@@ -239,10 +238,10 @@ fn blizzard_dispatcher_initialize_creates_dispatcher_frame() {
          early-returns when EventFrame already exists, so the addon's call is a no-op"
     );
 }
+}
 
-#[test]
-fn blizzard_dispatcher_register_event_returns_numeric_id_and_increments() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_dispatcher_register_event_returns_numeric_id_and_increments(env: &WowLuaEnv) {
 
     let ids: (i64, i64) = env
         .eval(
@@ -261,10 +260,10 @@ fn blizzard_dispatcher_register_event_returns_numeric_id_and_increments() {
          consecutive registrations must produce ids id1 < id2 and both > 0. Got: {ids:?}"
     );
 }
+}
 
-#[test]
-fn blizzard_dispatcher_state_tables_initialized_empty() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_dispatcher_state_tables_initialized_empty(env: &WowLuaEnv) {
 
     let tables_ok: bool = env
         .eval(
@@ -285,6 +284,7 @@ fn blizzard_dispatcher_state_tables_initialized_empty() {
          keyed by the owner table directly. Tutorial code reads these via the public \
          Register/Unregister methods, not by direct table access"
     );
+}
 }
 
 #[test]

@@ -31,6 +31,7 @@
 //!   row is a table with `challengeType`, `current`, `max`, `gold`, `maxGold`.
 //!   Pass nil to clear.
 
+use super::guild_verbs::{guild_invite, guild_leave, guild_promote, guild_uninvite};
 use crate::event::{Event, EventArg};
 use crate::lua_api::methods::{borrow_state, borrow_state_mut, create_string, create_table};
 use crate::lua_api::state_types::GuildChallenge;
@@ -207,6 +208,10 @@ fn register_c_guild_info_methods(state: &mut LuaState, table_ref: GcRef<Table>) 
     register_guild_identity_methods(state, table_ref)?;
     register_guild_permission_methods(state, table_ref)?;
     register_guild_text_methods(state, table_ref)?;
+    table_set_rust_fn_static(state, table_ref, "Invite", guild_invite)?;
+    table_set_rust_fn_static(state, table_ref, "Uninvite", guild_uninvite)?;
+    table_set_rust_fn_static(state, table_ref, "Promote", guild_promote)?;
+    table_set_rust_fn_static(state, table_ref, "Leave", guild_leave)?;
     Ok(())
 }
 

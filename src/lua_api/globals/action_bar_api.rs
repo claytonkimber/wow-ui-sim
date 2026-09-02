@@ -173,8 +173,12 @@ fn get_temp_shapeshift_bar_index(state: &mut LuaState) -> LuaResult<u32> {
     push_special_bar_index(state, has_temp_shapeshift_bar, temp_shapeshift_bar_index)
 }
 
-fn push_special_bar_index(state: &mut LuaState, _has_bar: bool, index: i32) -> LuaResult<u32> {
-    push_i32(state, index)
+fn push_special_bar_index(state: &mut LuaState, has_bar: bool, index: i32) -> LuaResult<u32> {
+    if has_bar {
+        push_i32(state, index)
+    } else {
+        push_nil(state)
+    }
 }
 
 fn get_bonus_bar_index(state: &mut LuaState) -> LuaResult<u32> {

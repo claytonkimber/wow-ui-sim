@@ -11,7 +11,7 @@ const ANCHOR_UPDATE_THROUGHPUT_BUDGET: Duration = Duration::from_millis(100);
 
 #[test]
 fn anchor_update_throughput_for_1000_frames_stays_under_budget() {
-    test_timeout! {
+    perf_test_timeout! {
         let elapsed = measure_anchor_update_throughput();
         eprintln!(
             "anchor update throughput baseline: {:.2?} (budget {:.2?})",

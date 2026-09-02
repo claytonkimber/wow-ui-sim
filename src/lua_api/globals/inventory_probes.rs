@@ -14,6 +14,7 @@
 //!   queries plus bag-slot texture fallbacks.
 
 use super::missing_surface::item_link_for_id;
+use crate::c_api::item_spell::{c_item_is_consumable_item, c_item_is_equippable_item};
 use crate::event::{Event, EventArg};
 use crate::items;
 use crate::lua_api::SimState;
@@ -22,7 +23,6 @@ use crate::lua_api::state_types::CursorInfo;
 use crate::lua_bridge::{FromStack, stack_val};
 use rilua::vm::state::LuaState;
 use rilua::{LuaApiMut, LuaResult, Val};
-use std::collections::HashSet;
 
 const FIRST_EQUIPMENT_SLOT_ID: i32 = 1;
 const LAST_PROFESSION_SLOT_ID: i32 = 28;
@@ -30,13 +30,6 @@ const LAST_PROFESSION_SLOT_ID: i32 = 28;
 fn stack_i32(state: &mut LuaState, index: i32) -> Option<i32> {
     match stack_val(state, index) {
         Val::Num(n) => Some(n as i32),
-        _ => None,
-    }
-}
-
-fn stack_u32(state: &mut LuaState, index: i32) -> Option<u32> {
-    match stack_val(state, index) {
-        Val::Num(n) if n >= 0.0 => Some(n as u32),
         _ => None,
     }
 }
@@ -60,42 +53,6 @@ fn is_inventory_item_locked(state: &mut LuaState) -> LuaResult<u32> {
     };
     state.push(Val::Bool(locked));
     Ok(1)
-}
-
-fn is_equippable_item(state: &mut LuaState) -> LuaResult<u32> {
-    push_item_classification(state, equippable_item_ids)
-}
-
-fn is_consumable_item(state: &mut LuaState) -> LuaResult<u32> {
-    push_item_classification(state, consumable_item_ids)
-}
-
-fn push_item_classification(
-    state: &mut LuaState,
-    item_ids: fn(&SimState) -> &HashSet<u32>,
-) -> LuaResult<u32> {
-    let Some(id) = stack_u32(state, 1) else {
-        state.push(Val::Bool(false));
-        return Ok(1);
-    };
-    let b = {
-        let sim = borrow_state(state)?;
-        is_item_classified(item_ids(&sim), id)
-    };
-    state.push(Val::Bool(b));
-    Ok(1)
-}
-
-fn equippable_item_ids(state: &SimState) -> &HashSet<u32> {
-    &state.equippable_items
-}
-
-fn consumable_item_ids(state: &SimState) -> &HashSet<u32> {
-    &state.consumable_items
-}
-
-fn is_item_classified(item_ids: &HashSet<u32>, item_id: u32) -> bool {
-    item_ids.contains(&item_id)
 }
 
 /// `CanLootUnit(unit)` — true when the unit is dead and is an enemy.
@@ -347,8 +304,8 @@ fn get_inventory_item_count(state: &mut LuaState) -> LuaResult<u32> {
 
 pub fn register_all(lua: &mut rilua::Lua) -> crate::Result<()> {
     LuaApiMut::register_function(lua, "IsInventoryItemLocked", is_inventory_item_locked)?;
-    LuaApiMut::register_function(lua, "IsEquippableItem", is_equippable_item)?;
-    LuaApiMut::register_function(lua, "IsConsumableItem", is_consumable_item)?;
+    LuaApiMut::register_function(lua, "IsEquippableItem", c_item_is_equippable_item)?;
+    LuaApiMut::register_function(lua, "IsConsumableItem", c_item_is_consumable_item)?;
     LuaApiMut::register_function(lua, "CanLootUnit", can_loot_unit)?;
     LuaApiMut::register_function(lua, "CanMerchant", can_merchant)?;
     LuaApiMut::register_function(lua, "CanInspect", can_inspect)?;

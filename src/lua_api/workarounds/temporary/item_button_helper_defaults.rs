@@ -175,7 +175,7 @@ mod tests {
     fn updates_plain_item_button_texture_count_and_colors() {
         let env = WowLuaEnv::new().expect("lua env should initialize");
 
-        let result: (String, String, f64, f64, f64, f64, f64, f64) = env
+        let result: (i64, String, f64, f64, f64, f64, f64, f64) = env
             .eval(
                 r#"
                 local button = CreateFrame("Button", "TemporaryItemButtonHelperProbe", UIParent)
@@ -190,7 +190,7 @@ mod tests {
 
                 local ir, ig, ib = button.icon:GetVertexColor()
                 local nr, ng, nb = button.normalTexture:GetVertexColor()
-                return tostring(button.icon:GetTexture()),
+                return button.icon:GetTexture(),
                        button.Count:GetText(),
                        ir, ig, ib,
                        nr, ng, nb
@@ -198,7 +198,7 @@ mod tests {
             )
             .expect("item-button helper behavior probe should run");
 
-        assert!(result.0.contains("INV_Misc_QuestionMark"));
+        assert_eq!(result.0, 134400);
         assert_eq!(result.1, "7");
         assert_close(result.2, 0.1);
         assert_close(result.3, 0.2);

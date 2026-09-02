@@ -131,9 +131,8 @@ fn blizzard_frame_stack_auto_loads_on_game_and_login_screens() {
     );
 }
 
-#[test]
-fn blizzard_frame_stack_loads_via_full_game_ui_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_frame_stack_loads_via_full_game_ui_without_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -150,10 +149,10 @@ fn blizzard_frame_stack_loads_via_full_game_ui_without_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_frame_stack_is_addon_loaded_returns_true_after_full_game_ui_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_frame_stack_is_addon_loaded_returns_true_after_full_game_ui_load(env: &WowLuaEnv) {
 
     let post_load: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_FrameStack') and true or false")
@@ -165,10 +164,10 @@ fn blizzard_frame_stack_is_addon_loaded_returns_true_after_full_game_ui_load() {
          `mark_addon_loaded` registers it"
     );
 }
+}
 
-#[test]
-fn blizzard_frame_stack_publishes_zero_globals_keeps_loader_local() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_frame_stack_publishes_zero_globals_keeps_loader_local(env: &WowLuaEnv) {
 
     let zero_globals: (bool, bool) = env
         .eval(
@@ -186,10 +185,10 @@ fn blizzard_frame_stack_publishes_zero_globals_keeps_loader_local() {
          no globals to keep the surface minimal"
     );
 }
+}
 
-#[test]
-fn blizzard_frame_stack_does_not_eager_load_blizzard_debug_tools() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_frame_stack_does_not_eager_load_blizzard_debug_tools(env: &WowLuaEnv) {
 
     let debug_tools_loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_DebugTools') and true or false")
@@ -204,10 +203,10 @@ fn blizzard_frame_stack_does_not_eager_load_blizzard_debug_tools() {
          machinery would always be resident even when unused"
     );
 }
+}
 
-#[test]
-fn blizzard_frame_stack_loads_after_full_game_ui_emits_no_pending_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_frame_stack_loads_after_full_game_ui_emits_no_pending_lua_errors(env: &WowLuaEnv) {
 
     let total_errors: usize = env.state().borrow().lua_errors.len();
     let frame_stack_errors: usize = env
@@ -225,4 +224,5 @@ fn blizzard_frame_stack_loads_after_full_game_ui_emits_no_pending_lua_errors() {
          but framestack-mentioning entries should be 0",
         total_errors
     );
+}
 }

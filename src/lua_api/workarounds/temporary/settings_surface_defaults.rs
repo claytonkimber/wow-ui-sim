@@ -147,6 +147,9 @@ do
     if settingsPanel == nil and type(CreateFrame) == "function" then
         settingsPanel = CreateFrame("Frame", "SettingsPanel", UIParent)
     end
+    if rawget(Settings, "__wow_settings_surface_panel") == settingsPanel then
+        return
+    end
     if type(settingsPanel) == "table" then
         local container = ensure_settings_frame(settingsPanel, "Container", "Frame")
         local settingsList = ensure_settings_frame(container, "SettingsList", "Frame")
@@ -194,19 +197,21 @@ do
     rawset(Settings, "INTERFACE_CATEGORY_ID", interfaceCategory:GetID())
     rawset(Settings, "AUDIO_CATEGORY_ID", audioCategory:GetID())
 
-    if rawget(Settings, "GetCategory") == nil then
-        function Settings.GetCategory(id)
-            id = tonumber(id)
-            if categories[id] == nil then
-                if id == rawget(Settings, "INTERFACE_CATEGORY_ID") then
-                    return ensure_category(id, "Interface")
-                end
-                if id == rawget(Settings, "AUDIO_CATEGORY_ID") then
-                    return ensure_category(id, "Audio")
-                end
+    local function get_fallback_category(id)
+        id = tonumber(id)
+        if categories[id] == nil then
+            if id == rawget(Settings, "INTERFACE_CATEGORY_ID") then
+                return ensure_category(id, "Interface")
             end
-            return categories[id]
+            if id == rawget(Settings, "AUDIO_CATEGORY_ID") then
+                return ensure_category(id, "Audio")
+            end
         end
+        return categories[id]
+    end
+
+    if rawget(Settings, "GetCategory") == nil then
+        Settings.GetCategory = get_fallback_category
     end
 
     if type(settingsPanel) == "table" then
@@ -320,11 +325,18 @@ do
         ensure_layout(interfaceCategory)
 
         function Settings.OpenToCategory(categoryID)
-            local category = Settings.GetCategory(categoryID)
+            local panel = rawget(_G, "SettingsPanel") or settingsPanel
+            if type(panel.OpenToCategory) == "function" then
+                local openedSuccessfully, opened = pcall(panel.OpenToCategory, panel, categoryID)
+                if openedSuccessfully and opened then
+                    return panel:GetCurrentCategory()
+                end
+            end
+
+            local category = get_fallback_category(categoryID)
             if category == nil then
                 return nil
             end
-            local panel = rawget(_G, "SettingsPanel") or settingsPanel
             rawset(panel, "_currentCategory", category)
             if type(panel.SetShown) == "function" then
                 pcall(panel.SetShown, panel, true)
@@ -337,6 +349,8 @@ do
             return category
         end
     end
+
+    rawset(Settings, "__wow_settings_surface_panel", settingsPanel)
 end
 
 if rawget(_G, "InterfaceOptions_AddCategory") == nil then
@@ -356,6 +370,10 @@ end
 pub(crate) fn apply_bootstrap(lua: &mut rilua::Lua) -> crate::Result<()> {
     lua.exec(SETTINGS_SURFACE_DEFAULTS_LUA)?;
     Ok(())
+}
+
+pub(crate) fn patch(env: &crate::lua_api::WowLuaEnv) {
+    let _ = env.exec(SETTINGS_SURFACE_DEFAULTS_LUA);
 }
 
 #[cfg(test)]
@@ -464,6 +482,42 @@ mod tests {
                 "Probe".to_string()
             )
         );
+    }
+
+    #[test]
+    fn reconciles_replacement_settings_panel_idempotently() {
+        let env = WowLuaEnv::new().expect("lua env should initialize");
+        env.exec(
+            r#"
+            Settings = {
+                INTERFACE_CATEGORY_ID = 1,
+                AUDIO_CATEGORY_ID = 2,
+                GetCategory = function()
+                    return nil
+                end,
+                OpenToCategory = function() end,
+            }
+            SettingsPanel = CreateFrame("Frame", "ReplacementSettingsPanel", UIParent)
+            SettingsPanel:Hide()
+            "#,
+        )
+        .expect("fixture should replace the Settings panel and namespace");
+
+        env.apply_post_load_workarounds();
+        env.apply_post_load_workarounds();
+
+        let result: (bool, i32) = env
+            .eval(
+                r#"
+                Settings.INTERFACE_CATEGORY_ID = 7
+                Settings.OpenToCategory(Settings.INTERFACE_CATEGORY_ID)
+                local category = SettingsPanel:GetCurrentCategory()
+                return SettingsPanel:IsShown(), category and category:GetID() or 0
+                "#,
+            )
+            .expect("replacement Settings panel probe should run");
+
+        assert_eq!(result, (true, 7));
     }
 
     #[test]

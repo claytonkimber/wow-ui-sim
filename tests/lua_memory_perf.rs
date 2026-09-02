@@ -12,7 +12,7 @@ const LUA_MEMORY_BUDGET_KIB: f64 = 110_000.0;
 
 #[test]
 fn settled_game_ui_lua_memory_stays_under_budget() {
-    test_timeout! {
+    perf_test_timeout! {
         let loaded_ui = load_timed_game_ui();
         assert!(
             loaded_ui.startup_elapsed.as_nanos() > 0,

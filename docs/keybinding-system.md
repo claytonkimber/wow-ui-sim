@@ -65,6 +65,8 @@ iced KeyPressed event
 | `TOGGLEGUILDTAB` | `ToggleGuildFrame()` |
 | `TOGGLEQUESTLOG` | `ToggleQuestLog()` |
 
+`TOGGLEGUILDTAB` uses the canonical Blizzard `ToggleGuildFrame()` on retail: the simulator leaves that global unpublished until `Blizzard_Communities` is loaded. Non-retail profiles retain the simulator-owned fallback; reduced retail fixtures must load `Blizzard_Communities` before dispatching the action.
+
 ### Default Key Assignments
 
 | Key | Action | Panel |

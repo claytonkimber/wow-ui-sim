@@ -330,9 +330,8 @@ fn blizzard_raid_frame_appears_in_full_addon_inventory() {
     );
 }
 
-#[test]
-fn blizzard_raid_frame_loads_in_eager_game_sweep_without_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_raid_frame_loads_in_eager_game_sweep_without_lua_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -357,10 +356,10 @@ fn blizzard_raid_frame_loads_in_eager_game_sweep_without_lua_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_raid_frame_publishes_nineteen_global_helper_functions() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_raid_frame_publishes_nineteen_global_helper_functions(env: &WowLuaEnv) {
 
     for helper in PUBLIC_GLOBAL_HELPERS {
         let kind: String = env
@@ -416,10 +415,10 @@ fn blizzard_raid_frame_publishes_nineteen_global_helper_functions() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_raid_frame_publishes_two_named_top_level_frames() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_raid_frame_publishes_two_named_top_level_frames(env: &WowLuaEnv) {
 
     for frame_name in PUBLIC_NAMED_FRAMES {
         let kind: String = env
@@ -451,10 +450,10 @@ fn blizzard_raid_frame_publishes_two_named_top_level_frames() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_raid_frame_virtual_templates_not_in_global_env() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_raid_frame_virtual_templates_not_in_global_env(env: &WowLuaEnv) {
 
     for template in VIRTUAL_TEMPLATES {
         let kind: String = env
@@ -485,10 +484,10 @@ fn blizzard_raid_frame_virtual_templates_not_in_global_env() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_raid_frame_registers_nine_events_in_onload() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_raid_frame_registers_nine_events_in_onload(env: &WowLuaEnv) {
 
     for event in ON_LOAD_REGISTERED_EVENTS {
         let registered: bool = env
@@ -524,4 +523,5 @@ fn blizzard_raid_frame_registers_nine_events_in_onload() {
              a visual container managing the tab strip"
         );
     }
+}
 }

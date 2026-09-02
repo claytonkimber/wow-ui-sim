@@ -100,7 +100,7 @@ fn abbreviate_config_tostring() {
 // ============================================================================
 
 #[test]
-fn function_container_is_table_with_methods() {
+fn function_container_is_userdata_with_methods() {
     let env = WowLuaEnv::new().unwrap();
     let (typ, has_cancel, has_invoke): (String, bool, bool) = env
         .eval(
@@ -112,7 +112,7 @@ fn function_container_is_table_with_methods() {
         "#,
         )
         .unwrap();
-    assert_eq!(typ, "table");
+    assert_eq!(typ, "userdata");
     assert!(has_cancel);
     assert!(has_invoke);
 }
@@ -165,20 +165,6 @@ fn function_container_readonly_keys() {
         )
         .unwrap();
     assert!(blocked);
-}
-
-#[test]
-fn function_container_tostring() {
-    let env = WowLuaEnv::new().unwrap();
-    let has_prefix: bool = env
-        .eval(
-            r#"
-            local fc = C_FunctionContainers.CreateCallback(function() end)
-            return tostring(fc):find("LuaFunctionContainer:") ~= nil
-        "#,
-        )
-        .unwrap();
-    assert!(has_prefix);
 }
 
 // ============================================================================

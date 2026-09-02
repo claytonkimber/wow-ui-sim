@@ -8,6 +8,11 @@ use wow_ui_sim::client_profile::{ACTIVE, ClientProfile};
 use wow_ui_sim::lua_api::WowLuaEnv;
 
 const PATCH_MANIFEST_SCHEMA: &str = "framexml-patch-audit/v2";
+const PERMANENT_PROJECT_SCOPE_RULE: &str = "permanent-project-scope";
+const INTENTIONAL_GAPS_REFERENCE: &str = "AGENTS.md#intentional-gaps";
+const INTENTIONAL_GAPS_HEADING: &str = "## Intentional Gaps";
+const NO_3D_RULE_MARKER: &str = "**No 3D rendering**";
+const PROVENANCE_ONLY_NOTE: &str = "Provenance-only: no runtime behavior claimed.";
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -35,7 +40,22 @@ pub struct PatchListSource {
     pub path: String,
     pub hash: String,
     pub added_count: usize,
+    #[serde(default)]
+    pub changed_count: usize,
     pub removed_count: usize,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct PatchSourceOccurrence {
+    direction: ChangeDirection,
+    category: String,
+    symbol: String,
+    detail: Option<String>,
+    #[serde(rename = "before")]
+    _before: Option<serde_json::Value>,
+    #[serde(rename = "after")]
+    _after: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -53,6 +73,8 @@ pub struct PatchAuditRow {
     pub change: ChangeDirection,
     pub status: Option<AuditStatus>,
     pub resolution: ResolutionKind,
+    #[serde(default)]
+    pub provenance_only: bool,
     pub owner: String,
     pub load_addon: Option<String>,
     pub evidence: Vec<AuditEvidence>,
@@ -60,13 +82,23 @@ pub struct PatchAuditRow {
     pub assertions: Vec<AuditAssertion>,
     pub commit: Option<String>,
     pub approval_id: Option<String>,
+    pub scope_exception: Option<ScopeException>,
     pub notes: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ScopeException {
+    pub rule: String,
+    pub reference: String,
+    pub summary: String,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum ChangeDirection {
     Added,
+    Changed,
     Removed,
 }
 
@@ -74,6 +106,7 @@ impl ChangeDirection {
     fn as_str(self) -> &'static str {
         match self {
             Self::Added => "added",
+            Self::Changed => "changed",
             Self::Removed => "removed",
         }
     }
@@ -84,6 +117,7 @@ impl ChangeDirection {
 pub enum AuditStatus {
     Implemented,
     BestEffort,
+    EvidenceRequired,
     ExceptionRequested,
 }
 
@@ -92,6 +126,7 @@ impl AuditStatus {
         match self {
             Self::Implemented => "implemented",
             Self::BestEffort => "best-effort",
+            Self::EvidenceRequired => "evidence-required",
             Self::ExceptionRequested => "exception-requested",
         }
     }
@@ -103,6 +138,8 @@ pub enum ResolutionKind {
     Untriaged,
     VendorPresent,
     Compat,
+    Behavioral,
+    ProvenanceOnly,
     LoadOnDemand,
     Removed,
     CrossFlavor,
@@ -118,6 +155,8 @@ impl ResolutionKind {
             Self::Untriaged => "untriaged",
             Self::VendorPresent => "vendor-present",
             Self::Compat => "compat",
+            Self::Behavioral => "behavioral",
+            Self::ProvenanceOnly => "provenance-only",
             Self::LoadOnDemand => "load-on-demand",
             Self::Removed => "removed",
             Self::CrossFlavor => "cross-flavor",
@@ -361,6 +400,11 @@ pub fn validate_manifest(manifest: &PatchAuditManifest) -> Result<(), String> {
     let actual_counts = validate_manifest_rows(&manifest.rows, manifest.target.flavor)?;
     validate_direction_count("added", manifest.source.added_count, actual_counts["added"])?;
     validate_direction_count(
+        "changed",
+        manifest.source.changed_count,
+        actual_counts["changed"],
+    )?;
+    validate_direction_count(
         "removed",
         manifest.source.removed_count,
         actual_counts["removed"],
@@ -386,7 +430,7 @@ fn validate_manifest_rows(
     target_flavor: AuditFlavor,
 ) -> Result<BTreeMap<&'static str, usize>, String> {
     let mut row_ids = HashSet::new();
-    let mut counts = BTreeMap::from([("added", 0usize), ("removed", 0usize)]);
+    let mut counts = BTreeMap::from([("added", 0usize), ("changed", 0usize), ("removed", 0usize)]);
     for row in rows {
         require_text("row.symbol", &row.symbol)?;
         validate_symbol_path(&row.symbol)?;
@@ -430,10 +474,22 @@ fn validate_direction_count(direction: &str, expected: usize, actual: usize) -> 
 }
 
 fn validate_row(row: &PatchAuditRow, target_flavor: AuditFlavor) -> Result<(), String> {
+    validate_provenance_only_flag(row)?;
     if row.resolution == ResolutionKind::Untriaged {
         return validate_untriaged_row(row);
     }
     validate_resolved_row(row, target_flavor)
+}
+
+fn validate_provenance_only_flag(row: &PatchAuditRow) -> Result<(), String> {
+    let uses_provenance_resolution = row.resolution == ResolutionKind::ProvenanceOnly;
+    if row.provenance_only == uses_provenance_resolution {
+        return Ok(());
+    }
+    Err(format!(
+        "row {} provenance_only flag and provenance-only resolution must match",
+        row.id
+    ))
 }
 
 fn validate_untriaged_row(row: &PatchAuditRow) -> Result<(), String> {
@@ -443,11 +499,13 @@ fn validate_untriaged_row(row: &PatchAuditRow) -> Result<(), String> {
     if let Some(notes) = &row.notes {
         require_text(&format!("{}.notes", row.id), notes)?;
     }
-    let has_resolution_data = !row.evidence.is_empty()
+    let has_resolution_data = row.provenance_only
+        || !row.evidence.is_empty()
         || !row.tests.is_empty()
         || !row.assertions.is_empty()
         || row.commit.is_some()
         || row.approval_id.is_some()
+        || row.scope_exception.is_some()
         || row.load_addon.is_some();
     if has_resolution_data {
         return Err(format!("row {} untriaged fields must remain empty", row.id));
@@ -501,6 +559,23 @@ fn validate_evidence(row: &PatchAuditRow) -> Result<(), String> {
 }
 
 fn validate_assertions(row: &PatchAuditRow) -> Result<(), String> {
+    if row.resolution == ResolutionKind::Behavioral {
+        return if row.assertions.is_empty() {
+            Ok(())
+        } else {
+            Err(format!(
+                "row {} behavioral resolution must not carry Lua presence assertions",
+                row.id
+            ))
+        };
+    }
+    if matches!(
+        row.resolution,
+        ResolutionKind::Unsafe | ResolutionKind::Impossible | ResolutionKind::ProvenanceOnly
+    ) && row.assertions.is_empty()
+    {
+        return Ok(());
+    }
     if row.assertions.is_empty() {
         return Err(format!("row {} requires an assertion", row.id));
     }
@@ -511,7 +586,13 @@ fn validate_assertions(row: &PatchAuditRow) -> Result<(), String> {
 }
 
 fn validate_focused_tests(row: &PatchAuditRow, status: AuditStatus) -> Result<(), String> {
-    if status == AuditStatus::ExceptionRequested {
+    if row.resolution == ResolutionKind::ProvenanceOnly {
+        return Ok(());
+    }
+    if matches!(
+        status,
+        AuditStatus::EvidenceRequired | AuditStatus::ExceptionRequested
+    ) {
         return Ok(());
     }
     if row.tests.is_empty() {
@@ -533,6 +614,54 @@ fn validate_optional_metadata(row: &PatchAuditRow) -> Result<(), String> {
             require_text(&format!("{}.{}", row.id, field), value)?;
         }
     }
+    if row.approval_id.is_some() && row.scope_exception.is_some() {
+        return Err(format!(
+            "row {} cannot set both approval_id and scope_exception",
+            row.id
+        ));
+    }
+    if let Some(scope_exception) = &row.scope_exception {
+        validate_scope_exception(row, scope_exception)?;
+    }
+    Ok(())
+}
+
+fn validate_scope_exception(
+    row: &PatchAuditRow,
+    scope_exception: &ScopeException,
+) -> Result<(), String> {
+    require_text(
+        &format!("{}.scope_exception.rule", row.id),
+        &scope_exception.rule,
+    )?;
+    require_text(
+        &format!("{}.scope_exception.reference", row.id),
+        &scope_exception.reference,
+    )?;
+    require_text(
+        &format!("{}.scope_exception.summary", row.id),
+        &scope_exception.summary,
+    )?;
+    if row.status != Some(AuditStatus::ExceptionRequested)
+        || row.resolution != ResolutionKind::Impossible
+    {
+        return Err(format!(
+            "row {} scope_exception requires exception-requested status with impossible resolution",
+            row.id
+        ));
+    }
+    if scope_exception.rule != PERMANENT_PROJECT_SCOPE_RULE {
+        return Err(format!(
+            "row {} scope_exception rule must be {PERMANENT_PROJECT_SCOPE_RULE}",
+            row.id
+        ));
+    }
+    if scope_exception.reference != INTENTIONAL_GAPS_REFERENCE {
+        return Err(format!(
+            "row {} scope_exception reference must be {INTENTIONAL_GAPS_REFERENCE}",
+            row.id
+        ));
+    }
     Ok(())
 }
 
@@ -541,12 +670,15 @@ fn validate_status_resolution(row: &PatchAuditRow, status: AuditStatus) -> Resul
         ResolutionKind::Untriaged => false,
         ResolutionKind::CrossFlavor
         | ResolutionKind::StaleSnapshot
-        | ResolutionKind::ReversedSnapshot => status == AuditStatus::BestEffort,
-        ResolutionKind::Unsafe | ResolutionKind::Impossible => {
-            status == AuditStatus::ExceptionRequested
-        }
+        | ResolutionKind::ReversedSnapshot
+        | ResolutionKind::ProvenanceOnly => status == AuditStatus::BestEffort,
+        ResolutionKind::Unsafe | ResolutionKind::Impossible => matches!(
+            status,
+            AuditStatus::EvidenceRequired | AuditStatus::ExceptionRequested
+        ),
         ResolutionKind::VendorPresent
         | ResolutionKind::Compat
+        | ResolutionKind::Behavioral
         | ResolutionKind::LoadOnDemand
         | ResolutionKind::Removed => {
             matches!(status, AuditStatus::Implemented | AuditStatus::BestEffort)
@@ -597,6 +729,8 @@ fn validate_resolution_contract(
             validate_snapshot_contract(row)
         }
         ResolutionKind::VendorPresent | ResolutionKind::Compat => validate_presence_contract(row),
+        ResolutionKind::Behavioral => validate_behavioral_contract(row),
+        ResolutionKind::ProvenanceOnly => validate_provenance_only_contract(row),
         ResolutionKind::Unsafe | ResolutionKind::Impossible | ResolutionKind::Untriaged => Ok(()),
     }
 }
@@ -631,6 +765,58 @@ fn validate_snapshot_contract(row: &PatchAuditRow) -> Result<(), String> {
         |assertion| assertion.expected == ExpectedPresence::Absent,
         "snapshot mismatch requires absence",
     )
+}
+
+fn validate_behavioral_contract(row: &PatchAuditRow) -> Result<(), String> {
+    if row
+        .evidence
+        .iter()
+        .any(|evidence| evidence.kind == EvidenceKind::Test)
+    {
+        return Ok(());
+    }
+    Err(format!(
+        "row {} behavioral resolution requires test evidence",
+        row.id
+    ))
+}
+
+fn validate_provenance_only_contract(row: &PatchAuditRow) -> Result<(), String> {
+    if !row.provenance_only {
+        return Err(format!(
+            "row {} provenance-only resolution requires provenance_only=true",
+            row.id
+        ));
+    }
+    if row
+        .evidence
+        .iter()
+        .any(|evidence| evidence.kind != EvidenceKind::Source)
+    {
+        return Err(format!(
+            "row {} provenance-only resolution permits source evidence only",
+            row.id
+        ));
+    }
+    if !row.tests.is_empty() || !row.assertions.is_empty() {
+        return Err(format!(
+            "row {} provenance-only resolution must not carry runtime tests or assertions",
+            row.id
+        ));
+    }
+    if row.commit.is_some() || row.approval_id.is_some() || row.scope_exception.is_some() {
+        return Err(format!(
+            "row {} provenance-only resolution must not carry commit, approval, or scope metadata",
+            row.id
+        ));
+    }
+    if row.notes.as_deref() != Some(PROVENANCE_ONLY_NOTE) {
+        return Err(format!(
+            "row {} provenance-only notes must be exactly {PROVENANCE_ONLY_NOTE:?}",
+            row.id
+        ));
+    }
+    Ok(())
 }
 
 fn validate_presence_contract(row: &PatchAuditRow) -> Result<(), String> {
@@ -732,6 +918,38 @@ fn validate_resolved_row_artifacts(
         if let Some(commit) = &row.commit {
             validate_commit(root, commit)?;
         }
+        if let Some(scope_exception) = &row.scope_exception {
+            validate_scope_exception_reference(root, scope_exception)?;
+        }
+    }
+    Ok(())
+}
+
+fn validate_scope_exception_reference(
+    root: &Path,
+    scope_exception: &ScopeException,
+) -> Result<(), String> {
+    let path = scope_exception
+        .reference
+        .split_once('#')
+        .map_or(scope_exception.reference.as_str(), |(path, _)| path);
+    let full_path = root.join(path);
+    if !full_path.is_file() {
+        return Err(format!(
+            "scope exception reference does not exist: {}",
+            full_path.display()
+        ));
+    }
+    let contents = std::fs::read_to_string(&full_path).map_err(|error| {
+        format!(
+            "failed to read scope exception reference {}: {error}",
+            full_path.display()
+        )
+    })?;
+    if !contents.contains(INTENTIONAL_GAPS_HEADING) || !contents.contains(NO_3D_RULE_MARKER) {
+        return Err(format!(
+            "scope exception reference must contain {INTENTIONAL_GAPS_HEADING} and No 3D rendering"
+        ));
     }
     Ok(())
 }
@@ -763,29 +981,89 @@ fn validate_source_rows(manifest: &PatchAuditManifest, root: &Path) -> Result<()
     Ok(())
 }
 
-fn source_row_ids(source: &serde_json::Value) -> Result<Vec<String>, String> {
-    let symbols = |direction: &str| -> Result<Vec<String>, String> {
-        source[direction]
-            .as_array()
-            .ok_or_else(|| format!("patch source missing {direction} array"))?
-            .iter()
-            .map(|value| {
-                value
-                    .as_str()
-                    .map(str::to_string)
-                    .ok_or_else(|| format!("patch source {direction} contains a non-string"))
-            })
-            .collect()
+fn source_symbols(
+    source: &serde_json::Value,
+    direction: &str,
+    required: bool,
+) -> Result<Vec<String>, String> {
+    let Some(values) = source.get(direction) else {
+        return if required {
+            Err(format!("patch source missing {direction} array"))
+        } else {
+            Ok(Vec::new())
+        };
     };
-    Ok(symbols("added")?
+    values
+        .as_array()
+        .ok_or_else(|| format!("patch source {direction} must be an array"))?
+        .iter()
+        .map(|value| {
+            value
+                .as_str()
+                .map(str::to_string)
+                .ok_or_else(|| format!("patch source {direction} contains a non-string"))
+        })
+        .collect()
+}
+
+fn source_occurrence_row_ids(source: &serde_json::Value) -> Result<Vec<String>, String> {
+    let values = source["occurrences"]
+        .as_array()
+        .ok_or_else(|| "patch source occurrences must be an array".to_string())?;
+    let mut grouped = BTreeMap::from([
+        ("added", Vec::new()),
+        ("changed", Vec::new()),
+        ("removed", Vec::new()),
+    ]);
+    for value in values {
+        let occurrence: PatchSourceOccurrence =
+            serde_json::from_value(value.clone()).map_err(|error| {
+                format!("invalid patch source occurrence direction/category/symbol: {error}")
+            })?;
+        require_text("patch source occurrence.category", &occurrence.category)?;
+        if occurrence
+            .detail
+            .as_deref()
+            .is_some_and(|detail| detail.trim().is_empty())
+        {
+            return Err("patch source occurrence detail must not be blank".to_string());
+        }
+        validate_symbol_path(&occurrence.symbol)?;
+        grouped
+            .get_mut(occurrence.direction.as_str())
+            .expect("known direction")
+            .push(format!(
+                "{}:{}",
+                occurrence.direction.as_str(),
+                occurrence.symbol
+            ));
+    }
+    Ok(grouped.into_values().flatten().collect())
+}
+
+fn source_array_row_ids(source: &serde_json::Value) -> Result<Vec<String>, String> {
+    Ok(source_symbols(source, "added", true)?
         .into_iter()
         .map(|symbol| format!("added:{symbol}"))
         .chain(
-            symbols("removed")?
+            source_symbols(source, "changed", false)?
+                .into_iter()
+                .map(|symbol| format!("changed:{symbol}")),
+        )
+        .chain(
+            source_symbols(source, "removed", true)?
                 .into_iter()
                 .map(|symbol| format!("removed:{symbol}")),
         )
         .collect())
+}
+
+fn source_row_ids(source: &serde_json::Value) -> Result<Vec<String>, String> {
+    if source.get("occurrences").is_some() {
+        source_occurrence_row_ids(source)
+    } else {
+        source_array_row_ids(source)
+    }
 }
 
 fn validate_inventory(manifest: &PatchAuditManifest, root: &Path) -> Result<(), String> {
@@ -850,7 +1128,7 @@ fn validate_test_reference(root: &Path, reference: &str) -> Result<(), String> {
         require_text("test symbol", symbol)?;
         let source = strip_rust_comments(&contents);
         if !defines_rust_test(&source, symbol)? {
-            return Err(format!("test {path} does not define #[test] fn {symbol}"));
+            return Err(format!("test {path} does not define test case {symbol}"));
         }
     }
     Ok(())
@@ -858,8 +1136,8 @@ fn validate_test_reference(root: &Path, reference: &str) -> Result<(), String> {
 
 fn defines_rust_test(source: &str, symbol: &str) -> Result<bool, String> {
     let escaped = regex::escape(symbol);
-    let pattern = format!(r"^\s*(?:pub(?:\([^)]*\))?\s+)?(?:async\s+)?fn\s+{escaped}\s*\(");
-    let definition = Regex::new(&pattern)
+    let function_pattern = format!(r"(?:pub(?:\([^)]*\))?\s+)?(?:async\s+)?fn\s+{escaped}\s*\(");
+    let definition = Regex::new(&format!(r"^\s*{function_pattern}"))
         .map_err(|error| format!("invalid test definition pattern: {error}"))?;
     let lines: Vec<&str> = source.lines().collect();
     for (index, line) in lines.iter().enumerate() {
@@ -867,7 +1145,12 @@ fn defines_rust_test(source: &str, symbol: &str) -> Result<bool, String> {
             return Ok(true);
         }
     }
-    Ok(false)
+
+    let prefork_pattern =
+        format!(r"(?m)^[ \t]*prefork_full_ui_case!\s*\{{\s*(?:#\[[^\n]*\]\s*)*{function_pattern}");
+    Regex::new(&prefork_pattern)
+        .map(|prefork_definition| prefork_definition.is_match(source))
+        .map_err(|error| format!("invalid prefork test definition pattern: {error}"))
 }
 
 fn preceding_attributes_include_test(lines: &[&str]) -> bool {
@@ -972,24 +1255,42 @@ fn validate_completion_row<'a>(
     if row.resolution == ResolutionKind::Untriaged {
         return Err(format!("row {} remains untriaged", row.id));
     }
-    let status = row.status.expect("resolved row status validated");
-    if status == AuditStatus::ExceptionRequested {
-        let approval = row
-            .approval_id
-            .as_deref()
-            .ok_or_else(|| format!("row {} requires an approval_id", row.id))?;
-        let prefix = format!("user-chat:{}:", row.id);
-        if !approval.starts_with(&prefix) || approval.len() == prefix.len() {
-            return Err(format!(
-                "row {} approval_id must start with {prefix}",
+    if row.resolution == ResolutionKind::ProvenanceOnly {
+        return Ok(());
+    }
+    match row.status.expect("resolved row status validated") {
+        AuditStatus::EvidenceRequired => Err(format!("row {} remains evidence-required", row.id)),
+        AuditStatus::ExceptionRequested => validate_exception_approval(row, approvals),
+        AuditStatus::Implemented | AuditStatus::BestEffort if row.commit.is_none() => {
+            Err(format!("row {} requires a commit", row.id))
+        }
+        AuditStatus::Implemented | AuditStatus::BestEffort => Ok(()),
+    }
+}
+
+fn validate_exception_approval<'a>(
+    row: &'a PatchAuditRow,
+    approvals: &mut HashSet<&'a str>,
+) -> Result<(), String> {
+    let Some(approval) = row.approval_id.as_deref() else {
+        return if row.scope_exception.is_some() {
+            Ok(())
+        } else {
+            Err(format!(
+                "row {} requires an approval_id or scope_exception",
                 row.id
-            ));
-        }
-        if !approvals.insert(approval) {
-            return Err(format!("duplicate approval_id: {approval}"));
-        }
-    } else if row.commit.is_none() {
-        return Err(format!("row {} requires a commit", row.id));
+            ))
+        };
+    };
+    let prefix = format!("user-chat:{}:", row.id);
+    if !approval.starts_with(&prefix) || approval.len() == prefix.len() {
+        return Err(format!(
+            "row {} approval_id must start with {prefix}",
+            row.id
+        ));
+    }
+    if !approvals.insert(approval) {
+        return Err(format!("duplicate approval_id: {approval}"));
     }
     Ok(())
 }
@@ -1079,6 +1380,7 @@ pub fn render_summary(manifest: &PatchAuditManifest) -> String {
     let mut counts = BTreeMap::from([
         ("implemented", 0usize),
         ("best-effort", 0usize),
+        ("evidence-required", 0usize),
         ("exception-requested", 0usize),
         ("untriaged", 0usize),
     ]);
@@ -1087,13 +1389,14 @@ pub fn render_summary(manifest: &PatchAuditManifest) -> String {
         *counts.get_mut(status).expect("known status") += 1;
     }
     format!(
-        "Patch {} for {} {}: {} rows ({} implemented, {} best-effort, {} exception-requested, {} untriaged)\nSource: {}\nCache: {} ({})",
+        "Patch {} for {} {}: {} rows ({} implemented, {} best-effort, {} evidence-required, {} exception-requested, {} untriaged)\nSource: {}\nCache: {} ({})",
         manifest.patch,
         manifest.target.flavor.as_str(),
         manifest.target.build,
         manifest.rows.len(),
         counts["implemented"],
         counts["best-effort"],
+        counts["evidence-required"],
         counts["exception-requested"],
         counts["untriaged"],
         manifest.source.path,
@@ -1125,9 +1428,14 @@ pub fn render_checklist(manifest: &PatchAuditManifest) -> String {
 mod tests {
     use super::*;
     use std::io::Write;
+    use std::path::PathBuf;
     use wow_ui_sim::loader::load_addon;
 
     fn fixture_manifest(row: &str) -> PatchAuditManifest {
+        parse_fixture_manifest(row).expect("fixture should parse")
+    }
+
+    fn parse_fixture_manifest(row: &str) -> Result<PatchAuditManifest, String> {
         parse_manifest(&format!(
             r#"{{
               "schema":"framexml-patch-audit/v2",
@@ -1140,7 +1448,27 @@ mod tests {
             "a".repeat(64),
             "b".repeat(64)
         ))
-        .expect("fixture should parse")
+    }
+
+    fn scope_exception_row(
+        resolution: &str,
+        approval_id: Option<&str>,
+        rule: &str,
+        reference: &str,
+        summary: &str,
+    ) -> String {
+        let approval_id = serde_json::to_string(&approval_id).expect("approval ID should encode");
+        format!(
+            r#"{{
+              "id":"added:Fixture","symbol":"Fixture","change":"added",
+              "status":"exception-requested","resolution":"{resolution}","owner":"project-scope",
+              "evidence":[{{"kind":"source","reference":"fixture.lua","summary":"evidence","source_hash":"{}"}}],
+              "tests":[],"assertions":[],"commit":null,"approval_id":{approval_id},
+              "scope_exception":{{"rule":"{rule}","reference":"{reference}","summary":"{summary}"}},
+              "notes":"scope exception"
+            }}"#,
+            "c".repeat(64)
+        )
     }
 
     fn resolved_row(status: &str, resolution: &str, assertion: &str) -> String {
@@ -1163,6 +1491,185 @@ mod tests {
         )
     }
 
+    fn behavioral_row(status: &str, evidence_kind: &str, assertions: &str) -> String {
+        format!(
+            r#"{{
+              "id":"added:Fixture","symbol":"Fixture","change":"added",
+              "status":"{status}","resolution":"behavioral","owner":"simulator-model",
+              "evidence":[{{"kind":"{evidence_kind}","reference":"tests/fixture.rs::fixture_test","summary":"behavior evidence","source_hash":"{}"}}],
+              "tests":["tests/fixture.rs::fixture_test"],"assertions":[{assertions}],
+              "commit":"1234567890","approval_id":null,"notes":"behavioral contract"
+            }}"#,
+            "c".repeat(64)
+        )
+    }
+
+    fn evidence_required_row(resolution: &str, evidence_kind: &str) -> String {
+        format!(
+            r#"{{
+              "id":"added:Fixture","symbol":"Fixture","change":"added",
+              "status":"evidence-required","resolution":"{resolution}","owner":"evidence-collector",
+              "evidence":[{{"kind":"{evidence_kind}","reference":"tests/fixture.rs::fixture_test","summary":"evidence pending implementation","source_hash":"{}"}}],
+              "tests":[],"assertions":[],"commit":null,"approval_id":null,"notes":"awaiting evidence"
+            }}"#,
+            "c".repeat(64)
+        )
+    }
+
+    fn provenance_only_row(
+        status: &str,
+        resolution: &str,
+        provenance_only: Option<bool>,
+        evidence_kind: &str,
+        tests: &str,
+    ) -> String {
+        let provenance_only = provenance_only.map_or(String::new(), |value| {
+            format!(r#","provenance_only":{value}"#)
+        });
+        format!(
+            r#"{{
+              "id":"added:Fixture","symbol":"Fixture","change":"added",
+              "status":"{status}","resolution":"{resolution}","owner":"source-register",
+              "evidence":[{{"kind":"{evidence_kind}","reference":"data/patch-api/sources/fixture.json","summary":"typedef source metadata","source_hash":"{}"}}],
+              "tests":{tests},"assertions":[],"commit":null,"approval_id":null,"scope_exception":null,
+              "notes":"Provenance-only: no runtime behavior claimed."{provenance_only}
+            }}"#,
+            "c".repeat(64)
+        )
+    }
+
+    #[test]
+    fn provenance_only_source_row_validates_and_is_completion_eligible() {
+        let manifest = fixture_manifest(&provenance_only_row(
+            "best-effort",
+            "provenance-only",
+            Some(true),
+            "source",
+            "[]",
+        ));
+
+        validate_manifest(&manifest).expect("provenance-only source row should validate");
+        let mut approvals = HashSet::new();
+        validate_completion_row(&manifest.rows[0], &mut approvals)
+            .expect("provenance-only source row should be completion-eligible");
+    }
+
+    fn assert_provenance_only_rejected(row: &str) {
+        match parse_fixture_manifest(row) {
+            Err(error) => assert!(error.contains("provenance"), "unexpected error: {error}"),
+            Ok(manifest) => {
+                let error = validate_manifest(&manifest)
+                    .expect_err("invalid provenance-only row should be rejected");
+                assert!(error.contains("provenance"), "unexpected error: {error}");
+            }
+        }
+    }
+
+    #[test]
+    fn provenance_only_resolution_requires_explicit_flag() {
+        assert_provenance_only_rejected(&provenance_only_row(
+            "best-effort",
+            "provenance-only",
+            None,
+            "source",
+            "[]",
+        ));
+    }
+
+    #[test]
+    fn provenance_only_rows_reject_runtime_test_evidence() {
+        assert_provenance_only_rejected(&provenance_only_row(
+            "best-effort",
+            "provenance-only",
+            Some(true),
+            "test",
+            r#"["tests/fixture.rs::fixture_test"]"#,
+        ));
+    }
+
+    #[test]
+    fn provenance_only_requires_best_effort_status_and_resolution() {
+        assert_provenance_only_rejected(&provenance_only_row(
+            "evidence-required",
+            "provenance-only",
+            Some(true),
+            "source",
+            "[]",
+        ));
+        assert_provenance_only_rejected(&provenance_only_row(
+            "best-effort",
+            "behavioral",
+            Some(true),
+            "source",
+            "[]",
+        ));
+    }
+
+    #[test]
+    fn evidence_required_status_uses_kebab_case_for_deserialization_and_rendering() {
+        let status: AuditStatus =
+            serde_json::from_str(r#""evidence-required""#).expect("status should parse");
+
+        assert_eq!(status, AuditStatus::EvidenceRequired);
+        assert_eq!(status.as_str(), "evidence-required");
+    }
+
+    #[test]
+    fn evidence_required_unsafe_rows_validate_without_approval_or_commit() {
+        let manifest = fixture_manifest(&evidence_required_row("unsafe", "source"));
+
+        validate_manifest(&manifest).expect("evidence-required unsafe row should validate");
+        assert!(manifest.rows[0].approval_id.is_none());
+        assert!(manifest.rows[0].commit.is_none());
+    }
+
+    #[test]
+    fn evidence_required_impossible_rows_validate_without_approval_or_commit() {
+        let manifest = fixture_manifest(&evidence_required_row("impossible", "source"));
+
+        validate_manifest(&manifest).expect("evidence-required impossible row should validate");
+        assert!(manifest.rows[0].approval_id.is_none());
+        assert!(manifest.rows[0].commit.is_none());
+    }
+
+    #[test]
+    fn evidence_required_status_is_rejected_for_behavioral_resolution() {
+        let manifest = fixture_manifest(&evidence_required_row("behavioral", "test"));
+
+        let error = validate_manifest(&manifest)
+            .expect_err("evidence-required status must not resolve behavioral rows");
+
+        assert!(error.contains("behavioral"), "unexpected error: {error}");
+    }
+
+    #[test]
+    fn evidence_required_status_cannot_complete() {
+        let manifest = fixture_manifest(&evidence_required_row("unsafe", "source"));
+        let mut approvals = HashSet::new();
+
+        let error = validate_completion_row(&manifest.rows[0], &mut approvals)
+            .expect_err("evidence-required rows must not complete");
+
+        assert!(
+            error.contains("evidence-required"),
+            "unexpected error: {error}"
+        );
+    }
+
+    #[test]
+    fn evidence_required_status_appears_in_summary() {
+        let manifest = fixture_manifest(&evidence_required_row("unsafe", "source"));
+
+        assert!(render_summary(&manifest).contains("evidence-required"));
+    }
+
+    #[test]
+    fn evidence_required_status_appears_in_checklist() {
+        let manifest = fixture_manifest(&evidence_required_row("unsafe", "source"));
+
+        assert!(render_checklist(&manifest).contains("[evidence-required]"));
+    }
+
     fn assertion(flavor: &str, phase: &str, expected: &str) -> String {
         let ty = if expected == "present" {
             r#", "expected_type":"function""#
@@ -1170,6 +1677,60 @@ mod tests {
             ""
         };
         format!(r#"{{"flavor":"{flavor}","phase":"{phase}","expected":"{expected}"{ty}}}"#)
+    }
+
+    #[test]
+    fn behavioral_resolution_accepts_implemented_and_best_effort_test_rows() {
+        for status in ["implemented", "best-effort"] {
+            let manifest = fixture_manifest(&behavioral_row(status, "test", ""));
+
+            validate_manifest(&manifest).expect("behavioral test row should validate");
+        }
+    }
+
+    #[test]
+    fn behavioral_resolution_rejects_lua_presence_assertions() {
+        let row = behavioral_row(
+            "best-effort",
+            "test",
+            &assertion("ptr", "post-core", "present"),
+        );
+        let manifest = fixture_manifest(&row);
+
+        let error = validate_manifest(&manifest)
+            .expect_err("behavioral rows must not carry Lua presence assertions");
+
+        assert!(error.contains("behavioral"), "unexpected error: {error}");
+    }
+
+    #[test]
+    fn behavioral_resolution_requires_test_evidence() {
+        let row = behavioral_row("best-effort", "source", "");
+        let manifest = fixture_manifest(&row);
+
+        let error = validate_manifest(&manifest)
+            .expect_err("behavioral rows need at least one test evidence item");
+
+        assert!(error.contains("test"), "unexpected error: {error}");
+    }
+
+    #[test]
+    fn behavioral_resolution_rejects_exception_requested_status() {
+        let manifest = fixture_manifest(&behavioral_row("exception-requested", "test", ""));
+
+        let error = validate_manifest(&manifest)
+            .expect_err("behavioral resolution cannot request an unsafe exception");
+
+        assert!(error.contains("behavioral"), "unexpected error: {error}");
+    }
+
+    #[test]
+    fn behavioral_rows_accept_zero_runtime_observations() {
+        let manifest = fixture_manifest(&behavioral_row("best-effort", "test", ""));
+        validate_manifest(&manifest).expect("behavioral row should validate");
+
+        validate_observations(&manifest, &[])
+            .expect("behavioral-only manifests should require no runtime observations");
     }
 
     #[test]
@@ -1294,9 +1855,7 @@ mod tests {
         );
     }
 
-    #[test]
-    fn every_checked_in_patch_manifest_matches_repository_artifacts() {
-        let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    fn checked_in_patch_manifest_paths(root: &Path) -> Vec<PathBuf> {
         let directory = root.join("data/patch-api");
         let mut manifests = Vec::new();
         for entry in std::fs::read_dir(&directory).expect("patch manifest directory should read") {
@@ -1310,7 +1869,141 @@ mod tests {
             !manifests.is_empty(),
             "at least one patch manifest is required"
         );
-        for path in manifests {
+        manifests
+    }
+
+    #[test]
+    fn checked_in_evidence_references_are_repository_relative_and_stable() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+        for path in checked_in_patch_manifest_paths(root) {
+            let manifest_path = path
+                .strip_prefix(root)
+                .expect("checked-in manifest should be inside repository");
+            let json = std::fs::read_to_string(&path).expect("manifest should read");
+            let manifest = parse_manifest(&json).expect("manifest should parse");
+            for row in manifest.rows {
+                for evidence in row.evidence {
+                    let reference = reference_path(&evidence.reference);
+                    let reference_path = Path::new(reference);
+                    assert_ne!(
+                        reference_path,
+                        manifest_path,
+                        "{} row {} references its own manifest",
+                        path.display(),
+                        row.id
+                    );
+                    assert!(
+                        !reference_path.is_absolute(),
+                        "{} row {} has absolute evidence reference {}",
+                        path.display(),
+                        row.id,
+                        evidence.reference
+                    );
+                    assert!(
+                        !reference.starts_with("~/"),
+                        "{} row {} has home-relative evidence reference {}",
+                        path.display(),
+                        row.id,
+                        evidence.reference
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn checked_in_evidence_references_are_git_tracked() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+        for path in checked_in_patch_manifest_paths(root) {
+            let json = std::fs::read_to_string(&path).expect("manifest should read");
+            let manifest = parse_manifest(&json).expect("manifest should parse");
+            for row in manifest.rows {
+                for evidence in row.evidence {
+                    let reference = reference_path(&evidence.reference);
+                    let output = std::process::Command::new("git")
+                        .args([
+                            "-C",
+                            root.to_str().expect("repository path should be UTF-8"),
+                        ])
+                        .args(["ls-files", "--error-unmatch", "--", reference])
+                        .output()
+                        .expect("git ls-files should run");
+                    assert!(
+                        output.status.success(),
+                        "{} row {} evidence reference {} is not Git-tracked: {}",
+                        path.display(),
+                        row.id,
+                        evidence.reference,
+                        String::from_utf8_lossy(&output.stderr).trim()
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn checked_in_patch_manifests_parse() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+        for path in checked_in_patch_manifest_paths(root) {
+            let json = std::fs::read_to_string(&path).expect("manifest should read");
+            parse_manifest(&json).unwrap_or_else(|error| panic!("{}: {error}", path.display()));
+        }
+    }
+
+    #[test]
+    fn checked_in_patch_manifest_checklists_match_rendered_output() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+        for path in checked_in_patch_manifest_paths(root) {
+            let json = std::fs::read_to_string(&path).expect("manifest should read");
+            let manifest = parse_manifest(&json).expect("manifest should parse");
+            validate_checklist(&manifest, root)
+                .unwrap_or_else(|error| panic!("{}: {error}", path.display()));
+        }
+    }
+
+    #[test]
+    fn checked_in_provenance_only_flags_match_resolutions() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+        for path in checked_in_patch_manifest_paths(root) {
+            let json = std::fs::read_to_string(&path).expect("manifest should read");
+            let manifest = parse_manifest(&json).expect("manifest should parse");
+            for row in manifest.rows {
+                let uses_provenance_resolution = row.resolution == ResolutionKind::ProvenanceOnly;
+                assert_eq!(
+                    row.provenance_only,
+                    uses_provenance_resolution,
+                    "{} row {} provenance_only flag and provenance-only resolution must match",
+                    path.display(),
+                    row.id
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn checked_in_provenance_only_notes_are_canonical() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+        for path in checked_in_patch_manifest_paths(root) {
+            let json = std::fs::read_to_string(&path).expect("manifest should read");
+            let manifest = parse_manifest(&json).expect("manifest should parse");
+            for row in manifest.rows {
+                if row.provenance_only {
+                    assert_eq!(
+                        row.notes.as_deref(),
+                        Some(PROVENANCE_ONLY_NOTE),
+                        "{} row {} provenance-only note must be canonical",
+                        path.display(),
+                        row.id
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn every_checked_in_patch_manifest_matches_repository_artifacts() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR"));
+        for path in checked_in_patch_manifest_paths(root) {
             let json = std::fs::read_to_string(&path).expect("manifest should read");
             let manifest = parse_manifest(&json).expect("manifest should parse");
             validate_repository(&manifest, root)
@@ -1326,6 +2019,61 @@ mod tests {
         let error = validate_manifest(&manifest).expect_err("malformed path must fail");
 
         assert!(error.contains("symbol path"));
+    }
+
+    fn changed_manifest(changed_count: usize, row_id: &str) -> PatchAuditManifest {
+        parse_manifest(&format!(
+            r#"{{
+              "schema":"framexml-patch-audit/v2",
+              "patch":"12.0.7",
+              "target":{{"flavor":"retail","build":"12.0.7","cache_manifest":"cache","cache_hash":"{}"}},
+              "source":{{"path":"source","hash":"{}","added_count":0,"removed_count":0,"changed_count":{changed_count}}},
+              "output":{{"checklist":"checklist","inventory":"inventory"}},
+              "rows":[{{
+                "id":"{row_id}","symbol":"Fixture","change":"changed",
+                "status":null,"resolution":"untriaged","owner":"unknown",
+                "evidence":[],"tests":[],"assertions":[],"commit":null,"approval_id":null,"notes":"pending"
+              }}]
+            }}"#,
+            "a".repeat(64),
+            "b".repeat(64)
+        ))
+        .expect("changed manifest should parse")
+    }
+
+    #[test]
+    fn changed_direction_accepts_changed_row_id_and_count() {
+        let manifest = changed_manifest(1, "changed:Fixture");
+
+        validate_manifest(&manifest).expect("changed row should validate with matching count");
+        assert_eq!(manifest.rows[0].id, "changed:Fixture");
+    }
+
+    #[test]
+    fn changed_direction_count_mismatch_is_rejected() {
+        let manifest = changed_manifest(0, "changed:Fixture");
+
+        let error = validate_manifest(&manifest).expect_err("changed count mismatch must fail");
+
+        assert!(error.contains("changed count mismatch: source=0 rows=1"));
+    }
+
+    #[test]
+    fn changed_direction_requires_changed_row_id_prefix() {
+        let manifest = changed_manifest(1, "added:Fixture");
+
+        let error = validate_manifest(&manifest).expect_err("changed rows need changed IDs");
+
+        assert!(error.contains("row added:Fixture must use id changed:Fixture"));
+    }
+
+    #[test]
+    fn missing_changed_count_defaults_to_zero() {
+        let manifest = fixture_manifest(
+            r#"{"id":"added:Fixture","symbol":"Fixture","change":"added","status":null,"resolution":"untriaged","owner":"unknown","evidence":[],"tests":[],"assertions":[],"commit":null,"approval_id":null,"notes":"pending"}"#,
+        );
+
+        assert_eq!(manifest.source.changed_count, 0);
     }
 
     #[test]
@@ -1374,6 +2122,144 @@ mod tests {
                 .unwrap_err()
                 .contains("incompatible")
         );
+    }
+
+    #[test]
+    fn exception_rows_without_lua_surface_accept_no_assertions() {
+        for resolution in ["unsafe", "impossible"] {
+            let row = resolved_row("exception-requested", resolution, "");
+            let manifest = fixture_manifest(&row);
+
+            validate_manifest(&manifest)
+                .expect("non-Lua exception evidence should not require a presence assertion");
+        }
+    }
+
+    #[test]
+    fn impossible_scope_exception_with_repository_rule_provenance_is_valid() {
+        let row = scope_exception_row(
+            "impossible",
+            None,
+            "permanent-project-scope",
+            "AGENTS.md#intentional-gaps",
+            "The required subsystem is permanently outside project scope.",
+        );
+        let manifest = parse_fixture_manifest(&row).expect("scope exception should parse");
+
+        validate_manifest(&manifest).expect("valid scope exception should validate");
+    }
+
+    #[test]
+    fn scope_exception_and_user_chat_approval_are_mutually_exclusive() {
+        let row = scope_exception_row(
+            "impossible",
+            Some("user-chat:added:Fixture:approval-1"),
+            "permanent-project-scope",
+            "AGENTS.md#intentional-gaps",
+            "The required subsystem is permanently outside project scope.",
+        );
+        let manifest = parse_fixture_manifest(&row).expect("scope exception should parse");
+
+        let error = validate_manifest(&manifest)
+            .expect_err("scope exception and approval must be rejected together");
+        assert!(error.contains("approval_id"), "unexpected error: {error}");
+        assert!(
+            error.contains("scope_exception"),
+            "unexpected error: {error}"
+        );
+    }
+
+    #[test]
+    fn scope_exception_is_rejected_for_unsafe_resolution() {
+        let row = scope_exception_row(
+            "unsafe",
+            None,
+            "permanent-project-scope",
+            "AGENTS.md#intentional-gaps",
+            "The required subsystem is permanently outside project scope.",
+        );
+        let manifest = parse_fixture_manifest(&row).expect("scope exception should parse");
+
+        let error = validate_manifest(&manifest)
+            .expect_err("scope exception should require impossible resolution");
+        assert!(error.contains("impossible"), "unexpected error: {error}");
+    }
+
+    #[test]
+    fn scope_exception_rejects_wrong_repository_rule() {
+        let row = scope_exception_row(
+            "impossible",
+            None,
+            "temporary-gap",
+            "AGENTS.md#intentional-gaps",
+            "The required subsystem is permanently outside project scope.",
+        );
+        let manifest = parse_fixture_manifest(&row).expect("scope exception should parse");
+
+        let error = validate_manifest(&manifest)
+            .expect_err("scope exception should require the repository rule");
+        assert!(
+            error.contains("permanent-project-scope"),
+            "unexpected error: {error}"
+        );
+    }
+
+    #[test]
+    fn scope_exception_rejects_wrong_repository_rule_reference() {
+        let row = scope_exception_row(
+            "impossible",
+            None,
+            "permanent-project-scope",
+            "docs/wiki/unsupported.md",
+            "The required subsystem is permanently outside project scope.",
+        );
+        let manifest = parse_fixture_manifest(&row).expect("scope exception should parse");
+
+        let error = validate_manifest(&manifest)
+            .expect_err("scope exception should require the AGENTS rule reference");
+        assert!(
+            error.contains("AGENTS.md#intentional-gaps"),
+            "unexpected error: {error}"
+        );
+    }
+
+    #[test]
+    fn scope_exception_reference_requires_no_3d_rule_text() {
+        let directory = tempfile::tempdir().expect("temporary repository should create");
+        std::fs::write(
+            directory.path().join("AGENTS.md"),
+            "# Project rules\n\n## Intentional Gaps\n",
+        )
+        .expect("AGENTS fixture should write");
+        let scope_exception = ScopeException {
+            rule: PERMANENT_PROJECT_SCOPE_RULE.to_string(),
+            reference: INTENTIONAL_GAPS_REFERENCE.to_string(),
+            summary: "The required subsystem is permanently outside project scope.".to_string(),
+        };
+
+        let error = validate_scope_exception_reference(directory.path(), &scope_exception)
+            .expect_err("scope reference without the no-3D rule must fail");
+        assert!(
+            error.contains("No 3D rendering"),
+            "unexpected error: {error}"
+        );
+    }
+
+    #[test]
+    fn completion_accepts_repository_scope_exception_without_user_chat_approval() {
+        let row = scope_exception_row(
+            "impossible",
+            None,
+            PERMANENT_PROJECT_SCOPE_RULE,
+            INTENTIONAL_GAPS_REFERENCE,
+            "The required subsystem is permanently outside project scope.",
+        );
+        let manifest = fixture_manifest(&row);
+        let mut approvals = HashSet::new();
+
+        validate_completion_row(&manifest.rows[0], &mut approvals)
+            .expect("repository scope exception should complete without user approval");
+        assert!(approvals.is_empty());
     }
 
     fn assert_observation_mismatch(assertion_json: String, observation_json: &str) {
@@ -1428,6 +2314,166 @@ mod tests {
     }
 
     #[test]
+    fn source_rows_include_changed_occurrences_between_added_and_removed() {
+        let source = serde_json::json!({
+            "added": ["AddedFixture"],
+            "changed": ["ChangedFixture"],
+            "removed": ["RemovedFixture"]
+        });
+
+        let row_ids = source_row_ids(&source).expect("source rows should parse");
+
+        assert_eq!(
+            row_ids,
+            vec![
+                "added:AddedFixture",
+                "changed:ChangedFixture",
+                "removed:RemovedFixture"
+            ]
+        );
+    }
+
+    #[test]
+    fn generic_occurrence_source_rows_are_grouped_by_direction() {
+        let source = serde_json::json!({
+            "occurrences": [
+                {"direction":"removed","category":"widget","symbol":"RemovedFixture"},
+                {"direction":"added","category":"global","symbol":"AddedFixture"},
+                {"direction":"changed","category":"event","symbol":"ChangedFixture"}
+            ]
+        });
+
+        let row_ids = source_row_ids(&source).expect("occurrence source rows should parse");
+
+        assert_eq!(
+            row_ids,
+            vec![
+                "added:AddedFixture",
+                "changed:ChangedFixture",
+                "removed:RemovedFixture"
+            ]
+        );
+    }
+
+    #[test]
+    fn categorized_occurrence_payloads_preserve_row_ids_and_reject_unknown_fields() {
+        let source = serde_json::json!({
+            "occurrences": [
+                {
+                    "direction":"removed",
+                    "category":"widget",
+                    "symbol":"RemovedFixture",
+                    "before":{"kind":"Frame","methods":["Hide"]}
+                },
+                {
+                    "direction":"added",
+                    "category":"global",
+                    "symbol":"AddedFixture",
+                    "after":{"kind":"function","signature":["string"]}
+                },
+                {
+                    "direction":"changed",
+                    "category":"event",
+                    "symbol":"ChangedFixture",
+                    "before":{"payload":{"old":true}},
+                    "after":["new",{"version":2}]
+                }
+            ]
+        });
+
+        let row_ids = source_row_ids(&source)
+            .expect("optional occurrence payloads should not affect row identity");
+
+        assert_eq!(
+            row_ids,
+            vec![
+                "added:AddedFixture",
+                "changed:ChangedFixture",
+                "removed:RemovedFixture"
+            ]
+        );
+
+        let invalid_source = serde_json::json!({
+            "occurrences": [{
+                "direction":"added",
+                "category":"global",
+                "symbol":"UnknownFieldFixture",
+                "unknown":true
+            }]
+        });
+        let error = source_row_ids(&invalid_source)
+            .expect_err("unknown occurrence fields must remain rejected");
+        assert!(
+            error.contains("unknown field") && error.contains("unknown"),
+            "unexpected error: {error}"
+        );
+    }
+
+    #[test]
+    fn categorized_occurrence_detail_preserves_direction_symbol_row_id() {
+        let source = serde_json::json!({
+            "occurrences": [
+                {
+                    "direction":"added",
+                    "category":"global",
+                    "symbol":"Fixture",
+                    "detail":"new global API"
+                }
+            ]
+        });
+
+        let row_ids = source_row_ids(&source)
+            .expect("nonblank occurrence detail should not affect row identity");
+
+        assert_eq!(row_ids, vec!["added:Fixture"]);
+    }
+
+    #[test]
+    fn categorized_occurrence_detail_rejects_blank_detail() {
+        let source = serde_json::json!({
+            "occurrences": [
+                {
+                    "direction":"added",
+                    "category":"global",
+                    "symbol":"Fixture",
+                    "detail":""
+                }
+            ]
+        });
+
+        let error =
+            source_row_ids(&source).expect_err("blank occurrence detail should be rejected");
+        assert!(
+            error.contains("detail must not be blank"),
+            "unexpected error: {error}"
+        );
+    }
+
+    #[test]
+    fn generic_occurrence_source_rejects_invalid_direction() {
+        let source = serde_json::json!({
+            "occurrences": [
+                {"direction":"renamed","category":"global","symbol":"Fixture"}
+            ]
+        });
+
+        let error = source_row_ids(&source).expect_err("invalid direction should be rejected");
+        assert!(error.contains("direction"), "unexpected error: {error}");
+    }
+
+    #[test]
+    fn generic_occurrence_source_rejects_blank_category() {
+        let source = serde_json::json!({
+            "occurrences": [
+                {"direction":"added","category":"","symbol":"Fixture"}
+            ]
+        });
+
+        let error = source_row_ids(&source).expect_err("blank category should be rejected");
+        assert!(error.contains("category"), "unexpected error: {error}");
+    }
+
+    #[test]
     fn source_drift_is_rejected() {
         let root = std::env::temp_dir().join(format!(
             "wow-ui-sim-patch-source-drift-{}",
@@ -1467,6 +2513,24 @@ mod tests {
         let root = Path::new(env!("CARGO_MANIFEST_DIR"));
         assert!(validate_test_reference(root, "tests/not-real.rs::not_real").is_err());
         assert!(validate_commit(root, "0000000000000000000000000000000000000000").is_err());
+    }
+
+    #[test]
+    fn defines_rust_test_accepts_prefork_marker_and_rejects_unmarked_function() {
+        let source = r#"
+#[cfg(feature = "client-retail")]
+
+prefork_full_ui_case! {
+fn migrated(env: &WowLuaEnv) {
+    let _env = env;
+}
+}
+
+fn unmarked(env: &WowLuaEnv) {}
+"#;
+
+        assert!(defines_rust_test(source, "migrated").expect("pattern should compile"));
+        assert!(!defines_rust_test(source, "unmarked").expect("pattern should compile"));
     }
 
     #[test]

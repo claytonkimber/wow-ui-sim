@@ -145,9 +145,8 @@ fn blizzard_flyout_auto_loads_on_game_and_login_screens() {
     );
 }
 
-#[test]
-fn blizzard_flyout_loads_via_full_game_ui_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_flyout_loads_via_full_game_ui_without_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -164,10 +163,10 @@ fn blizzard_flyout_loads_via_full_game_ui_without_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_flyout_is_addon_loaded_returns_true_after_full_game_ui_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_flyout_is_addon_loaded_returns_true_after_full_game_ui_load(env: &WowLuaEnv) {
 
     let post_load: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_Flyout') and true or false")
@@ -179,10 +178,10 @@ fn blizzard_flyout_is_addon_loaded_returns_true_after_full_game_ui_load() {
          (src/loader/addon.rs:131) registers it"
     );
 }
+}
 
-#[test]
-fn blizzard_flyout_publishes_three_template_mixin_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_flyout_publishes_three_template_mixin_globals(env: &WowLuaEnv) {
 
     let mixins_present: (bool, bool, bool) = env
         .eval(
@@ -205,10 +204,10 @@ fn blizzard_flyout_publishes_three_template_mixin_globals() {
          rotation and texture anchor swaps in UpdateBackground"
     );
 }
+}
 
-#[test]
-fn blizzard_flyout_button_mixin_inherits_button_state_behavior_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_flyout_button_mixin_inherits_button_state_behavior_methods(env: &WowLuaEnv) {
 
     let inherited_methods: (bool, bool, bool, bool) = env
         .eval(
@@ -230,10 +229,10 @@ fn blizzard_flyout_button_mixin_inherits_button_state_behavior_methods() {
          present on FlyoutButtonMixin via the merge"
     );
 }
+}
 
-#[test]
-fn blizzard_flyout_button_mixin_publishes_popup_state_machine_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_flyout_button_mixin_publishes_popup_state_machine_methods(env: &WowLuaEnv) {
 
     let methods_present: (bool, bool, bool, bool, bool, bool, bool) = env
         .eval(
@@ -259,10 +258,10 @@ fn blizzard_flyout_button_mixin_publishes_popup_state_machine_methods() {
          no-op if not open, otherwise toggles)"
     );
 }
+}
 
-#[test]
-fn blizzard_flyout_button_mixin_publishes_arrow_state_machine_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_flyout_button_mixin_publishes_arrow_state_machine_methods(env: &WowLuaEnv) {
 
     let methods_present: (bool, bool, bool, bool, bool) = env
         .eval(
@@ -287,10 +286,10 @@ fn blizzard_flyout_button_mixin_publishes_arrow_state_machine_methods() {
          when popup is open)"
     );
 }
+}
 
-#[test]
-fn blizzard_flyout_popup_mixin_publishes_attach_detach_and_layout_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_flyout_popup_mixin_publishes_attach_detach_and_layout_methods(env: &WowLuaEnv) {
 
     let methods_present: (bool, bool, bool, bool, bool, bool, bool, bool) = env
         .eval(
@@ -320,10 +319,10 @@ fn blizzard_flyout_popup_mixin_publishes_attach_detach_and_layout_methods() {
          background in the correct orientation)"
     );
 }
+}
 
-#[test]
-fn blizzard_flyout_popup_button_mixin_publishes_set_popup_and_close_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_flyout_popup_button_mixin_publishes_set_popup_and_close_methods(env: &WowLuaEnv) {
 
     let methods_present: (bool, bool, bool, bool) = env
         .eval(
@@ -345,4 +344,5 @@ fn blizzard_flyout_popup_button_mixin_publishes_set_popup_and_close_methods() {
          `FlyoutPopupButton_OnClick` (per the lua:350 comment) to keep the \
          click-to-close contract"
     );
+}
 }

@@ -1,0 +1,9 @@
+## Interface: 120100
+## Title: Private Script Object Probe
+## Notes: Captures addon-visible 12.1 private-script-object behavior
+## Author: Alessio
+## Version: 0.1.0
+## SavedVariables: PrivateScriptObjectProbeDB
+
+PrivateScriptObjectProbe.xml
+PrivateScriptObjectProbe.lua

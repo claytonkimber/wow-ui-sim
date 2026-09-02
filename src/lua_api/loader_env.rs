@@ -101,13 +101,23 @@ impl<'a> LoaderEnv<'a> {
     }
 
     pub fn exec(&self, code: &str) -> Result<()> {
+        self.exec_chunk(code, true)
+    }
+
+    pub fn exec_public(&self, code: &str) -> Result<()> {
+        self.exec_chunk(code, false)
+    }
+
+    fn exec_chunk(&self, code: &str, use_loading_environment: bool) -> Result<()> {
         self.with_state(|state| {
             let func = Self::load_dynamic_chunk_without_slots(state, code, "loader-exec")?;
-            if self.loading_addon_uses_secure_env() {
-                mark_secure_state(state, &func)?;
+            if use_loading_environment {
+                if self.loading_addon_uses_secure_env() {
+                    mark_secure_state(state, &func)?;
+                }
+                apply_loading_scoped_fenv_state(state, &func)?;
             }
-            apply_loading_scoped_fenv_state(state, &func)?;
-            crate::lua_api::script_helpers::call_void_function_with_fallback_state(
+            crate::lua_api::script_helpers::call_void_function_state(
                 state,
                 Val::Function(func.gc_ref()),
                 &[],
@@ -157,11 +167,9 @@ impl<'a> LoaderEnv<'a> {
                 call_args.push(frame);
                 call_args.push(event_name);
                 call_args.extend_from_slice(args);
-                if let Err(error) =
-                    crate::lua_api::script_helpers::call_void_function_with_fallback_state(
-                        state, handler, &call_args,
-                    )
-                {
+                if let Err(error) = crate::lua_api::script_helpers::call_void_function_state(
+                    state, handler, &call_args,
+                ) {
                     call_error_handler_state(state, &error);
                 }
                 Ok(())

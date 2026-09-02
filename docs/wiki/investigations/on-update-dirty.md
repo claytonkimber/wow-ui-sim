@@ -27,7 +27,7 @@
 Two focused audit tests narrowed the remaining work after the earlier `SetText` / `SetEnabled` no-op guards:
 
 - `LeaveInstanceGroupButton`
-  - A settled second tick still calls `C_PartyInfo.IsPartyWalkIn()` once, `PartyUtil.CanLeaveInstance()` once, `IsInGroup()` twice, `IsInInstance()` once, and `GetPartyLFGID()` once.
+  - In the settled solo fixture, a second tick calls `C_PartyInfo.IsPartyWalkIn()` once, `PartyUtil.CanLeaveInstance()` once, and `IsInGroup()` twice; the solo path returns before `IsInInstance()` and `GetPartyLFGID()`, so those remain uncalled.
   - The handler still invokes `SetText` and `SetEnabled`, but the dirty batch stays empty once the button is already settled.
   - Conclusion: the remaining cost is query/dispatch work while the button is visible, not visual mutation churn. After the solo visibility fix, this handler no longer matters outside grouped content.
 
@@ -418,6 +418,10 @@ Related audit behavior updates:
 - settled BuffFrame aura-button audit now observes zero render-dirty mask/ids
 - settled leave-instance button audit now observes zero render-dirty mask/ids
   (`tests/onupdate_handler_audit.rs`)
+
+## 2026-08-27 Solo-path audit correction
+
+The leave-instance audit expectation now matches the settled solo branch: `PartyUtil.CanLeaveInstance()` rechecks group membership twice, then returns before querying instance membership or LFG ID. The regression remains a no-dirty audit; it does not claim grouped-content query counts.
 
 ## Fix Strategies
 

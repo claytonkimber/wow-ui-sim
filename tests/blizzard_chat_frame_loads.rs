@@ -37,9 +37,8 @@ fn load_full_game_ui() -> WowLuaEnv {
     env
 }
 
-#[test]
-fn blizzard_chat_frame_top_level_frames_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_chat_frame_top_level_frames_are_defined(env: &WowLuaEnv) {
 
     let frames_present: bool = env
         .eval(
@@ -77,10 +76,10 @@ fn blizzard_chat_frame_top_level_frames_are_defined() {
         "Blizzard_ChatFrame mixins should be defined after load"
     );
 }
+}
 
-#[test]
-fn chat_config_frame_show_and_hide_run_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn chat_config_frame_show_and_hide_run_without_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -98,4 +97,5 @@ fn chat_config_frame_show_and_hide_run_without_errors() {
         "ChatConfigFrame Show/Hide emitted Lua errors:\n  {}",
         unexpected_errors.join("\n  ")
     );
+}
 }

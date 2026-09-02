@@ -1,29 +1,24 @@
 # Track 3: Global-slot fast-path ABI (design)
 
-Design for the `GETGLOBAL_SLOT` / `SETGLOBAL_SLOT` fast path that
-replaces the `string_arena` table lookup on whitelisted globals with
-a direct indexed read/write into a frozen slot vector. This is
-sub-item 1 of Track 3 — the *design* side; sub-items 2-5 are the
-bootstrap populator, compiler integration, bytecode cache version
-bump, and proof/measurement.
+Design for the `GETGLOBAL_SLOT` / `SETGLOBAL_SLOT` opcode ABI. The
+compiler replaces whitelisted global-name constants with slot indexes;
+the installed VM mode then chooses the read path. Default/no-shadow
+reads query the current root `_G` with the slot's pre-interned key,
+while optional live-shadow/freeze reads use a frozen snapshot with
+shadow overrides taking precedence. This is sub-item 1 of Track 3 —
+the design side; sub-items 2-5 are the bootstrap populator, compiler
+integration, bytecode cache version bump, and proof/measurement.
 
 ## Motivation
 
-After Track 2's hot-literal registry + handle threading, the
-remaining `intern_string`-adjacent cost during Blizzard startup is
-not the string interning itself — it's the `Table::get_str` bucket
-walk that every global dereference pays against the frozen `_G`.
-Every `return UIParent` or `C_AddOns.IsAddOnLoaded(...)` currently:
-
-1. Intern the global name (ptr-cache hit after Track 1).
-2. Hash the key for `_G`'s bucket lookup.
-3. Walk the hash chain to find the `Val`.
-
-Steps 2-3 are unavoidable with the normal Lua semantics. But for
-names we *know* statically at bytecode-load time (because they're on
-the whitelist), we can precompute a slot index during bootstrap and
-have the bytecode read a Vec by index — O(1), no hashing, no chain
-walk.
+Track 3 originally targeted the `Table::get_str` bucket walk that
+hot global dereferences pay after Track 2 removed repeated string
+interning. The landed ABI separates that optimization from Lua
+semantics: the compiler can precompute a slot index for whitelisted
+names, but default/no-shadow reads still query the live root table so
+reassignment remains visible. The optional live-shadow/freeze mode can
+use the bootstrap vector as the direct indexed fallback because writes
+are represented through its shadow.
 
 ## Scope
 
@@ -51,7 +46,7 @@ walk.
 
 ## Slot numbering
 
-The slot index of an entry in the frozen vector is determined by its
+The slot index of an entry in the slot vector is determined by its
 category + position within that category:
 
     slot(entry) = category_base[entry.category] + entry.index
@@ -65,51 +60,47 @@ With `category_base` a compile-time table:
 Total slot count = `1 + HOT_GLOBALS.len() + HOT_NAMESPACES.len()` =
 1 + 35 + 97 = **133 slots** in ABI v1.
 
-`_G` gets an explicit slot 0 because (a) it's referenced by multiple
-Blizzard globals and (b) its `Val::Table` never changes (unlike the
-other globals, which the `_G_live` shadow can mask — see next
-section). Slot 0 being `_G` itself also makes it the canonical
-fallback target for opcodes that hit "slot not resolved"
-(`GETGLOBAL_SLOT 0` == `GETGLOBAL _G`).
+`_G` gets an explicit slot 0 because it is referenced by multiple
+Blizzard globals and its table identity is stable. Slot 0 being `_G`
+itself also makes it the canonical fallback target for opcodes that hit
+"slot not resolved" (`GETGLOBAL_SLOT 0` == `GETGLOBAL _G`). The other
+slots are bootstrap snapshots; whether a read uses those snapshots or
+current root-table values is determined by the installed VM mode.
 
-## `_G_live` shadow handling
+## Global-read modes and mutation parity
 
-`env_init/freeze_globals.rs` already installs a mutable `_G_live`
-shadow table after `freeze_table(_G)` so addons can override or add
-global names without hitting the frozen-write error. The slot
-fast-path must honor those overrides:
+The rilua change pinned by wow-ui-sim commit `f0f5312be` makes the
+default/no-shadow mode Lua-compatible for slot-optimized reads:
+
+- bare assignment (`Name = value`),
+- `_G.Name = value`,
+- `rawset(_G, "Name", value)`, and
+- assignment to `nil`
+
+all update the root table observed by `GETGLOBAL_SLOT`. A direct read
+must therefore agree with `_G.Name` after each operation; the bootstrap
+slot vector is not an authoritative frozen value in this mode.
+
+The optional live-shadow/freeze mode preserves the original snapshot
+contract. Its read order is:
 
     slot_read(i) =
-      let live_val = _G_live.get_str(slot_name[i])
-      if live_val != Nil {
-        return live_val                  // shadow override wins
+      let shadow_val = live_shadow.get(slot_name[i])
+      if shadow_val is an override {
+        return shadow_val                 // shadow wins
       }
-      return slot_vec[i]                 // direct slot read
+      return frozen_slot_vec[i]           // snapshot fallback
 
-The extra `_G_live.get_str` is a hash lookup, which seems to defeat
-the whole point. Two options:
+Root `_G` mutations that are not represented in the shadow do not
+replace the frozen fallback in this mode. This mode distinction prevents
+an optimization-only snapshot from changing ordinary Lua global
+reassignment semantics while retaining the freeze-gate design where it
+is explicitly installed.
 
-1. **Dirty bit per slot.** `_G_live` maintains a bitset indexed by
-   slot; `_G_live[name] = value` flips the bit. Slot reads skip the
-   `_G_live` lookup when the bit is clear. One conditional branch
-   per read in the common (no-override) case.
-
-2. **Shadow table is empty ⇒ skip.** `_G_live.table.len()` is an
-   O(1) check. When the shadow has no entries, skip the check
-   entirely. Once any addon writes to `_G_live`, every slot read
-   pays the hash probe. Simpler, works because the common case
-   during bootstrap + many addon loads is `_G_live` untouched.
-
-ABI v1 specifies **option 2** (shadow-empty skip) because it avoids
-tying the slot ABI to a dirty-bitset representation that might
-evolve. Option 1 can be introduced later without bumping the ABI
-version — it's a read-path optimization.
-
-For writes: `SETGLOBAL_SLOT i <val>` always writes through the
-shadow (`_G_live[slot_name[i]] = val`), never mutates the slot
-vector. This preserves the freeze-gate invariant that the bootstrap
-`_G` is immutable after freeze, and means slot-write semantics match
-current `_G` write semantics exactly.
+`SETGLOBAL_SLOT` must follow the same installed-mode contract. In the
+shadow/freeze mode, writes target the mutable shadow rather than the
+frozen bootstrap table; the default/no-shadow mode must retain root-table
+write semantics.
 
 ## ABI version
 
@@ -136,21 +127,21 @@ interpret against a new whitelist.
 
 ## Interaction with the rilua VM
 
-Track 3 requires two rilua-side changes:
+Track 3 uses two rilua-side mechanisms:
 
-1. **New bytecode ops** `GETGLOBAL_SLOT` and `SETGLOBAL_SLOT` (or a
-   single opcode with a read/write flag). Argument: u16 slot index
-   (133 slots fit easily).
+1. **Bytecode ops** `GETGLOBAL_SLOT` and `SETGLOBAL_SLOT`. Argument:
+   u16 slot index (133 slots fit easily).
 
-2. **Per-VM `slot_vec: Box<[Val]>`** populated by wow-ui-sim during
-   bootstrap via a new `Gc::install_global_slots(values)` entry
-   point. The vec stays alive for the life of the VM; freeze sets
-   the slots to their final `Val` values, and opcode dispatch reads
-   `state.gc.slot_vec[i]` directly.
+2. **Per-VM slot metadata and bootstrap values.** Wow-ui-sim walks
+   `HOT_GLOBALS` + `HOT_NAMESPACES` at bootstrap and passes the resolved
+   vector to rilua. The vector remains available for the optional
+   live-shadow/freeze mode; default/no-shadow `GETGLOBAL_SLOT` reads must
+   resolve the current root `_G` value instead of returning a stale
+   bootstrap snapshot.
 
-Wow-ui-sim's job (sub-item 2) is to walk `HOT_GLOBALS` +
-`HOT_NAMESPACES` at bootstrap, resolve each name's current `_G` value,
-and pass the resolved vector to rilua.
+Wow-ui-sim's job (sub-item 2) is to populate the slot metadata and
+bootstrap vector; rilua's installed mode determines whether reads use
+that vector or current root-table values.
 
 ## Compiler fast-path emission
 
@@ -192,11 +183,12 @@ existing `intern-stats` feature or a new one) that reports:
 - `_G_live`-override count (how often a slot read's shadow check
   fired).
 
-Parity tests: a Lua probe that redefines a whitelisted global
-(`Mixin = function() end`) and confirms the override is visible both
-via `_G.Mixin` and via bytecode that was compiled against the frozen
-slot. This catches the case where the shadow check is accidentally
-skipped.
+Parity tests must cover a whitelisted global through bare assignment,
+`_G.Name = value`, `rawset(_G, "Name", value)`, and `Name = nil`, asserting
+that `_G.Name` and precompiled direct-name reads agree in the
+default/no-shadow mode. A separate live-shadow/freeze probe must assert
+that a shadow override wins while the frozen snapshot remains the
+fallback.
 
 Startup wall-time comparison: release build, `--no-addons
 --no-saved-vars`, before vs after the slot ABI lands. Rilua's
@@ -204,17 +196,23 @@ Startup wall-time comparison: release build, `--no-addons
 path bypasses `intern_string` entirely for whitelisted names), so
 the comparison is plain wall-time.
 
-## Open questions
+## Implementation status and remaining proof
 
-- **Does rilua's existing `patch_string_constants` pass already
-  preserve enough per-proto information to know which `GETGLOBAL` to
-  rewrite?** Check before sub-item 3 starts.
-- **What's the right moment to call `install_global_slots`?**
-  Currently `register_globals` → `finalize_bootstrap_gc` →
-  `freeze_globals_with_live_shadow`. The slot vector should be built
-  from the post-freeze, pre-addon `_G` values, so right after
-  `freeze_globals_with_live_shadow` is the natural place.
-- **How does the slot fast-path interact with taint?** `issecure` /
-  `issecurevariable` read the stack taint, which isn't affected by
-  how the global was fetched. Should be transparent, but worth
-  pinning a test for sub-item 5.
+The compiler rewrite and slot metadata path are implemented. Commit
+`f0f5312be` updates the wow-ui-sim rilua pin so default/no-shadow reads
+retain root-table reassignment semantics. The pinned rilua revision
+covers bare, `_G`, `rawset`, nil, custom-environment, taint-propagation,
+shadow-override, and empty-shadow snapshot behavior. Remaining Track 3
+work is startup measurement and any end-to-end freeze-mode proof beyond
+the VM contract.
+
+## Sources
+
+- [Cargo.lock](../../../Cargo.lock) — commit `f0f5312be` pins the rilua revision containing the slot-read coherence fix
+- [global_slots.rs](../../../src/lua_api/global_slots.rs) — simulator slot metadata, mode selection, and shadow-aware read contract
+- [Track 2 intern audit](../investigations/track-2-intern-audit.md) — preceding hot-literal and intern-path work
+
+## See Also
+
+- [[bytecode-cache-growth]] — bounded cache storage for generated chunks using the slot ABI
+- [[architecture-overview]] — rilua and simulator architecture context

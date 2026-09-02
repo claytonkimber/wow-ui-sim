@@ -380,9 +380,8 @@ fn dep_directories_exist_on_disk() {
     }
 }
 
-#[test]
-fn full_game_load_publishes_voice_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_publishes_voice_mixins(env: &WowLuaEnv) {
 
     for mixin in REPRESENTATIVE_VOICE_MIXINS {
         let kind: String = env
@@ -406,10 +405,10 @@ fn full_game_load_publishes_voice_mixins() {
         );
     }
 }
+}
 
-#[test]
-fn full_game_load_publishes_button_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_publishes_button_mixins(env: &WowLuaEnv) {
 
     for mixin in REPRESENTATIVE_BUTTON_MIXINS {
         let kind: String = env
@@ -436,10 +435,10 @@ fn full_game_load_publishes_button_mixins() {
         );
     }
 }
+}
 
-#[test]
-fn full_game_load_publishes_top_level_menus() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_publishes_top_level_menus(env: &WowLuaEnv) {
 
     for menu in REPRESENTATIVE_TOPLEVEL_MENUS {
         let kind: String = env
@@ -466,10 +465,11 @@ fn full_game_load_publishes_top_level_menus() {
         );
     }
 }
+}
 
-#[test]
-fn full_game_load_registers_representative_virtual_templates() {
-    let _env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_registers_representative_virtual_templates(env: &WowLuaEnv) {
+    let _env = env;
 
     for template in REPRESENTATIVE_VIRTUAL_TEMPLATES {
         let resolved = wow_ui_sim::xml::get_template(template);
@@ -495,10 +495,10 @@ fn full_game_load_registers_representative_virtual_templates() {
         );
     }
 }
+}
 
-#[test]
-fn full_game_load_emits_no_addon_specific_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_emits_no_addon_specific_errors(env: &WowLuaEnv) {
 
     let errors: Vec<String> = env.state().borrow().lua_errors.clone();
     let addon_specific: Vec<&String> = errors
@@ -517,4 +517,5 @@ fn full_game_load_emits_no_addon_specific_errors() {
          breaks the right-click context menu on every frame in-world. \
          Found: {addon_specific:?}"
     );
+}
 }

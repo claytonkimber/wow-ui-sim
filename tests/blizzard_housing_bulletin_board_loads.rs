@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, find_toc_file, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
-use wow_ui_sim::startup::fire_startup_events_for_screen;
 use wow_ui_sim::toc::TocFile;
 
 fn blizzard_ui_dir() -> PathBuf {
@@ -21,32 +20,9 @@ fn bulletin_board_toc() -> PathBuf {
     bulletin_board_dir().join("Blizzard_HousingBulletinBoard.toc")
 }
 
-fn load_full_game_ui_with_bulletin_board_lod() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-
-    wow_ui_sim::xml::register_intrinsic_templates();
-
-    let ui = blizzard_ui_dir();
-    let addons = discover_blizzard_addons_for_screen(&ui, ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    env.apply_post_load_workarounds();
-    fire_startup_events_for_screen(&env, ScreenKind::Game);
-
+fn load_housing_bulletin_board(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &bulletin_board_toc())
         .expect("Blizzard_HousingBulletinBoard should load via explicit Rust loader call");
-
-    env
 }
 
 #[test]
@@ -222,9 +198,9 @@ fn blizzard_housing_bulletin_board_excluded_from_all_screen_auto_discovery_passe
     }
 }
 
-#[test]
-fn blizzard_housing_bulletin_board_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui_with_bulletin_board_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_bulletin_board_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
+    load_housing_bulletin_board(env);
 
     let lua_errors: Vec<String> = env.state().borrow().lua_errors.clone();
     let related: Vec<&String> = lua_errors
@@ -250,10 +226,11 @@ fn blizzard_housing_bulletin_board_loads_without_addon_specific_lua_errors() {
             .join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_housing_bulletin_board_is_addon_loaded_returns_true_after_explicit_lod_load() {
-    let env = load_full_game_ui_with_bulletin_board_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_bulletin_board_is_addon_loaded_returns_true_after_explicit_lod_load(env: &WowLuaEnv) {
+    load_housing_bulletin_board(env);
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_HousingBulletinBoard')")
@@ -265,10 +242,11 @@ fn blizzard_housing_bulletin_board_is_addon_loaded_returns_true_after_explicit_l
          `C_AddOns.IsAddOnLoaded('Blizzard_HousingBulletinBoard')` should return true"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_bulletin_board_publishes_three_named_frames_globally() {
-    let env = load_full_game_ui_with_bulletin_board_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_bulletin_board_publishes_three_named_frames_globally(env: &WowLuaEnv) {
+    load_housing_bulletin_board(env);
 
     for frame in [
         "HousingBulletinBoardFrame",
@@ -294,10 +272,11 @@ fn blizzard_housing_bulletin_board_publishes_three_named_frames_globally() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_bulletin_board_publishes_eight_mixins_globally() {
-    let env = load_full_game_ui_with_bulletin_board_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_bulletin_board_publishes_eight_mixins_globally(env: &WowLuaEnv) {
+    load_housing_bulletin_board(env);
 
     for mixin in [
         "HousingBulletinBoardFrameMixin",
@@ -344,10 +323,11 @@ fn blizzard_housing_bulletin_board_publishes_eight_mixins_globally() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_bulletin_board_frame_mixin_publishes_six_methods() {
-    let env = load_full_game_ui_with_bulletin_board_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_bulletin_board_frame_mixin_publishes_six_methods(env: &WowLuaEnv) {
+    load_housing_bulletin_board(env);
 
     for method in [
         "OnEvent",
@@ -380,10 +360,11 @@ fn blizzard_housing_bulletin_board_frame_mixin_publishes_six_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_bulletin_board_neighborhood_roster_mixin_publishes_fifteen_methods() {
-    let env = load_full_game_ui_with_bulletin_board_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_bulletin_board_neighborhood_roster_mixin_publishes_fifteen_methods(env: &WowLuaEnv) {
+    load_housing_bulletin_board(env);
 
     for method in [
         "OnLoad",
@@ -418,10 +399,11 @@ fn blizzard_housing_bulletin_board_neighborhood_roster_mixin_publishes_fifteen_m
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_bulletin_board_neighborhood_roster_management_methods_publish() {
-    let env = load_full_game_ui_with_bulletin_board_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_bulletin_board_neighborhood_roster_management_methods_publish(env: &WowLuaEnv) {
+    load_housing_bulletin_board(env);
 
     for method in [
         "TryAddManager",
@@ -450,10 +432,11 @@ fn blizzard_housing_bulletin_board_neighborhood_roster_management_methods_publis
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_bulletin_board_neighborhood_roster_entry_mixin_publishes_six_methods() {
-    let env = load_full_game_ui_with_bulletin_board_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_bulletin_board_neighborhood_roster_entry_mixin_publishes_six_methods(env: &WowLuaEnv) {
+    load_housing_bulletin_board(env);
 
     for method in [
         "OnShow",
@@ -485,10 +468,11 @@ fn blizzard_housing_bulletin_board_neighborhood_roster_entry_mixin_publishes_six
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_bulletin_board_invite_resident_mixin_publishes_eleven_methods() {
-    let env = load_full_game_ui_with_bulletin_board_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_bulletin_board_invite_resident_mixin_publishes_eleven_methods(env: &WowLuaEnv) {
+    load_housing_bulletin_board(env);
 
     for method in [
         "OnLoad",
@@ -528,10 +512,11 @@ fn blizzard_housing_bulletin_board_invite_resident_mixin_publishes_eleven_method
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_bulletin_board_publishes_two_module_event_tables_globally() {
-    let env = load_full_game_ui_with_bulletin_board_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_bulletin_board_publishes_two_module_event_tables_globally(env: &WowLuaEnv) {
+    load_housing_bulletin_board(env);
 
     let bulletin_table_size: i64 = env
         .eval("return BULLETIN_BOARD_SHOWING_EVENTS and #BULLETIN_BOARD_SHOWING_EVENTS or -1")
@@ -558,10 +543,11 @@ fn blizzard_housing_bulletin_board_publishes_two_module_event_tables_globally() 
          no-op behavior"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_bulletin_board_publishes_global_column_click_callback() {
-    let env = load_full_game_ui_with_bulletin_board_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_bulletin_board_publishes_global_column_click_callback(env: &WowLuaEnv) {
+    load_housing_bulletin_board(env);
 
     let exists: bool = env
         .eval("return type(_G['HousingBulletinBoardRosterColumnDisplay_OnClick']) == 'function'")
@@ -576,10 +562,11 @@ fn blizzard_housing_bulletin_board_publishes_global_column_click_callback() {
          at load time"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_bulletin_board_registers_five_static_popup_dialogs() {
-    let env = load_full_game_ui_with_bulletin_board_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_bulletin_board_registers_five_static_popup_dialogs(env: &WowLuaEnv) {
+    load_housing_bulletin_board(env);
 
     for dialog in [
         "HOUSING_BULLETIN_EVICT_CONFIRMATION",
@@ -608,10 +595,11 @@ fn blizzard_housing_bulletin_board_registers_five_static_popup_dialogs() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_bulletin_board_does_not_publish_virtual_templates_globally() {
-    let env = load_full_game_ui_with_bulletin_board_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_bulletin_board_does_not_publish_virtual_templates_globally(env: &WowLuaEnv) {
+    load_housing_bulletin_board(env);
 
     for template in [
         "NeighborhoodRosterEntryTemplate",
@@ -638,10 +626,11 @@ fn blizzard_housing_bulletin_board_does_not_publish_virtual_templates_globally()
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_bulletin_board_frame_publishes_named_children() {
-    let env = load_full_game_ui_with_bulletin_board_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_bulletin_board_frame_publishes_named_children(env: &WowLuaEnv) {
+    load_housing_bulletin_board(env);
 
     for parent_key in [
         "ResidentsTab",
@@ -672,10 +661,11 @@ fn blizzard_housing_bulletin_board_frame_publishes_named_children() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_bulletin_board_dependency_loads_via_game_screen_pass() {
-    let env = load_full_game_ui_with_bulletin_board_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_bulletin_board_dependency_loads_via_game_screen_pass(env: &WowLuaEnv) {
+    load_housing_bulletin_board(env);
 
     let templates_loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_HousingTemplates')")
@@ -688,4 +678,5 @@ fn blizzard_housing_bulletin_board_dependency_loads_via_game_screen_pass() {
          Game-screen pass hits it via the normal discovery flow because HousingTemplates is \
          itself non-LoD"
     );
+}
 }

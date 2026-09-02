@@ -102,9 +102,8 @@ fn blizzard_deprecated_combat_log_appears_in_game_discovery_only() {
     );
 }
 
-#[test]
-fn blizzard_deprecated_combat_log_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_combat_log_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -122,10 +121,10 @@ fn blizzard_deprecated_combat_log_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_combat_log_installs_c_combat_log_function_aliases() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_combat_log_installs_c_combat_log_function_aliases(env: &WowLuaEnv) {
 
     let installed: bool = env
         .eval(
@@ -153,10 +152,10 @@ fn blizzard_deprecated_combat_log_installs_c_combat_log_function_aliases() {
          CombatLogShowCurrentEntry → ShouldShowCurrentEntry"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_combat_log_installs_combat_text_and_death_recap_aliases() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_combat_log_installs_combat_text_and_death_recap_aliases(env: &WowLuaEnv) {
 
     let installed: bool = env
         .eval(
@@ -176,10 +175,10 @@ fn blizzard_deprecated_combat_log_installs_combat_text_and_death_recap_aliases()
          C_DeathRecap.HasRecapEvents, GetDeathRecapLink → C_DeathRecap.GetRecapLink"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_combat_log_installs_combat_log_object_constants() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_combat_log_installs_combat_log_object_constants(env: &WowLuaEnv) {
 
     let installed: bool = env
         .eval(
@@ -214,10 +213,10 @@ fn blizzard_deprecated_combat_log_installs_combat_log_object_constants() {
          src/lua_api/globals/enum_data/combat_system.rs:61"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_combat_log_installs_combat_log_object_masks() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_combat_log_installs_combat_log_object_masks(env: &WowLuaEnv) {
 
     let installed: bool = env
         .eval(
@@ -248,10 +247,10 @@ fn blizzard_deprecated_combat_log_installs_combat_log_object_masks() {
          constants_values.lua:70-77"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_combat_log_installs_combat_log_raid_target_constants() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_combat_log_installs_combat_log_raid_target_constants(env: &WowLuaEnv) {
 
     let installed: bool = env
         .eval(
@@ -274,10 +273,10 @@ fn blizzard_deprecated_combat_log_installs_combat_log_raid_target_constants() {
          the EnumDef in src/lua_api/globals/enum_data/combat_system.rs:87"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_combat_log_installs_aura_type_strings_and_highlight_multiplier() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_combat_log_installs_aura_type_strings_and_highlight_multiplier(env: &WowLuaEnv) {
 
     let installed: bool = env
         .eval(
@@ -293,10 +292,10 @@ fn blizzard_deprecated_combat_log_installs_aura_type_strings_and_highlight_multi
          = 1.5"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_combat_log_installs_combat_log_util_function_aliases() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_combat_log_installs_combat_log_util_function_aliases(env: &WowLuaEnv) {
 
     let installed: bool = env
         .eval(
@@ -322,10 +321,10 @@ fn blizzard_deprecated_combat_log_installs_combat_log_util_function_aliases() {
          Blizzard_CombatLog_CurrentSettings as a default fallback"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_combat_log_installs_color_string_closures() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_combat_log_installs_color_string_closures(env: &WowLuaEnv) {
 
     let installed: bool = env
         .eval(
@@ -350,10 +349,10 @@ fn blizzard_deprecated_combat_log_installs_color_string_closures() {
          the corresponding ColorArray getter"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_combat_log_color_float_to_text_packs_argb_hex() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_combat_log_color_float_to_text_packs_argb_hex(env: &WowLuaEnv) {
 
     let scalar_form: String = env
         .eval("return CombatLog_Color_FloatToText(1.0, 0.5, 0.25, 0.75)")
@@ -375,10 +374,10 @@ fn blizzard_deprecated_combat_log_color_float_to_text_packs_argb_hex() {
          b=floor(0.25 * 255)=63=0x3f → `bfff7f3f`"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_combat_log_load_deprecation_fallbacks_cvar_is_default_on() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_combat_log_load_deprecation_fallbacks_cvar_is_default_on(env: &WowLuaEnv) {
 
     let cvar_on: bool = env
         .eval("return GetCVarBool('loadDeprecationFallbacks')")
@@ -390,6 +389,7 @@ fn blizzard_deprecated_combat_log_load_deprecation_fallbacks_cvar_is_default_on(
          any shim is defined. If this CVar flips to false, ALL ~50 deprecated combat-log \
          globals are skipped"
     );
+}
 }
 
 #[test]

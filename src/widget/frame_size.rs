@@ -3,7 +3,7 @@
 use std::collections::{BTreeSet, HashMap, HashSet};
 
 use super::frame::Frame;
-use super::frame_types::AttributeValue;
+use super::frame_types::{AttributeValue, ModelWidgetState, PlayerModelState};
 
 impl Frame {
     pub fn storage_estimate_bytes(&self) -> usize {
@@ -20,7 +20,7 @@ impl Frame {
             + hash_set_string_bytes(&self.registered_drag_buttons)
             + btree_set_bytes(&self.disabled_draw_layers)
             + vec_bytes(&self.mask_textures)
-            + vec_bytes(&self.model_scene_actor_ids)
+            + model_state_bytes(&self.model_state)
             + vec_string_bytes(&self.editbox_history)
     }
 
@@ -28,7 +28,6 @@ impl Frame {
         self.core_string_bytes()
             + self.texture_string_bytes()
             + self.minimap_string_bytes()
-            + option_string_bytes(&self.model_path)
             + option_string_bytes(&self.statusbar_texture_path)
             + self.slider_orientation.capacity()
             + self.statusbar_fill_style.capacity()
@@ -76,6 +75,32 @@ impl Frame {
 
 fn option_string_bytes(value: &Option<String>) -> usize {
     value.as_ref().map_or(0, String::capacity)
+}
+
+fn model_state_bytes(value: &Option<Box<ModelWidgetState>>) -> usize {
+    let Some(state) = value.as_deref() else {
+        return 0;
+    };
+    std::mem::size_of::<ModelWidgetState>()
+        + option_string_bytes(&state.model_path)
+        + state.model_scene_actor_ids.capacity() * std::mem::size_of::<u64>()
+        + model_scene_actor_tag_bytes(state)
+        + player_model_string_bytes(&state.player_model_state)
+}
+
+fn model_scene_actor_tag_bytes(state: &ModelWidgetState) -> usize {
+    state.model_scene_actor_tags.capacity() * std::mem::size_of::<(String, u64)>()
+        + state
+            .model_scene_actor_tags
+            .iter()
+            .map(|(tag, _)| tag.capacity())
+            .sum::<usize>()
+}
+
+fn player_model_string_bytes(state: &PlayerModelState) -> usize {
+    option_string_bytes(&state.last_unit)
+        + option_string_bytes(&state.last_item)
+        + option_string_bytes(&state.last_item_appearance)
 }
 
 fn vec_bytes<T>(values: &[T]) -> usize {

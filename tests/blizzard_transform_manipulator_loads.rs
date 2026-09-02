@@ -26,11 +26,60 @@ const ALL_FOUR_SCREENS: &[ScreenKind] = &[
     ScreenKind::CharacterCreate,
 ];
 
-const PUBLISHED_MIXINS: &[(&str, usize)] = &[
-    ("RotateControlFrameMixin", 7),
-    ("RotateControlArrowButtonMixin", 14),
-    ("ScaleControlFrameMixin", 12),
-    ("ScaleControlArrowButtonMixin", 14),
+const PUBLISHED_MIXINS: &[(&str, &[&str])] = &[
+    (
+        "RotateControlFrameMixin",
+        &[
+            "OnLoad",
+            "OnEvent",
+            "OnShow",
+            "OnHide",
+            "OnEnter",
+            "OnLeave",
+            "UpdateActiveState",
+        ],
+    ),
+    (
+        "RotateControlArrowButtonMixin",
+        &[
+            "OnLoad",
+            "OnButtonStateChanged",
+            "SetHoverCallbacks",
+            "OnEnter",
+            "OnLeave",
+            "OnMouseDown",
+            "OnMouseUp",
+        ],
+    ),
+    (
+        "ScaleControlFrameMixin",
+        &[
+            "OnLoad",
+            "OnShow",
+            "OnEnter",
+            "OnLeave",
+            "OnValueChanged",
+            "OnMinMaxChanged",
+            "FormatValue",
+            "OnMouseDown",
+            "OnMouseUp",
+            "UpdateActiveState",
+            "UpdateDefaultAnchor",
+            "UpdateFill",
+        ],
+    ),
+    (
+        "ScaleControlArrowButtonMixin",
+        &[
+            "OnLoad",
+            "OnButtonStateChanged",
+            "SetHoverCallbacks",
+            "OnEnter",
+            "OnLeave",
+            "OnMouseDown",
+            "OnMouseUp",
+        ],
+    ),
 ];
 
 fn fresh_game_env() -> WowLuaEnv {
@@ -258,53 +307,35 @@ fn no_addon_declares_transform_manipulator_as_dependency() {
     );
 }
 
-#[test]
-fn full_game_load_publishes_four_mixins_with_expected_method_counts() {
-    let env = load_full_game_ui();
-
+prefork_full_ui_case! {
+fn full_game_load_publishes_four_mixins_with_current_methods(env: &WowLuaEnv) {
     for (mixin, expected_methods) in PUBLISHED_MIXINS {
         let kind: String = env
             .eval(&format!("return type({mixin})"))
             .unwrap_or_else(|err| panic!("{mixin} probe failed: {err}"));
         assert_eq!(
             kind, "table",
-            "{mixin} must be a table after eager game load — the addon \
-             is loaded automatically as part of the Game-screen eager \
-             sweep, no LoD trigger needed"
+            "{mixin} must be a table after eager game load — the addon is loaded automatically \
+             as part of the Game-screen eager sweep, no LoD trigger needed"
         );
 
-        let count_probe = format!(
-            "local n = 0 for k, v in pairs({mixin}) do if type(v) == 'function' then n = n + 1 end end return n"
-        );
-        let actual: i64 = env
-            .eval(&count_probe)
-            .unwrap_or_else(|err| panic!("{mixin} method count probe failed: {err}"));
-        assert_eq!(
-            actual, *expected_methods as i64,
-            "{mixin} must publish {expected_methods} methods. \
-             RotateControlFrameMixin = 7 (plain `= {{}}` table at \
-             RotateControlFrame.lua:8 with OnLoad/OnEvent/OnShow/OnHide/\
-             OnEnter/OnLeave/UpdateActiveState). \
-             RotateControlArrowButtonMixin = 14 (7 own functions + 7 \
-             shallow-copied from ButtonStateBehaviorMixin via \
-             `CreateFromMixins(ButtonStateBehaviorMixin)` at \
-             RotateControlFrame.lua:59 — overlapping keys like OnLoad/\
-             OnEnter/OnLeave/OnMouseDown/OnMouseUp shadow the base, \
-             but OnButtonStateChanged + SetHoverCallbacks plus inherited \
-             keys not redefined here yield 14 total). \
-             ScaleControlFrameMixin = 12 (plain `= {{}}` at \
-             ScaleControlFrame.lua:7 with OnLoad/OnShow/OnEnter/OnLeave/\
-             OnValueChanged/OnMinMaxChanged/FormatValue/OnMouseDown/\
-             OnMouseUp/UpdateActiveState/UpdateDefaultAnchor/UpdateFill). \
-             ScaleControlArrowButtonMixin = 14 (same CreateFromMixins \
-             shape as the Rotate variant). Got {actual}"
-        );
+        for method in *expected_methods {
+            let method_kind: String = env
+                .eval(&format!("return type({mixin}.{method})"))
+                .unwrap_or_else(|err| panic!("{mixin}.{method} probe failed: {err}"));
+            assert_eq!(
+                method_kind, "function",
+                "{mixin}.{method} must be a function. The arrow mixins derive from \
+                 ButtonStateBehaviorMixin, so concrete source-defined methods are a stable \
+                 contract while total table-method counts vary with inherited methods"
+            );
+        }
     }
 }
+}
 
-#[test]
-fn full_game_load_publishes_no_named_top_level_frames() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_publishes_no_named_top_level_frames(env: &WowLuaEnv) {
 
     let template_globals = [
         "RotateControlArrowButtonTemplate",
@@ -329,10 +360,10 @@ fn full_game_load_publishes_no_named_top_level_frames() {
         );
     }
 }
+}
 
-#[test]
-fn published_templates_appear_in_xml_template_registry() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn published_templates_appear_in_xml_template_registry(env: &WowLuaEnv) {
 
     let template_names = [
         "RotateControlArrowButtonTemplate",
@@ -366,6 +397,7 @@ fn published_templates_appear_in_xml_template_registry() {
         "CreateFrame for RotateControlArrowButtonTemplate must yield a \
          FrameRef (type=='table'). Got type={kind}"
     );
+}
 }
 
 #[test]

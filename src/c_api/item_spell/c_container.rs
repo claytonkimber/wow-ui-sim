@@ -45,6 +45,10 @@ pub(crate) fn register_c_container(state: &mut LuaState) -> LuaResult<()> {
 type ContainerScriptFn = fn(&mut LuaState) -> LuaResult<u32>;
 type ContainerMethod = (&'static str, ContainerScriptFn);
 
+const BACKPACK_BAG_INDEX: i32 = 0;
+const BAG_SLOT_FLAG_DISABLE_AUTO_SORT: i32 = 1;
+const BAG_SLOT_FLAG_EXCLUDE_JUNK_SELL: i32 = 64;
+
 fn register_container_query_methods(
     state: &mut LuaState,
     table_ref: GcRef<Table>,
@@ -62,6 +66,14 @@ fn register_container_query_methods(
             ("GetContainerFreeSlots", c_container_get_free_slots),
             ("HasContainerItem", c_container_has_item),
             ("GetBagSlotFlag", c_container_get_bag_slot_flag),
+            (
+                "GetBackpackAutosortDisabled",
+                c_container_get_backpack_autosort_disabled,
+            ),
+            (
+                "GetBackpackSellJunkDisabled",
+                c_container_get_backpack_sell_junk_disabled,
+            ),
             ("GetContainerItemInfo", c_container_get_item_info),
             ("GetContainerItemCooldown", c_container_get_item_cooldown),
             ("GetItemCooldown", c_container_get_item_cooldown),
@@ -284,13 +296,30 @@ fn bag_slot_flag_key(bag: i32, flag: i32) -> String {
     format!("{bag}:{flag}")
 }
 
-fn c_container_get_bag_slot_flag(state: &mut LuaState) -> LuaResult<u32> {
-    let bag = i32::from_stack(state, 1)?;
-    let flag = i32::from_stack(state, 2)?;
+fn bag_slot_flag_is_set(state: &mut LuaState, bag: i32, flag: i32) -> bool {
     let storage = bag_slot_flags_storage(state);
     let key = bag_slot_flag_key(bag, flag);
     let value = crate::lua_api::methods::table_get(state, storage, &key);
-    state.push(Val::Bool(matches!(value, Val::Bool(true))));
+    matches!(value, Val::Bool(true))
+}
+
+fn c_container_get_bag_slot_flag(state: &mut LuaState) -> LuaResult<u32> {
+    let bag = i32::from_stack(state, 1)?;
+    let flag = i32::from_stack(state, 2)?;
+    let value = bag_slot_flag_is_set(state, bag, flag);
+    state.push(Val::Bool(value));
+    Ok(1)
+}
+
+fn c_container_get_backpack_autosort_disabled(state: &mut LuaState) -> LuaResult<u32> {
+    let value = bag_slot_flag_is_set(state, BACKPACK_BAG_INDEX, BAG_SLOT_FLAG_DISABLE_AUTO_SORT);
+    state.push(Val::Bool(value));
+    Ok(1)
+}
+
+fn c_container_get_backpack_sell_junk_disabled(state: &mut LuaState) -> LuaResult<u32> {
+    let value = bag_slot_flag_is_set(state, BACKPACK_BAG_INDEX, BAG_SLOT_FLAG_EXCLUDE_JUNK_SELL);
+    state.push(Val::Bool(value));
     Ok(1)
 }
 

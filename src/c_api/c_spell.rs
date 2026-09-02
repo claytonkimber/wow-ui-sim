@@ -64,6 +64,7 @@ pub(crate) fn register_c_spell_surface(state: &mut LuaState) -> LuaResult<()> {
 
 const SPELL_QUERY_METHODS: &[(&str, SpellScriptFn)] = &[
     ("GetSpellDescription", get_spell_description),
+    ("GetSpellQueueWindow", get_spell_queue_window),
     ("GetSpellInfo", get_spell_info),
     ("GetSpellTexture", get_spell_texture),
     ("GetSpellPowerCost", get_spell_power_cost),
@@ -137,6 +138,15 @@ fn get_spell_description(state: &mut LuaState) -> LuaResult<u32> {
     };
     let description = create_string(state, &description_text);
     state.push(description);
+    Ok(1)
+}
+
+fn get_spell_queue_window(state: &mut LuaState) -> LuaResult<u32> {
+    let queue_window = borrow_state(state)?
+        .cvars
+        .get("SpellQueueWindow")
+        .and_then(|value| value.parse::<f64>().ok());
+    state.push(queue_window.map_or(Val::Nil, Val::Num));
     Ok(1)
 }
 

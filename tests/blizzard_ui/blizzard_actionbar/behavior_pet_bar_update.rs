@@ -127,7 +127,8 @@
 //!      `self:Update()`, the loop body at lua:121-128 read
 //!      `GetPetActionInfo(1)` (which sees `state.pet_actions[0]`), and the
 //!      non-token branch wrote `petActionButton.tooltipName = name`.
-//!   4. **`PetActionButton1.icon:GetTexture()` returns the seeded path.**
+//!   4. **`PetActionButton1.icon:GetTexture()` returns the seeded path's
+//!      numeric fileDataID and `GetTextureFilePath()` preserves the path.**
 //!      Pinned by `petActionIcon:SetTexture(texture)` at lua:127. This
 //!      observation also proves `petActionButton.icon` resolves to the
 //!      Texture declared at `ActionButtonTemplate.xml:23` (parentKey="icon").
@@ -165,6 +166,7 @@ use wow_ui_sim::lua_api::state::PetActionSlot;
 const ROOT: &str = "Blizzard_ActionBar";
 const SEEDED_NAME: &str = "Growl";
 const SEEDED_TEXTURE: &str = "Interface/Icons/Ability_Physical_Taunt";
+const SEEDED_TEXTURE_FILE_DATA_ID: i64 = 132270;
 const SEEDED_SPELL_ID: u32 = 2649;
 
 #[test]
@@ -258,21 +260,23 @@ fn pet_bar_update_event_repopulates_button_icon_and_shows_bar_from_seeded_pet_ac
              lua:128 regressed. Got: post_tooltip_name={post_tooltip_name:?}."
         );
 
-        let post_icon_texture: Option<String> = env
-            .eval("return PetActionButton1.icon:GetTexture()")
-            .expect("PetActionButton1.icon:GetTexture probe must run cleanly");
+        let (post_icon_file_data_id, post_icon_path): (i64, String) = env
+            .eval(
+                "return PetActionButton1.icon:GetTexture(), \
+                 PetActionButton1.icon:GetTextureFilePath()",
+            )
+            .expect("PetActionButton1 icon identity probe must run cleanly");
         assert_eq!(
-            post_icon_texture.as_deref(),
-            Some(SEEDED_TEXTURE),
+            post_icon_file_data_id, SEEDED_TEXTURE_FILE_DATA_ID,
             "After PET_BAR_UPDATE, `PetActionButton1.icon:GetTexture()` must \
-             return the seeded texture path. Pinned by \
-             `petActionIcon:SetTexture(texture)` at PetActionBar.lua:127 \
-             (non-token branch). A nil or wrong reading means either the \
-             event chain broke (see tooltipName regression candidates), the \
-             `petActionButton.icon` lookup at lua:123 didn't resolve to the \
-             template's `parentKey=\"icon\"` Texture, or `GetPetActionInfo` \
-             stopped returning the seeded texture in field 2. Got: \
-             post_icon_texture={post_icon_texture:?}."
+             return the seeded texture's fileDataID. A mismatch means the \
+             event chain broke or known texture identity stopped preserving \
+             fileDataIDs. Got path: {post_icon_path:?}."
+        );
+        assert_eq!(
+            post_icon_path, SEEDED_TEXTURE,
+            "`PetActionButton1.icon:GetTextureFilePath()` must preserve the \
+             path passed through `GetPetActionInfo` and `SetTexture`."
         );
 
         let other_slot_clean: bool = env

@@ -34,29 +34,19 @@
 //! `Blizzard_AccountStoreItemDisplay.lua:58`) reacts to the event
 //! `SetStoreFrontID` triggers.
 //!
-//! Note: by the time the smoke harness finishes loading,
-//! `AccountStoreFrame.storeFrontID` is ALREADY non-nil because
-//! `UIParent_OnShow` (`Blizzard_UIParent/Mainline/UIParent.lua:351-352`)
-//! calls `C_AddOns.LoadAddOn("Blizzard_AccountStore")` followed by
-//! `AccountStoreFrame:SetStoreFrontID(Constants.AccountStoreConsts.PlunderstormStoreFrontID)`
-//! during UIParent's load chain. The tests here therefore capture the
-//! load-time id and assert change-or-no-change relative to that
-//! starting value, instead of asserting nil-at-start.
+//! Directly loading `Blizzard_AccountStore` leaves
+//! `AccountStoreFrame.storeFrontID` nil. Current UIParent no longer loads the
+//! addon or seeds a default id. The tests therefore pin that visibility toggles
+//! preserve nil and `SetStoreFrontID` explicitly persists its argument.
 //!
 //! This file pins the behavioral consequences of the path split:
 //!
 //! - `toggle_with_extra_arg_flips_visibility_without_changing_store_front_id`
 //!   asserts that calling `AccountStoreUtil.ToggleAccountStore(123)`
-//!   (with a PLAN-shaped extra argument) flips `IsShown()` exactly the
-//!   way the zero-arg call would AND leaves `storeFrontID` equal to
-//!   the load-time value. Vararg-discard means the extra argument is
-//!   dropped at the call boundary, so the body is identical to the
-//!   zero-arg case.
-//! - `set_store_front_id_overrides_load_time_default_and_persists_new_id`
-//!   asserts that `AccountStoreFrame:SetStoreFrontID(<sentinel>)` (the
-//!   actual storeFrontID-setting path) overwrites the load-time
-//!   PlunderstormStoreFrontID with the sentinel — pinning the
-//!   field-assignment line at `Blizzard_AccountStore.lua:43`.
+//!   flips visibility while preserving the initial nil id. Lua discards the
+//!   extra argument because the function has no parameters.
+//! - `set_store_front_id_explicitly_persists_sentinel` asserts that
+//!   `AccountStoreFrame:SetStoreFrontID(<sentinel>)` writes the id field.
 //!
 //! The shallower visibility-flip and PLAN-named-global-absent
 //! assertions live in the surface lane
@@ -71,9 +61,14 @@ const ROOT: &str = "Blizzard_AccountStore";
 #[test]
 fn toggle_with_extra_arg_flips_visibility_without_changing_store_front_id() {
     with_blizzard_addon_smoke_shape(&[ROOT], &[], |env, _loaded| {
-        let initial_store_front_id: i64 = env
+        let initial_store_front_id: Option<i64> = env
             .eval("return AccountStoreFrame.storeFrontID")
             .expect("initial `AccountStoreFrame.storeFrontID` probe must run cleanly");
+        assert_eq!(
+            initial_store_front_id, None,
+            "Directly loading `{ROOT}` must leave `AccountStoreFrame.storeFrontID` nil; current \
+             UIParent does not seed AccountStore state during its own load path."
+        );
 
         let initially_hidden: bool = env
             .eval("return AccountStoreFrame:IsShown() == false")
@@ -114,7 +109,7 @@ fn toggle_with_extra_arg_flips_visibility_without_changing_store_front_id() {
              API)."
         );
 
-        let store_front_id_after_toggle_with_arg: i64 = env
+        let store_front_id_after_toggle_with_arg: Option<i64> = env
             .eval("return AccountStoreFrame.storeFrontID")
             .expect("post-toggle-with-arg `storeFrontID` probe must run cleanly");
 
@@ -127,16 +122,9 @@ fn toggle_with_extra_arg_flips_visibility_without_changing_store_front_id() {
              toggle+set-id call, but the actual toggle body \
              (`Blizzard_AccountStoreUtil.lua:53` — `SetAccountStoreShown(not \
              AccountStoreFrame:IsShown())`) only routes to `ShowUIPanel`/`HideUIPanel` and \
-             never assigns `storeFrontID`. The load-time id was captured as the initial value \
-             (set to `Constants.AccountStoreConsts.PlunderstormStoreFrontID` by \
-             `UIParent_OnShow` at `Blizzard_UIParent/Mainline/UIParent.lua:351-352`); a \
-             mismatch reading here means either (a) Blizzard merged the two paths into a \
-             single coupled call (forcing a re-pin against the new shape — and likely \
-             retiring `AccountStoreMixin:SetStoreFrontID` as the public id-setter), or \
-             (b) some intermediate path (`SetAccountStoreShown`, the panel manager, the \
-             frame's OnShow handler) started rewriting `storeFrontID` (a regression worth \
-             investigating because it would mask the separate-path contract that downstream \
-             `OnStoreFrontSet` callbacks depend on)."
+             never assigns `storeFrontID`. The direct-load nil value must remain nil across the \
+             show path; a mismatch would mean visibility lifecycle code started rewriting the \
+             separately managed store-front id."
         );
 
         env.eval::<()>("AccountStoreUtil.ToggleAccountStore(); return")
@@ -159,7 +147,7 @@ fn toggle_with_extra_arg_flips_visibility_without_changing_store_front_id() {
              invocation."
         );
 
-        let store_front_id_after_round_trip: i64 = env
+        let store_front_id_after_round_trip: Option<i64> = env
             .eval("return AccountStoreFrame.storeFrontID")
             .expect("post-round-trip `storeFrontID` probe must run cleanly");
 
@@ -180,33 +168,15 @@ fn toggle_with_extra_arg_flips_visibility_without_changing_store_front_id() {
 }
 
 #[test]
-fn set_store_front_id_overrides_load_time_default_and_persists_new_id() {
+fn set_store_front_id_explicitly_persists_sentinel() {
     with_blizzard_addon_smoke_shape(&[ROOT], &[], |env, _loaded| {
-        let load_time_store_front_id: i64 = env
+        let initial_store_front_id: Option<i64> = env
             .eval("return AccountStoreFrame.storeFrontID")
-            .expect("load-time `AccountStoreFrame.storeFrontID` probe must run cleanly");
-
-        let plunderstorm_store_front_id: i64 = env
-            .eval("return Constants.AccountStoreConsts.PlunderstormStoreFrontID")
-            .expect(
-                "`Constants.AccountStoreConsts.PlunderstormStoreFrontID` probe must run cleanly",
-            );
-
+            .expect("initial `AccountStoreFrame.storeFrontID` probe must run cleanly");
         assert_eq!(
-            load_time_store_front_id, plunderstorm_store_front_id,
-            "Expected `AccountStoreFrame.storeFrontID` to equal \
-             `Constants.AccountStoreConsts.PlunderstormStoreFrontID` after `{ROOT}` loads. \
-             `UIParent_OnShow` at `Blizzard_UIParent/Mainline/UIParent.lua:351-352` calls \
-             `C_AddOns.LoadAddOn(\"Blizzard_AccountStore\")` and then \
-             `AccountStoreFrame:SetStoreFrontID(Constants.AccountStoreConsts.PlunderstormStoreFrontID)` \
-             unconditionally during the UIParent show chain — the smoke harness shows UIParent \
-             so this path runs as a load-time side effect. A mismatch reading here means \
-             either (a) UIParent_OnShow stopped seeding the id (a Blizzard change forcing a \
-             re-pin against the new load-time default — and likely a downstream change in \
-             how AccountStoreItemDisplayMixin's load-time category fetch works), or (b) the \
-             harness short-circuited UIParent's show chain (a regression in the smoke \
-             fixture — `UIParent_OnShow` is the canonical place where the simulator's shown \
-             contract gets seeded)."
+            initial_store_front_id, None,
+            "Directly loading `{ROOT}` must not assign a store-front id before its explicit setter \
+             runs."
         );
 
         const SENTINEL_STORE_FRONT_ID: i64 = 42_424_242;
@@ -240,19 +210,5 @@ fn set_store_front_id_overrides_load_time_default_and_persists_new_id() {
              regression that would silently break callers passing yet-to-be-localized ids)."
         );
 
-        assert_ne!(
-            store_front_id_after_set, load_time_store_front_id,
-            "Expected `AccountStoreFrame.storeFrontID` ({store_front_id_after_set}) to differ \
-             from the load-time PlunderstormStoreFrontID ({load_time_store_front_id}) after \
-             `SetStoreFrontID({SENTINEL_STORE_FRONT_ID})`. A match reading would mean either \
-             (a) the SetStoreFrontID body silently dropped the new id and kept the old one (a \
-             regression in `AccountStoreMixin:SetStoreFrontID`'s assignment), or (b) the \
-             sentinel 42424242 collided with PlunderstormStoreFrontID (verify by printing \
-             `Constants.AccountStoreConsts.PlunderstormStoreFrontID` and choosing a new \
-             sentinel that's safely outside both real store-front ids). The differs-from-load \
-             contract is what proves the id-setter path is observably DIFFERENT from the \
-             toggle path: the toggle test pins the id stays pinned at the load-time value; \
-             this test pins that the id-setter path overrides it."
-        );
     });
 }

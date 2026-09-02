@@ -16,6 +16,8 @@
 //! - `IsHelpfulSpell(id)`                 — helpful_spells.contains(id)
 //! - `HasPetSpells()`                     — pet_spells non-empty
 
+use crate::c_api::item_spell::c_item_is_item_in_range;
+use crate::c_api::item_spell::helpers::unit_is_reachable;
 use crate::lua_api::SimState;
 use crate::lua_api::methods::borrow_state;
 use crate::lua_bridge::{FromStack, stack_val};
@@ -101,18 +103,6 @@ fn is_spell_in_range(state: &mut LuaState) -> LuaResult<u32> {
     Ok(1)
 }
 
-/// `IsItemInRange(itemId, unit)` — true when the unit is reachable.
-fn is_item_in_range(state: &mut LuaState) -> LuaResult<u32> {
-    let _ = stack_u32(state, 1);
-    let unit = Option::<String>::from_stack(state, 2)?.unwrap_or_default();
-    let in_range = {
-        let st = borrow_state(state)?;
-        unit_is_reachable(&st, &unit)
-    };
-    state.push(Val::Bool(in_range));
-    Ok(1)
-}
-
 /// `IsUsableSpell(idOrName)` — known AND no active cooldown.
 fn is_usable_spell(state: &mut LuaState) -> LuaResult<u32> {
     let Some(id) = stack_u32(state, 1) else {
@@ -183,22 +173,6 @@ fn has_pet_spells(state: &mut LuaState) -> LuaResult<u32> {
     Ok(1)
 }
 
-fn unit_is_reachable(st: &crate::lua_api::state::SimState, unit: &str) -> bool {
-    match unit {
-        "" => false,
-        "player" | "pet" | "vehicle" => true,
-        "target" => st.current_target.is_some(),
-        "focus" => st.current_focus.is_some(),
-        other => {
-            if let Some(idx) = crate::lua_api::globals::unit_api::parse_party_index(other) {
-                st.party_group_active && idx < st.party_members.len()
-            } else {
-                false
-            }
-        }
-    }
-}
-
 pub fn register_all(lua: &mut rilua::Lua) -> crate::Result<()> {
     LuaApiMut::register_function(lua, "IsCurrentSpell", is_current_spell)?;
     LuaApiMut::register_function(lua, "IsCurrentAction", is_current_action)?;
@@ -209,7 +183,7 @@ pub fn register_all(lua: &mut rilua::Lua) -> crate::Result<()> {
         is_spell_known_or_overrides,
     )?;
     LuaApiMut::register_function(lua, "IsSpellInRange", is_spell_in_range)?;
-    LuaApiMut::register_function(lua, "IsItemInRange", is_item_in_range)?;
+    LuaApiMut::register_function(lua, "IsItemInRange", c_item_is_item_in_range)?;
     LuaApiMut::register_function(lua, "IsUsableSpell", is_usable_spell)?;
     LuaApiMut::register_function(lua, "IsHarmfulSpell", is_harmful_spell)?;
     LuaApiMut::register_function(lua, "IsHelpfulSpell", is_helpful_spell)?;

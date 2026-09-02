@@ -1,3 +1,5 @@
+use wow_ui_sim::loader::LoadResult;
+
 const VERBOSE_WARNING_ADDONS: &[&str] = &[
     "BetterWardrobe",
     "Plumber",
@@ -59,17 +61,20 @@ const VERBOSE_WARNING_ADDONS: &[&str] = &[
     "OribosExchange",
 ];
 
-pub(super) fn print_addon_warnings(name: &str, warnings: &[String]) {
-    if std::env::var("WOW_SIM_DEBUG_NIL_GLOBALS").is_err() {
+pub(super) fn print_addon_warnings(name: &str, result: &LoadResult) {
+    if std::env::var("WOW_SIM_DEBUG_NIL_GLOBALS").is_err()
+        || !VERBOSE_WARNING_ADDONS.contains(&name)
+    {
         return;
     }
-    if warnings.is_empty() || !VERBOSE_WARNING_ADDONS.contains(&name) {
-        return;
+
+    for warning in &result.warnings {
+        println!("  [failure] {warning}");
     }
-    for (i, w) in warnings.iter().take(10).enumerate() {
-        println!("  [{}] {}", i + 1, w);
+    for observation in &result.nil_symbol_observations {
+        println!("  [nil-observation] {observation}");
     }
-    if warnings.len() > 10 {
-        println!("  ... and {} more", warnings.len() - 10);
+    for requirement in &result.missing_requirements {
+        println!("  [missing-requirement] {requirement}");
     }
 }

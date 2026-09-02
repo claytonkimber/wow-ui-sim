@@ -68,7 +68,7 @@ fn secure_raid_group_header_spawns_raid_unit_children() {
 
         assert_eq!(
             units,
-            "raid1,raid2,raid3,raid4,raid5,raid6,raid7,nil;TOP:BOTTOM:0:-12:LEFT:RIGHT:20:0"
+            "raid1,raid2,raid3,raid4,raid5,raid6,raid7,raid8;TOP:BOTTOM:0:-12:LEFT:RIGHT:20:0"
         );
     }
 }

@@ -323,9 +323,8 @@ fn dep_directories_exist_on_disk() {
     }
 }
 
-#[test]
-fn full_game_load_publishes_module_load_tables() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_publishes_module_load_tables(env: &WowLuaEnv) {
 
     for table in MODULE_LOAD_TABLES {
         let kind: String = env
@@ -345,10 +344,10 @@ fn full_game_load_publishes_module_load_tables() {
         );
     }
 }
+}
 
-#[test]
-fn full_game_load_publishes_module_load_bool_constants() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_publishes_module_load_bool_constants(env: &WowLuaEnv) {
 
     for (name, expected) in MODULE_LOAD_BOOL_CONSTANTS {
         let value: bool = env
@@ -364,10 +363,10 @@ fn full_game_load_publishes_module_load_bool_constants() {
         );
     }
 }
+}
 
-#[test]
-fn full_game_load_publishes_module_load_number_constants() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_publishes_module_load_number_constants(env: &WowLuaEnv) {
 
     for (name, expected) in MODULE_LOAD_NUMBER_CONSTANTS {
         let value: f64 = env
@@ -382,10 +381,10 @@ fn full_game_load_publishes_module_load_number_constants() {
         );
     }
 }
+}
 
-#[test]
-fn ui_panel_skip_set_point_paired_with_nil_do_set_point() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn ui_panel_skip_set_point_paired_with_nil_do_set_point(env: &WowLuaEnv) {
 
     let do_set_point_is_nil: bool = env
         .eval("return UIPANEL_DO_SET_POINT == nil")
@@ -399,10 +398,10 @@ fn ui_panel_skip_set_point_paired_with_nil_do_set_point() {
          the intent (\"do set point\") clearer than passing literal nil"
     );
 }
+}
 
-#[test]
-fn full_game_load_publishes_free_functions() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_publishes_free_functions(env: &WowLuaEnv) {
 
     for func in FREE_FUNCTIONS {
         let kind: String = env
@@ -424,10 +423,10 @@ fn full_game_load_publishes_free_functions() {
         );
     }
 }
+}
 
-#[test]
-fn full_game_load_populates_ui_panel_windows_with_expected_areas() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_populates_ui_panel_windows_with_expected_areas(env: &WowLuaEnv) {
 
     let count: i64 = env
         .eval("local n=0 for _ in pairs(UIPanelWindows) do n=n+1 end return n")
@@ -459,10 +458,10 @@ fn full_game_load_populates_ui_panel_windows_with_expected_areas() {
         );
     }
 }
+}
 
-#[test]
-fn full_game_load_emits_no_addon_specific_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_emits_no_addon_specific_errors(env: &WowLuaEnv) {
 
     let errors: Vec<String> = env.state().borrow().lua_errors.clone();
     let addon_specific: Vec<&String> = errors
@@ -479,4 +478,5 @@ fn full_game_load_emits_no_addon_specific_errors() {
          `UIParent:SetScript(\"OnAttributeChanged\", \
          UpdateUIPanelPositions)` wiring. Found: {addon_specific:?}"
     );
+}
 }

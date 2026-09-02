@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, find_toc_file, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
-use wow_ui_sim::startup::fire_startup_events_for_screen;
 use wow_ui_sim::toc::TocFile;
 
 fn blizzard_ui_dir() -> PathBuf {
@@ -46,35 +45,12 @@ const VIRTUAL_TEMPLATES: &[&str] = &[
     "BronzeInfiniteIncreasedNodeAnim",
 ];
 
-fn load_full_game_ui_with_remix_artifact_explicit() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-
-    wow_ui_sim::xml::register_intrinsic_templates();
-
-    let ui = blizzard_ui_dir();
-    let addons = discover_blizzard_addons_for_screen(&ui, ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    env.apply_post_load_workarounds();
-    fire_startup_events_for_screen(&env, ScreenKind::Game);
-
+fn load_remix_artifact_ui_with_dependency(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &artifact_ui_toc())
         .expect("Blizzard_ArtifactUI dependency should load via explicit Rust loader call");
 
     load_addon(&env.loader_env(), &remix_artifact_toc())
         .expect("Blizzard_RemixArtifactUI should load via explicit Rust loader call");
-
-    env
 }
 
 #[test]
@@ -221,9 +197,9 @@ fn root_directory_holds_two_files() {
     );
 }
 
-#[test]
-fn loads_with_only_expected_remix_event_warnings() {
-    let env = load_full_game_ui_with_remix_artifact_explicit();
+prefork_full_ui_case! {
+fn loads_with_only_expected_remix_event_warnings(env: &WowLuaEnv) {
+    load_remix_artifact_ui_with_dependency(env);
 
     let load_errors: Vec<String> = env
         .state()
@@ -259,10 +235,11 @@ fn loads_with_only_expected_remix_event_warnings() {
             .join("\n  ")
     );
 }
+}
 
-#[test]
-fn is_addon_loaded_after_explicit_load() {
-    let env = load_full_game_ui_with_remix_artifact_explicit();
+prefork_full_ui_case! {
+fn is_addon_loaded_after_explicit_load(env: &WowLuaEnv) {
+    load_remix_artifact_ui_with_dependency(env);
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_RemixArtifactUI')")
@@ -284,10 +261,11 @@ fn is_addon_loaded_after_explicit_load() {
          auto-resolve LOD-on-LOD dependencies (Blizzard_ArtifactUI is itself LoadOnDemand)"
     );
 }
+}
 
-#[test]
-fn publishes_named_top_level_frame_under_uiparent() {
-    let env = load_full_game_ui_with_remix_artifact_explicit();
+prefork_full_ui_case! {
+fn publishes_named_top_level_frame_under_uiparent(env: &WowLuaEnv) {
+    load_remix_artifact_ui_with_dependency(env);
 
     let frame_kind: String = env
         .eval("return type(RemixArtifactFrame)")
@@ -311,10 +289,11 @@ fn publishes_named_top_level_frame_under_uiparent() {
          center-panel slot via `area=\"center\"` attribute"
     );
 }
+}
 
-#[test]
-fn publishes_four_mixin_tables() {
-    let env = load_full_game_ui_with_remix_artifact_explicit();
+prefork_full_ui_case! {
+fn publishes_four_mixin_tables(env: &WowLuaEnv) {
+    load_remix_artifact_ui_with_dependency(env);
 
     for mixin in MIXIN_TABLES {
         let kind: String = env
@@ -332,10 +311,11 @@ fn publishes_four_mixin_tables() {
         );
     }
 }
+}
 
-#[test]
-fn registers_panel_window_metadata_for_remix_artifact_frame() {
-    let env = load_full_game_ui_with_remix_artifact_explicit();
+prefork_full_ui_case! {
+fn registers_panel_window_metadata_for_remix_artifact_frame(env: &WowLuaEnv) {
+    load_remix_artifact_ui_with_dependency(env);
 
     let area: String = env
         .eval("return UIPanelWindows.RemixArtifactFrame.area")
@@ -358,10 +338,11 @@ fn registers_panel_window_metadata_for_remix_artifact_frame() {
          tree without forcing a hide-on-show"
     );
 }
+}
 
-#[test]
-fn virtual_templates_stay_off_global_scope() {
-    let env = load_full_game_ui_with_remix_artifact_explicit();
+prefork_full_ui_case! {
+fn virtual_templates_stay_off_global_scope(env: &WowLuaEnv) {
+    load_remix_artifact_ui_with_dependency(env);
 
     for template in VIRTUAL_TEMPLATES {
         let kind: String = env
@@ -380,10 +361,11 @@ fn virtual_templates_stay_off_global_scope() {
         );
     }
 }
+}
 
-#[test]
-fn module_constants_stay_file_local() {
-    let env = load_full_game_ui_with_remix_artifact_explicit();
+prefork_full_ui_case! {
+fn module_constants_stay_file_local(env: &WowLuaEnv) {
+    load_remix_artifact_ui_with_dependency(env);
 
     let no_constant_leak: bool = env
         .eval(
@@ -409,10 +391,11 @@ fn module_constants_stay_file_local() {
          the chunk"
     );
 }
+}
 
-#[test]
-fn frame_mixin_inherits_talent_frame_base_lifecycle() {
-    let env = load_full_game_ui_with_remix_artifact_explicit();
+prefork_full_ui_case! {
+fn frame_mixin_inherits_talent_frame_base_lifecycle(env: &WowLuaEnv) {
+    load_remix_artifact_ui_with_dependency(env);
 
     let lifecycle_ok: bool = env
         .eval(
@@ -440,10 +423,11 @@ fn frame_mixin_inherits_talent_frame_base_lifecycle() {
          via CreateFromMixins(TalentFrameBaseMixin))"
     );
 }
+}
 
-#[test]
-fn util_dispatch_helpers_resolve_template_names() {
-    let env = load_full_game_ui_with_remix_artifact_explicit();
+prefork_full_ui_case! {
+fn util_dispatch_helpers_resolve_template_names(env: &WowLuaEnv) {
+    load_remix_artifact_ui_with_dependency(env);
 
     let helpers_ok: bool = env
         .eval(
@@ -475,6 +459,7 @@ fn util_dispatch_helpers_resolve_template_names() {
          nil nodeInfo branch falls through to the table lookup since the Selection / \
          SubTreeSelection early-return checks `nodeInfo and (nodeInfo.type == ...)`"
     );
+}
 }
 
 #[test]

@@ -29,7 +29,7 @@ temporary workarounds until the named simulator subsystem is modeled directly.
 
 | Addon | Hook | Current rationale | Retirement path |
 |-------|------|-------------------|-----------------|
-| `Blizzard_EnvironmentCleanup` | `restore_post_cleanup_globals` | Blizzard cleanup nils globals that later addons still need in the simulator bootstrap. | Replace with a cleanup/global-publication model that matches Blizzard's preserved runtime surface. |
+| `Blizzard_EnvironmentCleanup` | `restore_post_cleanup_globals` | Blizzard cleanup nils globals that later addons still need in the simulator bootstrap; preserve-mode UI-string restoration fills only missing constants and strings, and guarded gamepad cursor defaults remain available for the real `ToggleGameMenu` → `CloseAllWindows` escape path, without overwriting Blizzard assignments. | Replace with a cleanup/global-publication model that matches Blizzard's preserved runtime surface. |
 | `Blizzard_SharedXML` | `patch_callback_registry_defaults`, `patch_shared_xml_anim_mixins` | Partial addon loads and animation mixins need callback defaults and `SetPlaying` behavior before the simulator's callback/animation lifecycle fully matches retail. | Implement callback registry and animation group lifecycle semantics simulator-side. |
 | `Blizzard_UIParent` | `patch_uiparent_managed_frame_mixin` | Managed-frame mixin methods expect UIParent-managed state that is not fully modeled. | Model UIParent managed-frame registration and layout semantics directly. |
 | `Blizzard_GlueParent` | `patch_glueparent_uiparent_attributes` | GlueParent aliases UIParent in glue screens, losing attributes expected by shared UI code. | Model glue-screen parent aliases without clobbering UIParent-compatible attributes. |
@@ -39,6 +39,10 @@ temporary workarounds until the named simulator subsystem is modeled directly.
 | `Blizzard_PlayerSpells` | `patch_playerspells_onload_backfill` | PlayerSpells child frames can be used before Blizzard OnLoad initialized per-tab state. | Fix PlayerSpells load/lifecycle ordering so child frames initialize through Blizzard handlers. |
 | `Blizzard_Dispatcher` | `patch_dispatcher_surface_for_addon_load` | Dispatcher bootstrap has a dedicated isolated surface and boundary tests. | Replace when the dispatcher model no longer needs Lua compatibility helpers. |
 | `Blizzard_AchievementUI` | `patch_achievement_search_preview_for_addon_load` | Achievement search preview selection needs post-load wiring against current incomplete preview state. | Model the achievement search preview data/state directly. |
+
+`restore_post_cleanup_globals` calls `restore_missing_ui_strings` after Blizzard cleanup. The preserve policy fills nil entries across the shared string, integer, float, and font-color tables; it restores required autocomplete priorities and combat-log raid-target constants while retaining Blizzard reassignment and table extensions. It also reapplies the guarded `CanAutoSetGamePadCursorControl` and `SetGamePadCursorControl` defaults, which GameMenu calls before the close-window stack. This is targeted runtime restoration, not generic global mirroring.
+
+`chat_window_defaults.rs` remains a separate temporary compatibility surface: its existing `__wow_chat_window_state` table now stores chat-window names and docked flags for `SetChatWindowName()` / `SetChatWindowDocked()` and returns them through `GetChatWindowInfo()`. Retire this table when saved chat-layout state is modeled; no `SimState` persistence is claimed.
 
 ### Runtime-surface buckets
 
@@ -58,11 +62,18 @@ runtime subsystem instead of by one visible addon symptom:
 - [loader/addon.rs](../../../src/loader/addon.rs) — per-addon post-load hook table
 - [workarounds/mod.rs](../../../src/lua_api/workarounds/mod.rs) — runtime addon-surface dispatch and bootstrap hooks
 - [workarounds/temporary](../../../src/lua_api/workarounds/temporary) — isolated temporary workaround implementations and tests
+- [strings/mod.rs](../../../src/lua_api/globals/strings/mod.rs) — replace versus preserve UI-string registration policies
+- [environment_cleanup_restore.rs](../../../src/lua_api/workarounds/temporary/environment_cleanup_restore.rs) — post-cleanup restore ordering and regression coverage
+- [gamepad_cursor_control_defaults.rs](../../../src/lua_api/workarounds/temporary/gamepad_cursor_control_defaults.rs) — guarded gamepad cursor-control defaults restored after cleanup
+- [chat_window_defaults.rs](../../../src/lua_api/workarounds/temporary/chat_window_defaults.rs) — temporary chat-window name/docking state and round-trip defaults
+- [collections_escape.rs](../../../tests/collections_escape.rs) — real Blizzard Collections Escape close-stack coverage
 - [recent_runtime_bootstrap_boundaries.rs](../../../tests/recent_runtime_bootstrap_boundaries.rs) — dispatcher bootstrap boundary coverage
 - [achievement_search_bootstrap_boundaries.rs](../../../tests/achievement_search_bootstrap_boundaries.rs) — achievement search bootstrap boundary coverage
 
 ## See Also
 
+- [[lua-api]] — Lua-facing compatibility surfaces restored during startup
+- [[taint-system]] — secure/public publication boundaries used by Blizzard startup
 - [[addon-startup-settings-and-item-load]] — related startup shim boundary examples
 - [[store-secure-pool-constructors]] — runtime-surface sync pattern used for Store startup fixes
 - [[playerspells-runtime-load]] — PlayerSpells lifecycle/load background

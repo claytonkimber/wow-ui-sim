@@ -20,8 +20,6 @@ fn player_choice_toc() -> PathBuf {
 }
 
 const PLAYER_CHOICE_TOC_FILES: &[&str] = &[
-    "Blizzard_PlayerChoice.lua",
-    "Blizzard_PlayerChoice.xml",
     "Blizzard_PlayerChoiceToggleButton.lua",
     "Blizzard_PlayerChoiceToggleButton.xml",
     "Blizzard_PlayerChoiceOptionBase.lua",
@@ -38,11 +36,17 @@ const PLAYER_CHOICE_TOC_FILES: &[&str] = &[
     "Blizzard_PlayerChoiceCypherOptionTemplate.xml",
     "Blizzard_PlayerChoiceGenericPowerChoiceOptionTemplate.lua",
     "Blizzard_PlayerChoiceGenericPowerChoiceOptionTemplate.xml",
+    "Blizzard_PlayerChoice.lua",
+    "Blizzard_PlayerChoice.xml",
     "Blizzard_PlayerChoiceTimer.lua",
     "Blizzard_PlayerChoiceTimer.xml",
 ];
 
-const DEPENDENCIES_KEY_DEPS: &[&str] = &["Blizzard_Colors"];
+const REQUIRED_DEPS: &[&str] = &[
+    "Blizzard_Colors",
+    "Blizzard_GameMenuEsc",
+    "Blizzard_UIWidgets",
+];
 
 const PUBLIC_MIXINS: &[&str] = &[
     "PlayerChoiceFrameMixin",
@@ -68,7 +72,7 @@ const PUBLIC_MIXINS: &[&str] = &[
     "PlayerChoicePowerChoiceTemplateMixin",
     "PlayerChoiceTorghastOptionTemplateMixin",
     "PlayerChoiceCovenantChoiceOptionTemplateMixin",
-    "PlayerChoiceCovenantChoicePreviewButtonMixin",
+    "PlayerChoiceNormalOptionGridTemplateMixin",
     "PlayerChoiceCypherOptionTemplateMixin",
     "PlayerChoiceGenericPowerChoiceOptionTemplateMixin",
 ];
@@ -189,20 +193,10 @@ fn blizzard_player_choice_toc_declares_load_on_demand_with_split_dependency_keys
 
     assert_eq!(
         toc.dependencies(),
-        DEPENDENCIES_KEY_DEPS,
-        "TOC ships BOTH `## RequiredDeps: Blizzard_UIWidgets` AND `## Dependencies: \
-         Blizzard_Colors` (two metadata keys carrying complementary dep lists). \
-         `dependencies()` at src/toc.rs:210-217 reads keys in priority order: \
-         `RequiredDep` (singular) FIRST, then `Dependencies` SECOND, then `RequiredDeps` \
-         (plural) THIRD — only the first matching key wins. The simulator's parser \
-         therefore returns ONLY [\"Blizzard_Colors\"] from the `Dependencies` key and \
-         NEVER reads `RequiredDeps: Blizzard_UIWidgets`. This is a pin on the current \
-         loader behavior: it does NOT crash because Blizzard_UIWidgets is auto-discovered \
-         eagerly anyway via its own `## DefaultState: enabled` (see \
-         Blizzard_UIWidgets_Mainline.toc), so by the time the explicit \
-         load_addon('Blizzard_PlayerChoice') call fires after the eager Game-screen sweep, \
-         UIWidgets globals are already published. If the loader changes to merge multiple \
-         dep-key variants, this assertion surfaces the change as a deliberate test update"
+        REQUIRED_DEPS,
+        "TOC ships both `## Dependencies: Blizzard_Colors` and `## RequiredDeps: \
+         Blizzard_UIWidgets`. The parser merges complementary dependency-key \
+         variants and returns both hard dependencies in canonical parser order"
     );
 
     assert!(
@@ -234,16 +228,13 @@ fn blizzard_player_choice_toc_declares_metadata_in_raw_bytes() {
     );
     assert!(
         raw.contains("## RequiredDeps: Blizzard_UIWidgets"),
-        "TOC must declare `## RequiredDeps: Blizzard_UIWidgets` exactly — UNUSUAL: ships \
-         alongside the `## Dependencies:` key as a SECOND dependency-list metadata entry. \
-         `dependencies()` at src/toc.rs:210-217 ignores this key when `Dependencies` is \
-         also present, so this is a pin that surfaces both that the source TOC declares \
-         the redundant key AND that the simulator's parser silently drops the second list"
+        "TOC must declare `## RequiredDeps: Blizzard_UIWidgets` exactly — it ships \
+         alongside the complementary `## Dependencies: Blizzard_Colors` entry, and \
+         both lists are part of the addon's hard dependency set"
     );
     assert!(
-        raw.contains("## Dependencies: Blizzard_Colors"),
-        "TOC must declare `## Dependencies: Blizzard_Colors` exactly — single-entry \
-         dep list (no comma)"
+        raw.contains("## Dependencies: Blizzard_Colors, Blizzard_GameMenuEsc"),
+        "TOC must declare Blizzard_Colors and Blizzard_GameMenuEsc in its Dependencies list."
     );
     assert!(
         !raw.contains("## AllowLoad:"),
@@ -287,20 +278,10 @@ fn blizzard_player_choice_toc_lists_twenty_files_in_canonical_order() {
         .collect();
     assert_eq!(
         listed, PLAYER_CHOICE_TOC_FILES,
-        "TOC body must list exactly 20 files in canonical order, paired Lua-then-XML by \
-         module so each XML's `mixin=\"...\"` attribute resolves at parse time. \
-         Order: (1) main PlayerChoice (PlayerChoiceFrameMixin owns the panel root), \
-         (2) ToggleButton (5 toggle-button mixins for Torghast/Cypher/Generic/Reroll), \
-         (3) OptionBase (12 base-option mixins — text + button-frame + buttons-container + \
-         currency-reward + item-reward + reputation-reward + rewards-container + \
-         widget-container), (4) NormalOptionTemplate, (5) PowerChoiceTemplate, \
-         (6) TorghastOptionTemplate (extends PowerChoice), (7) CovenantChoiceOptionTemplate \
-         + CovenantChoicePreviewButton, (8) CypherOptionTemplate, \
-         (9) GenericPowerChoiceOptionTemplate, (10) Timer (PlayerChoiceTimeRemaining \
-         single-mixin time-remaining frame). The base→derived ordering matters: \
-         OptionBase declares PlayerChoiceBaseOptionTemplateMixin which Normal/Covenant/etc. \
-         consume via CreateFromMixins; PowerChoiceTemplate declares the mixin that \
-         TorghastOptionTemplate extends"
+        "TOC body must list exactly 20 files in current retail order, paired \
+         Lua-then-XML by module. ToggleButton and OptionBase publish shared \
+         mixins before the option variants consume them; the main PlayerChoice \
+         pair now follows all option variants, with Timer last"
     );
 }
 
@@ -402,17 +383,10 @@ fn blizzard_player_choice_publishes_twenty_six_mixin_tables() {
         assert_eq!(
             kind, "table",
             "_G.{mixin} must publish as a table — Blizzard_PlayerChoice declares 26 \
-             mixins across 10 Lua files (NOT a UseSecureEnvironment addon, so all globals \
-             land in `_G` as expected). Mixin distribution: 1 in main \
-             (PlayerChoiceFrameMixin), 1 in Timer (PlayerChoiceTimeRemainingMixin), \
-             5 in ToggleButton (base + Torghast/Cypher/Generic toggle variants + Reroll), \
-             12 in OptionBase (the building blocks: BaseOption + AlignedSection + \
-             TextTemplate + ButtonFrame + Button + ButtonsContainer + 4 reward variants \
-             + Rewards container + WidgetContainer), and 7 across the 6 option-template \
-             variant files (Normal / PowerChoice / Torghast / Covenant + CovenantPreview \
-             / Cypher / GenericPowerChoice). Several derived mixins use \
-             `CreateFromMixins(PlayerChoiceBaseOptionTemplateMixin)` so the table must be \
-             a real Lua table (not a userdata) for CreateFromMixins to walk it"
+             mixins across 10 Lua files. Current retail replaces the former \
+             Covenant preview-button mixin with \
+             PlayerChoiceNormalOptionGridTemplateMixin; derived option mixins \
+             remain real tables for CreateFromMixins inheritance"
         );
     }
 

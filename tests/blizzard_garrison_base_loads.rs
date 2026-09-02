@@ -192,9 +192,8 @@ fn blizzard_garrison_base_auto_loads_on_game_and_skips_login() {
     );
 }
 
-#[test]
-fn blizzard_garrison_base_loads_via_full_game_ui_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_garrison_base_loads_via_full_game_ui_without_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -217,10 +216,10 @@ fn blizzard_garrison_base_loads_via_full_game_ui_without_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_garrison_base_is_addon_loaded_returns_true_after_full_game_ui_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_garrison_base_is_addon_loaded_returns_true_after_full_game_ui_load(env: &WowLuaEnv) {
 
     let post_load: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_GarrisonBase') and true or false")
@@ -232,10 +231,10 @@ fn blizzard_garrison_base_is_addon_loaded_returns_true_after_full_game_ui_load()
          successful full-game-UI load"
     );
 }
+}
 
-#[test]
-fn blizzard_garrison_base_publishes_top_level_named_tooltips() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_garrison_base_publishes_top_level_named_tooltips(env: &WowLuaEnv) {
 
     let from_garrison_follower_tooltip_xml: (bool, bool, bool, bool, bool) = env
         .eval(
@@ -278,10 +277,10 @@ fn blizzard_garrison_base_publishes_top_level_named_tooltips() {
          FloatingGarrisonMissionTooltip (mission link)"
     );
 }
+}
 
-#[test]
-fn blizzard_garrison_base_publishes_virtual_templates() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_garrison_base_publishes_virtual_templates(env: &WowLuaEnv) {
 
     let templates_dont_leak: (bool, bool, bool, bool, bool, bool, bool, bool, bool) = env
         .eval(
@@ -315,10 +314,10 @@ fn blizzard_garrison_base_publishes_virtual_templates() {
          do NOT leak as `_G.*` Lua globals — they live only in the XML template registry"
     );
 }
+}
 
-#[test]
-fn blizzard_garrison_base_publishes_three_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_garrison_base_publishes_three_mixins(env: &WowLuaEnv) {
 
     let mixins: (bool, bool, bool) = env
         .eval(
@@ -367,10 +366,10 @@ fn blizzard_garrison_base_publishes_three_mixins() {
          entry point — chains all of the above based on the followerInfo struct)"
     );
 }
+}
 
-#[test]
-fn blizzard_garrison_base_publishes_garrison_follower_options_per_follower_type() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_garrison_base_publishes_garrison_follower_options_per_follower_type(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(GarrisonFollowerOptions)")
@@ -425,10 +424,10 @@ fn blizzard_garrison_base_publishes_garrison_follower_options_per_follower_type(
          secondary aliases)"
     );
 }
+}
 
-#[test]
-fn blizzard_garrison_base_publishes_helper_globals_from_garrison_base_utils() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_garrison_base_publishes_helper_globals_from_garrison_base_utils(env: &WowLuaEnv) {
 
     let helpers: (bool, bool, bool, bool, bool, bool) = env
         .eval(
@@ -467,10 +466,10 @@ fn blizzard_garrison_base_publishes_helper_globals_from_garrison_base_utils() {
          Shadowlands covenant)"
     );
 }
+}
 
-#[test]
-fn blizzard_garrison_base_publishes_garr_auto_combat_util_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_garrison_base_publishes_garr_auto_combat_util_methods(env: &WowLuaEnv) {
 
     let methods: (bool, bool, bool, bool, bool, bool) = env
         .eval(
@@ -497,10 +496,10 @@ fn blizzard_garrison_base_publishes_garr_auto_combat_util_methods() {
          the boolean predicate for spell-event filtering during auto-combat replay)"
     );
 }
+}
 
-#[test]
-fn blizzard_garrison_base_publishes_garrison_follower_tooltip_helpers() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_garrison_base_publishes_garrison_follower_tooltip_helpers(env: &WowLuaEnv) {
 
     let helpers: (bool, bool, bool, bool, bool, bool, bool) = env
         .eval(
@@ -530,10 +529,10 @@ fn blizzard_garrison_base_publishes_garrison_follower_tooltip_helpers() {
          mission-page-specific variant that anchors to the mission threat row)"
     );
 }
+}
 
-#[test]
-fn blizzard_garrison_base_publishes_floating_tooltip_toggle_helpers() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_garrison_base_publishes_floating_tooltip_toggle_helpers(env: &WowLuaEnv) {
 
     let helpers: (bool, bool, bool, bool, bool) = env
         .eval(
@@ -559,10 +558,10 @@ fn blizzard_garrison_base_publishes_floating_tooltip_toggle_helpers() {
          tooltip and anchors to the screen center)"
     );
 }
+}
 
-#[test]
-fn blizzard_garrison_base_floating_tooltips_use_uiparent_with_tooltip_strata() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_garrison_base_floating_tooltips_use_uiparent_with_tooltip_strata(env: &WowLuaEnv) {
 
     let strata: (String, String, bool) = env
         .eval(
@@ -597,4 +596,5 @@ fn blizzard_garrison_base_floating_tooltips_use_uiparent_with_tooltip_strata() {
          into the viewport (unlike the in-world hover variants, this frame inherits \
          TooltipBackdropTemplate directly rather than GarrisonFollowerTooltipTemplate)"
     );
+}
 }

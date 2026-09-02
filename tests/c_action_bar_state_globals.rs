@@ -80,18 +80,22 @@ fn current_action_bar_state_reports_skinned_vehicle_override() {
 #[test]
 fn vehicle_bar_index_reads_state() {
     let env = WowLuaEnv::new().expect("env");
-    env.state().borrow_mut().vehicle_bar_index = 7;
+    {
+        let mut state = env.state().borrow_mut();
+        state.has_vehicle_action_bar = true;
+        state.vehicle_bar_index = 7;
+    }
 
-    let vehicle_bar_index: i32 = env.eval("return C_ActionBar.GetVehicleBarIndex()").unwrap();
+    let vehicle_bar_index: Option<i32> = env.eval("return C_ActionBar.GetVehicleBarIndex()").unwrap();
 
-    assert_eq!(vehicle_bar_index, 7);
+    assert_eq!(vehicle_bar_index, Some(7));
 }
 
 #[test]
-fn special_bar_indexes_return_default_numbers_when_inactive() {
+fn special_bar_indexes_are_nil_when_inactive() {
     let env = WowLuaEnv::new().expect("env");
 
-    let indexes: (i32, i32, i32) = env
+    let indexes: (Option<i32>, Option<i32>, Option<i32>) = env
         .eval(
             r#"
             return C_ActionBar.GetVehicleBarIndex(),
@@ -101,7 +105,7 @@ fn special_bar_indexes_return_default_numbers_when_inactive() {
         )
         .unwrap();
 
-    assert_eq!(indexes, (12, 14, 1));
+    assert_eq!(indexes, (None, None, None));
 }
 
 #[test]
@@ -113,7 +117,7 @@ fn temp_shapeshift_bar_index_reads_state() {
         state.temp_shapeshift_bar_index = 9;
     }
 
-    let (has_temp_bar, temp_bar_index): (bool, i32) = env
+    let (has_temp_bar, temp_bar_index): (bool, Option<i32>) = env
         .eval(
             r#"
             return C_ActionBar.HasTempShapeshiftActionBar(),
@@ -123,7 +127,7 @@ fn temp_shapeshift_bar_index_reads_state() {
         .unwrap();
 
     assert!(has_temp_bar);
-    assert_eq!(temp_bar_index, 9);
+    assert_eq!(temp_bar_index, Some(9));
 }
 
 #[test]

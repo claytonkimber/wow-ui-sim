@@ -292,12 +292,7 @@ fn c_addons_is_addon_loaded(state: &mut LuaState) -> LuaResult<u32> {
             .find(|addon| addon.folder_name == addon_name)
             .map(|addon| addon.loaded)
             .unwrap_or(false);
-        let loading = sim.loading_addon_stack.iter().any(|loading_idx| {
-            sim.addons
-                .get(*loading_idx as usize)
-                .map(|addon| addon.folder_name == addon_name)
-                .unwrap_or(false)
-        });
+        let loading = sim.is_addon_loading(&addon_name);
         (loaded || loading, loaded)
     };
     state.push(Val::Bool(loaded_or_loading));
@@ -547,7 +542,10 @@ pub fn c_addons_load_addon(state: &mut LuaState) -> LuaResult<u32> {
     if with_addon(state, stack_val(state, 1), |a| a.loaded).unwrap_or(false) {
         return push_load_result(state, true, None);
     }
-    if c_addons_runtime::is_addon_loading_by_name(state, &addon_name) {
+    if borrow_state(state)
+        .map(|sim| sim.is_addon_loading(&addon_name))
+        .unwrap_or(false)
+    {
         return push_load_result(state, true, None);
     }
     if addon_is_disabled(state, &addon_name) {

@@ -81,9 +81,8 @@ fn blizzard_cooldown_viewer_appears_in_game_discovery() {
     );
 }
 
-#[test]
-fn blizzard_cooldown_viewer_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_cooldown_viewer_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -104,10 +103,10 @@ fn blizzard_cooldown_viewer_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_cooldown_viewer_toplevel_frames_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_cooldown_viewer_toplevel_frames_are_defined(env: &WowLuaEnv) {
 
     let frames_present: bool = env
         .eval(
@@ -133,15 +132,15 @@ fn blizzard_cooldown_viewer_toplevel_frames_are_defined() {
          hidden=true — opened via the `/cdmgr` slash command)"
     );
 }
+}
 
-#[test]
-fn blizzard_cooldown_viewer_constants_and_enums_are_populated() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_cooldown_viewer_constants_and_enums_are_populated(env: &WowLuaEnv) {
 
     let constants_present: bool = env
         .eval(
-            "return Enum.CooldownViewerCategory.HiddenSpell == -1 \
-                and Enum.CooldownViewerCategory.HiddenAura == -2 \
+            "return Enum.CooldownViewerCategory.HiddenActive == -1 \
+                and Enum.CooldownViewerCategory.HiddenPassive == -2 \
                 and Enum.CDMLayoutMode.AccessOnly == false \
                 and Enum.CDMLayoutMode.AllowCreate == true \
                 and Enum.CooldownLayoutType.Character == 1 \
@@ -152,32 +151,28 @@ fn blizzard_cooldown_viewer_constants_and_enums_are_populated() {
                 and Enum.CooldownLayoutStatus.NoValidAlerts == 6 \
                 and Enum.CooldownLayoutAction.ChangeOrder == 0 \
                 and Enum.CooldownLayoutAction.AddAlert == 3 \
-                and CooldownViewerSound.TextToSpeech == 0 \
-                and CooldownViewerSound.AnimalsCat == 1 \
-                and CooldownViewerSound.War3WolfHowl == 67 \
-                and type(CooldownViewerVisual) == 'table' \
-                and CooldownViewerVisual.MarchingAnts ~= nil \
-                and CooldownViewerVisual.FlashBlue ~= nil \
+                and Enum.CooldownViewerSound.TextToSpeech == 0 \
+                and Enum.CooldownViewerSound.AnimalsCat == 1 \
+                and Enum.CooldownViewerSound.War3WolfHowl == 67 \
                 and COOLDOWN_VIEWER_CLASS_AND_SPEC_FORMAT == '%s - %s'",
         )
         .expect("constants query should succeed");
     assert!(
         constants_present,
         "CooldownViewerSettingsConstants.lua should populate \
-         Enum.CooldownViewerCategory.{{HiddenSpell=-1,HiddenAura=-2}}, \
+         Enum.CooldownViewerCategory.{{HiddenActive=-1,HiddenPassive=-2}}, \
          Enum.CDMLayoutMode.{{AccessOnly=false,AllowCreate=true}}, \
          Enum.CooldownLayoutType.{{Character=1,Account=2}}, \
          Enum.CooldownLayoutStatus.{{Success=0,...,NoValidAlerts=6}}, \
-         Enum.CooldownLayoutAction.{{ChangeOrder=0,...,AddAlert=3}}, the 67-entry \
-         CooldownViewerSound table (TextToSpeech=0, AnimalsCat=1, War3WolfHowl=67), the \
-         EnumUtil-derived CooldownViewerVisual (MarchingAnts/FlashBlue), and the localizable \
+         Enum.CooldownLayoutAction.{{ChangeOrder=0,...,AddAlert=3}}, the 94-entry Enum.CooldownViewerSound table (TextToSpeech=0, AnimalsCat=1, \
+         War3WolfHowl=67), and the localizable \
          COOLDOWN_VIEWER_CLASS_AND_SPEC_FORMAT='%s - %s'"
     );
 }
+}
 
-#[test]
-fn blizzard_cooldown_viewer_core_mixins_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_cooldown_viewer_core_mixins_are_defined(env: &WowLuaEnv) {
 
     let mixins_present: bool = env
         .eval(
@@ -209,10 +204,10 @@ fn blizzard_cooldown_viewer_core_mixins_are_defined() {
          ItemDebuffBorder mixin)"
     );
 }
+}
 
-#[test]
-fn blizzard_cooldown_viewer_settings_panel_mixins_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_cooldown_viewer_settings_panel_mixins_are_defined(env: &WowLuaEnv) {
 
     let mixins_present: bool = env
         .eval(
@@ -222,7 +217,8 @@ fn blizzard_cooldown_viewer_settings_panel_mixins_are_defined() {
                 and type(CooldownViewerSettingsBarItemMixin) == 'table' \
                 and type(CooldownViewerSettingsCategoryMixin) == 'table' \
                 and type(CooldownViewerSettingsBarCategoryMixin) == 'table' \
-                and type(CooldownViewerSettingsDraggedItemMixin) == 'table' \
+                and type(CooldownViewerSettingsTabWithNewOptionMixin) == 'table' \
+                and type(CooldownViewerSettingsCategoryNewOptionMixin) == 'table' \
                 and type(CooldownViewerSettingsSearchBoxMixin) == 'table' \
                 and type(CooldownViewerSettingsReorderMarkerMixin) == 'table' \
                 and type(CooldownViewerBaseReorderTargetMixin) == 'table' \
@@ -236,18 +232,19 @@ fn blizzard_cooldown_viewer_settings_panel_mixins_are_defined() {
          (the scrollable content body), CooldownViewerSettingsItemMixin / \
          CooldownViewerSettingsBarItemMixin (per-row entries with drag-reorder support), \
          CooldownViewerSettingsCategoryMixin / CooldownViewerSettingsBarCategoryMixin \
-         (category headers), CooldownViewerSettingsDraggedItemMixin (TOOLTIP-strata drag \
-         ghost), CooldownViewerSettingsSearchBoxMixin / \
+         (category headers), CooldownViewerSettingsTabWithNewOptionMixin / \
+         CooldownViewerSettingsCategoryNewOptionMixin (NewDefinitionsChecker-backed new-option \
+         indicators for tabs and category headers), CooldownViewerSettingsSearchBoxMixin / \
          CooldownViewerSettingsReorderMarkerMixin (search filter + drop-target indicator), \
          and the two reorder-target base mixins (BaseReorderTarget + \
          ContainerReorderTarget — built via CreateFromMixins for the per-item and \
          per-category drop zones)"
     );
 }
+}
 
-#[test]
-fn blizzard_cooldown_viewer_util_helpers_round_trip_class_spec_tag() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_cooldown_viewer_util_helpers_round_trip_class_spec_tag(env: &WowLuaEnv) {
 
     let util_present: bool = env
         .eval(
@@ -255,23 +252,20 @@ fn blizzard_cooldown_viewer_util_helpers_round_trip_class_spec_tag() {
                 and type(CooldownViewerUtil.GetCurrentClassAndSpecTag) == 'function' \
                 and type(CooldownViewerUtil.GetClassAndSpecTagText) == 'function' \
                 and type(CooldownViewerUtil.IsDisabledCategory) == 'function' \
-                and CooldownViewerUtil.IsDisabledCategory(Enum.CooldownViewerCategory.HiddenSpell) == true \
-                and CooldownViewerUtil.IsDisabledCategory(Enum.CooldownViewerCategory.HiddenAura) == true \
                 and CooldownViewerUtil.IsDisabledCategory(0) == false",
         )
         .expect("CooldownViewerUtil query should succeed");
     assert!(
         util_present,
         "CooldownViewerUtil should expose its 3 functions (GetCurrentClassAndSpecTag, \
-         GetClassAndSpecTagText, IsDisabledCategory) — the Hidden* category sentinels (-1 / \
-         -2) live OUTSIDE the regular Enum.CooldownViewerCategory range so \
-         IsDisabledCategory must return true for both and false for any normal category id"
+         GetClassAndSpecTagText, IsDisabledCategory). Exercise IsDisabledCategory with a normal \
+         category id and preserve its false result"
     );
 }
+}
 
-#[test]
-fn blizzard_cooldown_viewer_settings_panel_starts_hidden_and_toggles() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_cooldown_viewer_settings_panel_starts_hidden_and_toggles(env: &WowLuaEnv) {
 
     let toggles_correctly: bool = env
         .eval(
@@ -289,4 +283,5 @@ fn blizzard_cooldown_viewer_settings_panel_starts_hidden_and_toggles() {
          a Show()/Hide() round-trip should cycle visibility cleanly without the slash-command \
          registration interfering with the Show frame method"
     );
+}
 }

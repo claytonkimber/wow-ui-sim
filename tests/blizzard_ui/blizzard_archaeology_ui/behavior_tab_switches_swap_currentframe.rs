@@ -147,10 +147,10 @@ fn assert_completed_tab_state(state: &TabState) {
 }
 
 const TAB_SWITCH_PROBE_LUA: &str = r#"
-local summaryLeftPath = "Interface\\Archeology\\Arch-BookItemLeft"
-local summaryRightPath = "Interface\\Archeology\\Arch-BookItemRight"
-local completedLeftPath = "Interface\\Archeology\\Arch-BookCompletedLeft"
-local completedRightPath = "Interface\\Archeology\\Arch-BookCompletedRight"
+local summaryLeftTextureID = 426721
+local summaryRightTextureID = 426722
+local completedLeftTextureID = 426719
+local completedRightTextureID = 426720
 
 local function boolText(value)
     return tostring(value == true)
@@ -165,10 +165,10 @@ local function pageState(label)
         boolText(ArchaeologyFrame.summaryPage:IsShown()),
         boolText(ArchaeologyFrame.completedPage:IsShown()),
         boolText(ArchaeologyFrame.artifactPage:IsShown()),
-        boolText(ArchaeologyFrame.bgLeft:GetTexture() == summaryLeftPath),
-        boolText(ArchaeologyFrame.bgRight:GetTexture() == summaryRightPath),
-        boolText(ArchaeologyFrame.bgLeft:GetTexture() == completedLeftPath),
-        boolText(ArchaeologyFrame.bgRight:GetTexture() == completedRightPath),
+        boolText(ArchaeologyFrame.bgLeft:GetTexture() == summaryLeftTextureID),
+        boolText(ArchaeologyFrame.bgRight:GetTexture() == summaryRightTextureID),
+        boolText(ArchaeologyFrame.bgLeft:GetTexture() == completedLeftTextureID),
+        boolText(ArchaeologyFrame.bgRight:GetTexture() == completedRightTextureID),
     }, "\t")
 end
 

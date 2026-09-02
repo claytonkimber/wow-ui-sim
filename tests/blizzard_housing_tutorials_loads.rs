@@ -211,9 +211,8 @@ fn blizzard_housing_tutorials_appears_in_game_screen_auto_discovery_only() {
     }
 }
 
-#[test]
-fn blizzard_housing_tutorials_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_housing_tutorials_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let lua_errors: Vec<String> = env.state().borrow().lua_errors.clone();
     let related: Vec<&String> = lua_errors
@@ -234,10 +233,10 @@ fn blizzard_housing_tutorials_loads_without_addon_specific_lua_errors() {
         related
     );
 }
+}
 
-#[test]
-fn blizzard_housing_tutorials_is_addon_loaded_via_game_screen_pass() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_housing_tutorials_is_addon_loaded_via_game_screen_pass(env: &WowLuaEnv) {
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_HousingTutorials')")
         .expect("IsAddOnLoaded query should succeed");
@@ -248,10 +247,10 @@ fn blizzard_housing_tutorials_is_addon_loaded_via_game_screen_pass() {
          any explicit LoD call"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_tutorials_dependency_loads_via_game_screen_pass() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_housing_tutorials_dependency_loads_via_game_screen_pass(env: &WowLuaEnv) {
     let dep_loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_Tutorials')")
         .expect("Blizzard_Tutorials IsAddOnLoaded query should succeed");
@@ -263,10 +262,10 @@ fn blizzard_housing_tutorials_dependency_loads_via_game_screen_pass() {
          classes the housing tutorials inherit"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_tutorials_publishes_all_fifteen_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_housing_tutorials_publishes_all_fifteen_mixins(env: &WowLuaEnv) {
     for mixin in ALL_MIXINS {
         let mixin_type: String = env
             .eval(&format!("return type(_G['{mixin}'])"))
@@ -280,10 +279,10 @@ fn blizzard_housing_tutorials_publishes_all_fifteen_mixins() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_tutorials_decor_quest_tutorial_inherits_help_tip_state_machine() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_housing_tutorials_decor_quest_tutorial_inherits_help_tip_state_machine(env: &WowLuaEnv) {
     let parent_type: String = env
         .eval("return type(_G['HelpTipStateMachineBasedTutorialMixin'])")
         .expect("parent mixin lookup should succeed");
@@ -312,10 +311,10 @@ fn blizzard_housing_tutorials_decor_quest_tutorial_inherits_help_tip_state_machi
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_tutorials_publishes_all_seven_data_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_housing_tutorials_publishes_all_seven_data_globals(env: &WowLuaEnv) {
     for global in ALL_DATA_GLOBALS {
         let value_type: String = env
             .eval(&format!("return type(_G['{global}'])"))
@@ -332,10 +331,10 @@ fn blizzard_housing_tutorials_publishes_all_seven_data_globals() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_tutorials_publishes_can_show_house_finder_tutorial_function() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_housing_tutorials_publishes_can_show_house_finder_tutorial_function(env: &WowLuaEnv) {
     let value_type: String = env
         .eval("return type(_G['CanShowHouseFinderTutorial'])")
         .expect("CanShowHouseFinderTutorial lookup should succeed");
@@ -348,10 +347,10 @@ fn blizzard_housing_tutorials_publishes_can_show_house_finder_tutorial_function(
          and Enum.FrameTutorialAccount.HousingHouseFinderVisitHouse CVar bitfield bits"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_tutorials_publishes_update_housing_tutorials_function() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_housing_tutorials_publishes_update_housing_tutorials_function(env: &WowLuaEnv) {
     let value_type: String = env
         .eval("return type(_G['UpdateHousingTutorials'])")
         .expect("UpdateHousingTutorials lookup should succeed");
@@ -365,10 +364,10 @@ fn blizzard_housing_tutorials_publishes_update_housing_tutorials_function() {
          file-local activeTutorials table"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_tutorials_quest_manager_inherits_tutorial_quest_manager() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_housing_tutorials_quest_manager_inherits_tutorial_quest_manager(env: &WowLuaEnv) {
     let parent_type: String = env
         .eval("return type(_G['TutorialQuestManager'])")
         .expect("parent class lookup should succeed");
@@ -379,4 +378,5 @@ fn blizzard_housing_tutorials_quest_manager_inherits_tutorial_quest_manager() {
          on Data.lua line 2; HousingTutorialsQuestManager:ReinitializeExistingQuests is invoked \
          on the SETTINGS_LOADED EventRegistry callback registered by HousingTutorialManager:Init"
     );
+}
 }

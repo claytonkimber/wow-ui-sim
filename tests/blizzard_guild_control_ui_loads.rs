@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, find_toc_file, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
-use wow_ui_sim::startup::fire_startup_events_for_screen;
 use wow_ui_sim::toc::TocFile;
 
 fn blizzard_ui_dir() -> PathBuf {
@@ -21,32 +20,9 @@ fn guild_control_toc() -> PathBuf {
     guild_control_dir().join("Blizzard_GuildControlUI.toc")
 }
 
-fn load_full_game_ui_with_guild_control_lod() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-
-    wow_ui_sim::xml::register_intrinsic_templates();
-
-    let ui = blizzard_ui_dir();
-    let addons = discover_blizzard_addons_for_screen(&ui, ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    env.apply_post_load_workarounds();
-    fire_startup_events_for_screen(&env, ScreenKind::Game);
-
+fn load_guild_control_ui(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &guild_control_toc())
         .expect("Blizzard_GuildControlUI should load via explicit Rust loader call");
-
-    env
 }
 
 #[test]
@@ -205,9 +181,9 @@ fn blizzard_guild_control_ui_excluded_from_all_glue_screen_auto_discovery_passes
     }
 }
 
-#[test]
-fn blizzard_guild_control_ui_loads_explicitly_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui_with_guild_control_lod();
+prefork_full_ui_case! {
+fn blizzard_guild_control_ui_loads_explicitly_without_addon_specific_lua_errors(env: &WowLuaEnv) {
+    load_guild_control_ui(env);
 
     let lua_errors: Vec<String> = env.state().borrow().lua_errors.clone();
     let related: Vec<&String> = lua_errors
@@ -230,10 +206,11 @@ fn blizzard_guild_control_ui_loads_explicitly_without_addon_specific_lua_errors(
             .join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_guild_control_ui_is_addon_loaded_returns_true_after_explicit_load() {
-    let env = load_full_game_ui_with_guild_control_lod();
+prefork_full_ui_case! {
+fn blizzard_guild_control_ui_is_addon_loaded_returns_true_after_explicit_load(env: &WowLuaEnv) {
+    load_guild_control_ui(env);
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_GuildControlUI')")
@@ -244,10 +221,11 @@ fn blizzard_guild_control_ui_is_addon_loaded_returns_true_after_explicit_load() 
          return true"
     );
 }
+}
 
-#[test]
-fn blizzard_guild_control_ui_publishes_three_module_constants() {
-    let env = load_full_game_ui_with_guild_control_lod();
+prefork_full_ui_case! {
+fn blizzard_guild_control_ui_publishes_three_module_constants(env: &WowLuaEnv) {
+    load_guild_control_ui(env);
 
     let bank_tab_offset: f64 = env
         .eval("return BANK_TAB_OFFSET")
@@ -288,10 +266,11 @@ fn blizzard_guild_control_ui_publishes_three_module_constants() {
          and the AddRank/RemoveRank button gating)"
     );
 }
+}
 
-#[test]
-fn blizzard_guild_control_ui_publishes_guild_officer_permission_strings_table() {
-    let env = load_full_game_ui_with_guild_control_lod();
+prefork_full_ui_case! {
+fn blizzard_guild_control_ui_publishes_guild_officer_permission_strings_table(env: &WowLuaEnv) {
+    load_guild_control_ui(env);
 
     let exists: bool = env
         .eval("return type(GUILD_OFFICER_PERMISSION_STRINGS) == 'table'")
@@ -304,10 +283,11 @@ fn blizzard_guild_control_ui_publishes_guild_officer_permission_strings_table() 
          labels"
     );
 }
+}
 
-#[test]
-fn blizzard_guild_control_ui_publishes_seventeen_guild_control_helpers() {
-    let env = load_full_game_ui_with_guild_control_lod();
+prefork_full_ui_case! {
+fn blizzard_guild_control_ui_publishes_seventeen_guild_control_helpers(env: &WowLuaEnv) {
+    load_guild_control_ui(env);
 
     for helper in [
         "GuildControlUI_OnLoad",
@@ -343,10 +323,11 @@ fn blizzard_guild_control_ui_publishes_seventeen_guild_control_helpers() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_guild_control_ui_publishes_two_helper_on_load_globals() {
-    let env = load_full_game_ui_with_guild_control_lod();
+prefork_full_ui_case! {
+fn blizzard_guild_control_ui_publishes_two_helper_on_load_globals(env: &WowLuaEnv) {
+    load_guild_control_ui(env);
 
     for helper in [
         "GuildControlRankSettings_OnLoad",
@@ -364,10 +345,11 @@ fn blizzard_guild_control_ui_publishes_two_helper_on_load_globals() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_guild_control_ui_publishes_guild_control_ui_global_frame() {
-    let env = load_full_game_ui_with_guild_control_lod();
+prefork_full_ui_case! {
+fn blizzard_guild_control_ui_publishes_guild_control_ui_global_frame(env: &WowLuaEnv) {
+    load_guild_control_ui(env);
 
     let exists: bool = env
         .eval(
@@ -383,4 +365,23 @@ fn blizzard_guild_control_ui_publishes_guild_control_ui_global_frame() {
          named non-virtual frame materializes as a runtime frame published under its declared \
          name"
     );
+
+    let checkbox_text_publication: (bool, bool, bool, bool) = env
+        .eval(
+            r#"
+            return
+                _G.GuildControlUIRankSettingsFrameCheckbox2Text ~= nil,
+                _G.GuildControlUIRankSettingsFrameCheckbox21Text ~= nil,
+                _G.GuildControlUIRankSettingsFrameCheckbox1Text == nil,
+                _G.GuildControlUIRankSettingsFrameCheckbox3Text == nil
+            "#,
+        )
+        .expect("GuildControl checkbox publication query should succeed");
+    assert_eq!(
+        checkbox_text_publication,
+        (true, true, true, true),
+        "XML declares checkbox text children 2 and 21, while dynamically probed IDs 1 and 3 \
+         remain absent"
+    );
+}
 }

@@ -244,6 +244,18 @@ pub const RAID_DISPEL_DISPLAY_TYPE: SeqEnumDef = (
     &["Disabled", "DispellableByMe", "DisplayAll"],
 );
 
+#[cfg(feature = "retail-12-1-0")]
+pub const RAID_DISPEL_OVERLAY_TYPE: SeqEnumDef = (
+    "RaidDispelOverlayType",
+    &["Disabled", "UseDebuffColor", "UseBlack"],
+);
+
+#[cfg(feature = "retail-12-1-0")]
+pub const RAID_DISPEL_OVERLAY_TYPE_META: EnumDef = (
+    "RaidDispelOverlayTypeMeta",
+    &[("MinValue", 0), ("MaxValue", 2), ("NumValues", 3)],
+);
+
 // ============================================================================
 // Combat Audio Alert Percent Values
 // ============================================================================

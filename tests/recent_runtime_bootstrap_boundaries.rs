@@ -696,10 +696,6 @@ const RECENTLY_MOVED_BOOTSTRAP_FALLBACKS: &[BootstrapFallbackOwner] = &[
         ("TimerTracker =", "temporary global-frame workaround"),
         ("UIErrorsFrame =", "temporary global-frame workaround"),
         ("SideDressUpFrame =", "temporary global-frame workaround"),
-        (
-            "ContainerFrameCombinedBags =",
-            "temporary global-frame workaround",
-        ),
         ("LootFrame =", "temporary global-frame workaround"),
         ("RaidWarningFrame =", "temporary global-frame workaround"),
         ("GossipFrame =", "temporary global-frame workaround"),

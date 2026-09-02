@@ -16,7 +16,7 @@ Key field groups:
 
 **Texture fields** — `texture`, `color_texture`, `vertex_color`, state textures (`normal_texture`, `pushed_texture`, `highlight_texture`, `disabled_texture`) each with `_tex_coords` companions, `tex_coords`, `atlas_tex_coords`, `blend_mode`, `nine_slice_layout/atlas`, `horiz_tile/vert_tile`, `is_mask`.
 
-**Widget-specific** — Slider, StatusBar, EditBox, ScrollFrame, Cooldown each have dedicated field groups.
+**Widget-specific** — Slider, StatusBar, EditBox, ScrollFrame, Cooldown each have dedicated field groups. Model-family state is grouped in one lazy `Option<Box<ModelWidgetState>>`; absent payloads preserve getter defaults, while mutating methods allocate only when needed and remain globally callable.
 
 ## WidgetType Enum (18 types, `src/widget/mod.rs`)
 
@@ -35,6 +35,10 @@ pub struct WidgetRegistry {
 ```
 
 `get_mut()` sets `render_dirty`. `take_render_dirty()` atomically checks and clears. `would_create_anchor_cycle()` is a BFS reachability check used by `SetPoint`.
+
+### Storage accounting
+
+`Frame::storage_estimate_bytes()` accounts for inline state, registry/index capacities, and owned collection data. The lazy model payload contributes its boxed allocation and owned capacities only when present. The settled full-game fixture has 45,002 frames and estimates **213,058,036 bytes**, below the unchanged **230,000,000-byte** budget; the prior inline model state estimated **239,185,088 bytes**.
 
 ## Default Children (`src/lua_api/globals/create_frame.rs`)
 
@@ -69,7 +73,9 @@ Three-slice buttons (ThreeSliceButtonTemplate) define their background as child 
 ## Sources
 
 - [FrameStrataProbe](../../../docs/addons/FrameStrataProbe/README.md) — retail XML `PARENT`, template comparison, and before/after operation observations
-- [widget-system.md](../../widget-system.md) — Frame struct, WidgetType, WidgetRegistry, default children, strata
+- [widget-system.md](../../widget-system.md) — Frame struct, lazy model payload, WidgetType, WidgetRegistry, default children, strata
+- [frame.rs](../../../src/widget/frame.rs) — Frame storage and model-state accessors
+- [frame_size.rs](../../../src/widget/frame_size.rs) — registry storage estimate and boxed payload accounting
 - [button-text-rendering.md](../../button-text-rendering.md) — three-slice rendering order problem and fix
 
 ## See Also

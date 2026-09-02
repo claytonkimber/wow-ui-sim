@@ -16,10 +16,14 @@ fn raid_ui_dir() -> PathBuf {
 }
 
 fn raid_ui_toc() -> PathBuf {
-    raid_ui_dir().join("Blizzard_RaidUI.toc")
+    find_toc_file(&raid_ui_dir()).expect("Blizzard_RaidUI active TOC resolves")
 }
 
-const TOC_FILES: &[&str] = &["Blizzard_RaidUI.xml", "Localization.lua"];
+const TOC_FILES: &[&str] = &[
+    "Blizzard_RaidUI_Bootstrap.lua",
+    "Mainline/Blizzard_RaidUI.xml",
+    "Localization.lua",
+];
 
 const TOP_LEVEL_FUNCTIONS: &[&str] = &[
     "RaidClassButton_OnLoad",
@@ -105,34 +109,12 @@ fn load_full_game_ui() -> WowLuaEnv {
 }
 
 #[test]
-fn blizzard_raid_ui_find_toc_resolves_bare_variant() {
-    let resolved = find_toc_file(&raid_ui_dir()).expect("Blizzard_RaidUI TOC resolves");
+fn blizzard_raid_ui_find_toc_resolves_active_mainline_variant() {
     assert_eq!(
-        resolved,
         raid_ui_toc(),
-        "Blizzard_RaidUI ships a SINGLE bare `Blizzard_RaidUI.toc` variant — \
-         NO `_Mainline.toc`, NO Mists / Wrath / Classic flavor variant. The \
-         `find_toc_file` walker at src/loader/mod.rs:65-95 walks \
-         `[_Mainline.toc, .toc]` and falls through to the bare form. \
-         Distinct from sibling Blizzard_RaidFrame which carries a \
-         `_Mainline.toc` suffix; Blizzard_RaidUI is flavor-agnostic at the \
-         TOC level"
+        raid_ui_dir().join("Blizzard_RaidUI_Mainline.toc"),
+        "Retail must select Blizzard_RaidUI_Mainline.toc through find_toc_file."
     );
-
-    for variant_suffix in [
-        "_Mainline.toc",
-        "_Mists.toc",
-        "_Wrath.toc",
-        "_Classic.toc",
-        "_Cata.toc",
-        "_Vanilla.toc",
-    ] {
-        let variant = raid_ui_dir().join(format!("Blizzard_RaidUI{variant_suffix}"));
-        assert!(
-            !variant.exists(),
-            "Blizzard_RaidUI must NOT ship a {variant_suffix} variant"
-        );
-    }
 }
 
 #[test]
@@ -273,7 +255,7 @@ fn blizzard_raid_ui_toc_declares_metadata_in_raw_bytes() {
 }
 
 #[test]
-fn blizzard_raid_ui_toc_lists_two_files_xml_first_then_localization() {
+fn blizzard_raid_ui_toc_lists_bootstrap_xml_then_localization() {
     let toc = TocFile::from_file(&raid_ui_toc()).expect("TOC parses");
     let listed: Vec<String> = toc
         .files
@@ -335,9 +317,8 @@ fn blizzard_raid_ui_appears_in_full_addon_inventory() {
     );
 }
 
-#[test]
-fn blizzard_raid_ui_is_loaded_via_runtime_loadaddon_on_group_roster_update() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_raid_ui_is_loaded_via_runtime_loadaddon_on_group_roster_update(env: &WowLuaEnv) {
 
     let already_loaded: bool = env
         .eval(
@@ -364,10 +345,10 @@ fn blizzard_raid_ui_is_loaded_via_runtime_loadaddon_on_group_roster_update() {
          spectator client explicitly triggers it"
     );
 }
+}
 
-#[test]
-fn blizzard_raid_ui_loads_without_errors_during_startup() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_raid_ui_loads_without_errors_during_startup(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -390,10 +371,10 @@ fn blizzard_raid_ui_loads_without_errors_during_startup() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_raid_ui_publishes_module_constants_after_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_raid_ui_publishes_module_constants_after_load(env: &WowLuaEnv) {
 
     let constants_present: bool = env
         .eval(
@@ -437,10 +418,10 @@ fn blizzard_raid_ui_publishes_module_constants_after_load() {
          table merged into RAID_PULLOUT_POSITIONS[filterID].settings on save"
     );
 }
+}
 
-#[test]
-fn blizzard_raid_ui_publishes_top_level_handler_functions() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_raid_ui_publishes_top_level_handler_functions(env: &WowLuaEnv) {
 
     for func_name in TOP_LEVEL_FUNCTIONS {
         let kind: String = env
@@ -476,10 +457,10 @@ fn blizzard_raid_ui_publishes_top_level_handler_functions() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_raid_ui_publishes_named_numbered_frame_arrays() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_raid_ui_publishes_named_numbered_frame_arrays(env: &WowLuaEnv) {
 
     let class_buttons_present: bool = env
         .eval(
@@ -539,10 +520,10 @@ fn blizzard_raid_ui_publishes_named_numbered_frame_arrays() {
          $parentSlot1..5 hierarchy"
     );
 }
+}
 
-#[test]
-fn blizzard_raid_ui_virtual_templates_not_in_global_env() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_raid_ui_virtual_templates_not_in_global_env(env: &WowLuaEnv) {
 
     for template in VIRTUAL_TEMPLATES {
         let kind: String = env
@@ -574,10 +555,10 @@ fn blizzard_raid_ui_virtual_templates_not_in_global_env() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_raid_ui_registers_extra_events_on_raid_frame() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_raid_ui_registers_extra_events_on_raid_frame(env: &WowLuaEnv) {
 
     for event in ON_LOAD_REGISTERED_EVENTS {
         let registered: bool = env
@@ -604,6 +585,7 @@ fn blizzard_raid_ui_registers_extra_events_on_raid_frame() {
              SetScript at lua:154"
         );
     }
+}
 }
 
 #[test]

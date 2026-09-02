@@ -36,9 +36,8 @@ fn load_full_game_ui() -> WowLuaEnv {
     env
 }
 
-#[test]
-fn catalog_shop_loads_and_populates_navigation_and_products() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn catalog_shop_loads_and_populates_navigation_and_products(env: &WowLuaEnv) {
 
     let (loaded, reason): (bool, Option<String>) = env
         .eval("return LoadAddOn('Blizzard_CatalogShop')")
@@ -123,10 +122,10 @@ fn catalog_shop_loads_and_populates_navigation_and_products() {
 
     assert_eq!(result, "Apprentice Rider Bundle");
 }
+}
 
-#[test]
-fn catalog_shop_bundle_card_uses_selected_model_scene_id_when_default_is_missing() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn catalog_shop_bundle_card_uses_default_model_scene_id(env: &WowLuaEnv) {
 
     let (loaded, reason): (bool, Option<String>) = env
         .eval("return LoadAddOn('Blizzard_CatalogShop')")
@@ -149,7 +148,7 @@ fn catalog_shop_bundle_card_uses_selected_model_scene_id_when_default_is_missing
             catalogShopProductID = 1,
             cardDisplayData = {
                 selectedModelSceneID = 4242,
-                defaultModelSceneID = nil,
+                defaultModelSceneID = 31337,
                 overrideModelSceneID = 4242,
             },
             isBundleChild = false,
@@ -157,7 +156,7 @@ fn catalog_shop_bundle_card_uses_selected_model_scene_id_when_default_is_missing
         }
 
         local displayInfo = {
-            defaultCardModelSceneID = nil,
+            defaultCardModelSceneID = 31337,
             overrideCardModelSceneID = 4242,
             selectedModelSceneID = 4242,
             hasUnknownLicense = false,
@@ -165,15 +164,15 @@ fn catalog_shop_bundle_card_uses_selected_model_scene_id_when_default_is_missing
         }
 
         card:SetModelScene(card.productInfo, true, displayInfo, CatalogShopConstants.ProductType.Bundle)
-        assert(seen_model_scene_id == 4242, "bundle cards should use the selected scene id when the default is missing")
+        assert(seen_model_scene_id == 31337, "bundle cards should pass defaultCardModelSceneID to SetupModelSceneForBundle")
         "#,
     )
-    .expect("bundle card model scene fallback should run");
+    .expect("bundle card default model scene routing should run");
+}
 }
 
-#[test]
-fn catalog_shop_product_display_translation_uses_override_scene_when_default_is_missing() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn catalog_shop_product_display_translation_uses_override_scene_when_default_is_missing(env: &WowLuaEnv) {
 
     env.exec(
         r#"
@@ -198,10 +197,10 @@ fn catalog_shop_product_display_translation_uses_override_scene_when_default_is_
     )
     .expect("catalog shop product display translation should run");
 }
+}
 
-#[test]
-fn catalog_shop_load_does_not_request_nil_model_scene_ids() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn catalog_shop_load_does_not_request_nil_model_scene_ids(env: &WowLuaEnv) {
 
     env.exec(
         r#"
@@ -233,4 +232,5 @@ fn catalog_shop_load_does_not_request_nil_model_scene_ids() {
         calls.is_empty(),
         "CatalogShop should not request nil model scene ids:\n{calls}"
     );
+}
 }

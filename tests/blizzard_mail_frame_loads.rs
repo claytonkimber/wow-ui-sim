@@ -89,6 +89,9 @@ const OPEN_ALL_MAIL_MIXIN_METHODS: &[&str] = &[
     "Reset",
     "StartOpening",
     "StopOpening",
+    "ShouldSkipCurrentMail",
+    "ShouldSkipCurrentAttachment",
+    "AdvanceToNextMail",
     "AdvanceToNextItem",
     "AdvanceAndProcessNextItem",
     "ProcessNextItem",
@@ -97,8 +100,8 @@ const OPEN_ALL_MAIL_MIXIN_METHODS: &[&str] = &[
     "OnUpdate",
     "OnClick",
     "OnHide",
-    "AddBlacklistedItem",
-    "IsItemBlacklisted",
+    "AddFailedItem",
+    "IsItemFailed",
 ];
 
 const NAMED_MAIL_FRAMES: &[&str] = &[
@@ -273,9 +276,8 @@ fn blizzard_mail_frame_auto_discovered_on_game_screen_only() {
     }
 }
 
-#[test]
-fn blizzard_mail_frame_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_mail_frame_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -295,10 +297,10 @@ fn blizzard_mail_frame_loads_without_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_mail_frame_is_addon_loaded_after_auto_discovery() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_mail_frame_is_addon_loaded_after_auto_discovery(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_MailFrame')")
@@ -310,10 +312,10 @@ fn blizzard_mail_frame_is_addon_loaded_after_auto_discovery() {
          the standard Game-screen boot pipeline, no explicit load_addon call required"
     );
 }
+}
 
-#[test]
-fn blizzard_mail_frame_publishes_layout_constants() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_mail_frame_publishes_layout_constants(env: &WowLuaEnv) {
 
     for (name, expected) in MAIL_LAYOUT_CONSTANTS {
         let actual: i64 = env
@@ -328,10 +330,10 @@ fn blizzard_mail_frame_publishes_layout_constants() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_mail_frame_publishes_send_mail_tab_list() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_mail_frame_publishes_send_mail_tab_list(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(SEND_MAIL_TAB_LIST)")
@@ -365,10 +367,10 @@ fn blizzard_mail_frame_publishes_send_mail_tab_list() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_mail_frame_publishes_free_functions() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_mail_frame_publishes_free_functions(env: &WowLuaEnv) {
 
     for name in MAIL_FREE_FUNCTIONS {
         let kind: String = env
@@ -383,10 +385,10 @@ fn blizzard_mail_frame_publishes_free_functions() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_mail_frame_publishes_open_all_mail_mixin() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_mail_frame_publishes_open_all_mail_mixin(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(OpenAllMailMixin)")
@@ -405,16 +407,15 @@ fn blizzard_mail_frame_publishes_open_all_mail_mixin() {
             .unwrap_or_else(|err| panic!("OpenAllMailMixin.{method} probe failed: {err}"));
         assert_eq!(
             method_kind, "function",
-            "OpenAllMailMixin.{method} must be a function — drives the OpenAllMail button's \
-             event-driven inbox sweep state machine (Reset / StartOpening / AdvanceToNextItem \
-             / ProcessNextItem / StopOpening). Missing any one would freeze the sweep mid-loop"
+            "OpenAllMailMixin.{method} must match the current event-driven inbox sweep \
+             implementation, including mail/attachment skipping and failed-item tracking"
         );
     }
 }
+}
 
-#[test]
-fn blizzard_mail_frame_named_frames_resolve_globally() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_mail_frame_named_frames_resolve_globally(env: &WowLuaEnv) {
 
     for name in NAMED_MAIL_FRAMES {
         let exists: bool = env
@@ -428,10 +429,10 @@ fn blizzard_mail_frame_named_frames_resolve_globally() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_mail_frame_inherits_button_frame_template() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_mail_frame_inherits_button_frame_template(env: &WowLuaEnv) {
 
     let parent_name: String = env
         .eval("return MailFrame:GetParent():GetName()")
@@ -463,10 +464,10 @@ fn blizzard_mail_frame_inherits_button_frame_template() {
          inbox surfaces it past adjacent panels (bag, character sheet, etc.)"
     );
 }
+}
 
-#[test]
-fn blizzard_mail_frame_open_mail_anchored_to_inbox_frame() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_mail_frame_open_mail_anchored_to_inbox_frame(env: &WowLuaEnv) {
 
     let parent_name: String = env
         .eval("return OpenMailFrame:GetParent():GetName()")
@@ -497,10 +498,10 @@ fn blizzard_mail_frame_open_mail_anchored_to_inbox_frame() {
          above siblings"
     );
 }
+}
 
-#[test]
-fn blizzard_mail_frame_tabs_register_with_panel_template() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_mail_frame_tabs_register_with_panel_template(env: &WowLuaEnv) {
 
     let num_tabs: i64 = env
         .eval("return MailFrame.numTabs or -1")
@@ -530,10 +531,10 @@ fn blizzard_mail_frame_tabs_register_with_panel_template() {
         "MailFrameTab2:GetID() must return 2 — XML declares `id=\"2\"` at MailFrame.xml:850"
     );
 }
+}
 
-#[test]
-fn blizzard_mail_frame_inbox_paging_starts_at_one() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_mail_frame_inbox_paging_starts_at_one(env: &WowLuaEnv) {
 
     let page_num: i64 = env
         .eval("return InboxFrame.pageNum or -1")
@@ -545,10 +546,10 @@ fn blizzard_mail_frame_inbox_paging_starts_at_one() {
          InboxFrame_Update re-reads it to render the correct 7-mail slice"
     );
 }
+}
 
-#[test]
-fn blizzard_mail_frame_send_mail_attachments_array_resolves() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_mail_frame_send_mail_attachments_array_resolves(env: &WowLuaEnv) {
 
     let array_present: bool = env
         .eval("return type(SendMailFrame.SendMailAttachments) == 'table'")
@@ -572,10 +573,10 @@ fn blizzard_mail_frame_send_mail_attachments_array_resolves() {
          1..ATTACHMENTS_MAX_SEND (12) so the 4 trailing slots are inert padding"
     );
 }
+}
 
-#[test]
-fn blizzard_mail_frame_inbox_max_size_local_constant_unexposed() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_mail_frame_inbox_max_size_local_constant_unexposed(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(MAX_INBOX_SIZE)")
@@ -586,6 +587,7 @@ fn blizzard_mail_frame_inbox_max_size_local_constant_unexposed() {
          (file-scoped) constant, NOT a global. Other addons that probe `_G.MAX_INBOX_SIZE` \
          would see nil; the 100-mail cap is private to InboxFrame_Update"
     );
+}
 }
 
 #[test]

@@ -327,9 +327,8 @@ fn excluded_from_glue_screens() {
     }
 }
 
-#[test]
-fn eager_load_emits_no_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn eager_load_emits_no_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -352,10 +351,10 @@ fn eager_load_emits_no_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn is_addon_loaded_reports_true_after_eager_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn is_addon_loaded_reports_true_after_eager_load(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_StableUI')")
@@ -368,10 +367,10 @@ fn is_addon_loaded_reports_true_after_eager_load() {
          StableUI ready?') uses to know StableFrame is materialized"
     );
 }
+}
 
-#[test]
-fn publishes_twenty_mixin_tables_at_global_scope() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn publishes_twenty_mixin_tables_at_global_scope(env: &WowLuaEnv) {
 
     for mixin in PUBLISHED_MIXINS {
         let kind: String = env
@@ -394,10 +393,10 @@ fn publishes_twenty_mixin_tables_at_global_scope() {
         );
     }
 }
+}
 
-#[test]
-fn stable_frame_mixin_carries_eleven_canonical_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn stable_frame_mixin_carries_eleven_canonical_methods(env: &WowLuaEnv) {
 
     for method in STABLE_FRAME_METHODS {
         let kind: String = env
@@ -423,10 +422,10 @@ fn stable_frame_mixin_carries_eleven_canonical_methods() {
         );
     }
 }
+}
 
-#[test]
-fn stabled_pet_list_mixin_carries_nine_canonical_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn stabled_pet_list_mixin_carries_nine_canonical_methods(env: &WowLuaEnv) {
 
     for method in STABLED_PET_LIST_METHODS {
         let kind: String = env
@@ -450,10 +449,10 @@ fn stabled_pet_list_mixin_carries_nine_canonical_methods() {
         );
     }
 }
+}
 
-#[test]
-fn active_pet_button_template_mixin_carries_fourteen_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn active_pet_button_template_mixin_carries_fourteen_methods(env: &WowLuaEnv) {
 
     for method in ACTIVE_PET_BUTTON_METHODS {
         let kind: String = env
@@ -480,10 +479,10 @@ fn active_pet_button_template_mixin_carries_fourteen_methods() {
         );
     }
 }
+}
 
-#[test]
-fn stabled_pet_button_template_mixin_carries_nine_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn stabled_pet_button_template_mixin_carries_nine_methods(env: &WowLuaEnv) {
 
     for method in STABLED_PET_BUTTON_METHODS {
         let kind: String = env
@@ -507,10 +506,10 @@ fn stabled_pet_button_template_mixin_carries_nine_methods() {
         );
     }
 }
+}
 
-#[test]
-fn beastmaster_secondary_pet_button_inherits_active_pet_button() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn beastmaster_secondary_pet_button_inherits_active_pet_button(env: &WowLuaEnv) {
 
     for inherited in ACTIVE_PET_BUTTON_METHODS {
         let kind: String = env
@@ -549,10 +548,10 @@ fn beastmaster_secondary_pet_button_inherits_active_pet_button() {
         );
     }
 }
+}
 
-#[test]
-fn pet_model_scene_inherits_panning_model_scene() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn pet_model_scene_inherits_panning_model_scene(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(StablePetModelSceneMixin)")
@@ -594,10 +593,10 @@ fn pet_model_scene_inherits_panning_model_scene() {
         );
     }
 }
+}
 
-#[test]
-fn xml_registers_four_virtual_templates() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn xml_registers_four_virtual_templates(env: &WowLuaEnv) {
 
     for template in VIRTUAL_TEMPLATES {
         let probe = format!(
@@ -620,10 +619,10 @@ fn xml_registers_four_virtual_templates() {
         );
     }
 }
+}
 
-#[test]
-fn named_stable_frame_publishes_with_panel_attributes() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn named_stable_frame_publishes_with_panel_attributes(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(StableFrame)")
@@ -651,10 +650,10 @@ fn named_stable_frame_publishes_with_panel_attributes() {
          StableFrameMixin:OnLoad. Got: {portrait_icon}"
     );
 }
+}
 
-#[test]
-fn named_stable_frame_exposes_active_and_stabled_pet_lists() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn named_stable_frame_exposes_active_and_stabled_pet_lists(env: &WowLuaEnv) {
 
     let probe = "local f = StableFrame \
                  if not f then return 'frame nil' end \
@@ -683,10 +682,10 @@ fn named_stable_frame_exposes_active_and_stabled_pet_lists() {
          Report: {report}"
     );
 }
+}
 
-#[test]
-fn active_pet_list_materializes_five_pet_buttons_and_secondary() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn active_pet_list_materializes_five_pet_buttons_and_secondary(env: &WowLuaEnv) {
 
     let probe = "local list = StableFrame and StableFrame.ActivePetList \
                  if not list then return 'list nil' end \
@@ -715,4 +714,5 @@ fn active_pet_list_materializes_five_pet_buttons_and_secondary() {
          StableBeastMasterSecondaryPetButtonMixin) on the right of the \
          divider. Report: {report}"
     );
+}
 }

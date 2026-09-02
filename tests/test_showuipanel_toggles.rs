@@ -14,18 +14,23 @@ fn blizzard_ui_dir() -> PathBuf {
     )))
 }
 
-/// Extra addons needed for spellbook tests (loaded on demand in real WoW,
-/// but we load them explicitly here for deterministic testing).
-const SPELLBOOK_ADDONS: &[(&str, &str)] = &[("Blizzard_PlayerSpells", "Blizzard_PlayerSpells.toc")];
+/// Load PlayerSpells through the runtime API so declared dependencies and
+/// `ADDON_LOADED` behavior match the client.
+fn load_player_spells(env: &WowLuaEnv) {
+    let (loaded, reason): (bool, Option<String>) = env
+        .eval(r#"return C_AddOns.LoadAddOn("Blizzard_PlayerSpells")"#)
+        .expect("Blizzard_PlayerSpells load should return");
+    assert!(loaded, "Blizzard_PlayerSpells should load: {reason:?}");
+}
 
 /// Blizzard addons needed for the panel system (dependency order).
 const PANEL_ADDONS: &[(&str, &str)] = &[
     ("Blizzard_SharedXMLBase", "Blizzard_SharedXMLBase.toc"),
-    ("Blizzard_Colors", "Blizzard_Colors_Mainline.toc"),
-    ("Blizzard_SharedXML", "Blizzard_SharedXML_Mainline.toc"),
+    ("Blizzard_Colors", "Blizzard_Colors.toc"),
+    ("Blizzard_SharedXML", "Blizzard_SharedXML.toc"),
     (
         "Blizzard_SharedXMLGame",
-        "Blizzard_SharedXMLGame_Mainline.toc",
+        "Blizzard_SharedXMLGame.toc",
     ),
     (
         "Blizzard_UIPanelTemplates",
@@ -44,23 +49,28 @@ const PANEL_ADDONS: &[(&str, &str)] = &[
         "Blizzard_AccessibilityTemplates.toc",
     ),
     ("Blizzard_ObjectAPI", "Blizzard_ObjectAPI_Mainline.toc"),
-    ("Blizzard_UIParent", "Blizzard_UIParent_Mainline.toc"),
+    ("Blizzard_UIParent", "Blizzard_UIParent.toc"),
     ("Blizzard_TextStatusBar", "Blizzard_TextStatusBar.toc"),
     ("Blizzard_MoneyFrame", "Blizzard_MoneyFrame_Mainline.toc"),
     ("Blizzard_POIButton", "Blizzard_POIButton.toc"),
     ("Blizzard_Flyout", "Blizzard_Flyout.toc"),
-    ("Blizzard_StoreUI", "Blizzard_StoreUI_Mainline.toc"),
+    ("Blizzard_GameMenuEsc", "Blizzard_GameMenuEsc.toc"),
+    ("Blizzard_Communities", "Blizzard_Communities_Mainline.toc"),
+    ("Blizzard_StoreUI", "Blizzard_StoreUI.toc"),
     ("Blizzard_MicroMenu", "Blizzard_MicroMenu_Mainline.toc"),
+    ("Blizzard_ManagedFrameSystem", "Blizzard_ManagedFrameSystem_Mainline.toc"),
     ("Blizzard_EditMode", "Blizzard_EditMode.toc"),
     ("Blizzard_GarrisonBase", "Blizzard_GarrisonBase.toc"),
     ("Blizzard_GameTooltip", "Blizzard_GameTooltip_Mainline.toc"),
+    ("Blizzard_StaticPopup_Game", "Blizzard_StaticPopup_Game.toc"),
+    ("Blizzard_TransmogShared", "Blizzard_TransmogShared.toc"),
     (
         "Blizzard_UIParentPanelManager",
         "Blizzard_UIParentPanelManager_Mainline.toc",
     ),
     (
         "Blizzard_Settings_Shared",
-        "Blizzard_Settings_Shared_Mainline.toc",
+        "Blizzard_Settings_Shared.toc",
     ),
     (
         "Blizzard_SettingsDefinitions_Shared",
@@ -68,19 +78,22 @@ const PANEL_ADDONS: &[(&str, &str)] = &[
     ),
     (
         "Blizzard_SettingsDefinitions_Frame",
-        "Blizzard_SettingsDefinitions_Frame_Mainline.toc",
+        "Blizzard_SettingsDefinitions_Frame.toc",
     ),
     (
         "Blizzard_FrameXMLUtil",
-        "Blizzard_FrameXMLUtil_Mainline.toc",
+        "Blizzard_FrameXMLUtil.toc",
     ),
     ("Blizzard_ItemButton", "Blizzard_ItemButton_Mainline.toc"),
     ("Blizzard_QuickKeybind", "Blizzard_QuickKeybind.toc"),
-    ("Blizzard_FrameXML", "Blizzard_FrameXML_Mainline.toc"),
+    ("Blizzard_FrameXML", "Blizzard_FrameXML.toc"),
     (
         "Blizzard_UIPanels_Game",
         "Blizzard_UIPanels_Game_Mainline.toc",
     ),
+    ("Blizzard_ActionBar", "Blizzard_ActionBar_Mainline.toc"),
+    ("Blizzard_UnitFrame", "Blizzard_UnitFrame_Mainline.toc"),
+    ("Blizzard_TokenUI", "Blizzard_TokenUI.toc"),
 ];
 
 fn setup_env() -> WowLuaEnv {
@@ -177,25 +190,12 @@ fn show_ui_panel_displaces_previous_occupant() {
 }
 
 #[test]
-fn character_and_spellbook_coexist() {
+fn player_spells_panel_replaces_character_frame() {
     test_timeout! {
         let env = setup_env();
+        load_player_spells(&env);
 
-        // Load PlayerSpells addon (normally LoD, loaded on demand)
-        let ui = blizzard_ui_dir();
-        for (name, toc) in SPELLBOOK_ADDONS {
-            let toc_path = ui.join(name).join(toc);
-            if toc_path.exists() {
-                if let Err(e) = load_addon(&env.loader_env(), &toc_path) {
-                    eprintln!("[load {name}] FAILED: {e}");
-                }
-            }
-        }
-
-        // CharacterFrame: area="left", pushable=3
-        // PlayerSpellsFrame: area="centerOrLeft", pushable=3, allowOtherPanels=1
-        // Both are pushable and allow other panels, so they coexist:
-        // Character stays in left slot, Spellbook goes to center.
+        // Retail 12.1.0.69497 closes CharacterFrame when PlayerSpells opens.
         let result: String = env.eval(r#"
             if not CharacterFrame then return "no_char_frame" end
             if not PlayerSpellsFrame then return "no_spellbook_frame" end
@@ -205,12 +205,10 @@ fn character_and_spellbook_coexist() {
 
             ShowUIPanel(PlayerSpellsFrame)
             if not PlayerSpellsFrame:IsShown() then return "spellbook_not_shown" end
-
-            -- Both should be visible: CharacterFrame in left, PlayerSpellsFrame in center
-            if not CharacterFrame:IsShown() then return "char_closed_unexpectedly" end
+            if CharacterFrame:IsShown() then return "char_not_closed" end
             return "ok"
         "#).unwrap();
-        assert_eq!(result, "ok", "Character and Spellbook panels should coexist (left + center): {result}");
+        assert_eq!(result, "ok", "PlayerSpells should replace CharacterFrame: {result}");
     }
 }
 
@@ -218,16 +216,7 @@ fn character_and_spellbook_coexist() {
 fn toggle_spellbook_legacy_global_opens_and_closes_spellbook_panel() {
     test_timeout! {
         let env = setup_env();
-
-        let ui = blizzard_ui_dir();
-        for (name, toc) in SPELLBOOK_ADDONS {
-            let toc_path = ui.join(name).join(toc);
-            if toc_path.exists() {
-                if let Err(e) = load_addon(&env.loader_env(), &toc_path) {
-                    eprintln!("[load {name}] FAILED: {e}");
-                }
-            }
-        }
+        load_player_spells(&env);
 
         let result: String = env.eval(r#"
             if not ToggleSpellBook then
@@ -261,16 +250,7 @@ fn toggle_spellbook_legacy_global_opens_and_closes_spellbook_panel() {
 fn toggle_player_spells_frame_opens_and_closes_talent_panel() {
     test_timeout! {
         let env = setup_env();
-
-        let ui = blizzard_ui_dir();
-        for (name, toc) in SPELLBOOK_ADDONS {
-            let toc_path = ui.join(name).join(toc);
-            if toc_path.exists() {
-                if let Err(e) = load_addon(&env.loader_env(), &toc_path) {
-                    eprintln!("[load {name}] FAILED: {e}");
-                }
-            }
-        }
+        load_player_spells(&env);
 
         let result: String = env.eval(r#"
             if not PlayerSpellsUtil or not PlayerSpellsUtil.TogglePlayerSpellsFrame then
@@ -493,6 +473,10 @@ fn open_trade_skill_opens_blacksmithing_panel() {
 fn toggle_guild_frame_opens_and_closes_communities_panel() {
     test_timeout! {
         let env = setup_env();
+        let (loaded, reason): (bool, Option<String>) = env
+            .eval(r#"return C_AddOns.LoadAddOn("Blizzard_Communities")"#)
+            .expect("Blizzard_Communities load should return");
+        assert!(loaded, "Blizzard_Communities should load: {reason:?}");
 
         let result: String = env.eval(r#"
             if not ToggleGuildFrame then

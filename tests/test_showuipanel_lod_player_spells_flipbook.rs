@@ -27,7 +27,11 @@ local flipbook = assert(
     "BookCornerFlipbook should exist"
 )
 local atlas = assert(C_Texture.GetAtlasInfo("spellbook-corner-flipbook-evergreen"), "missing atlas info")
-local left, right, top, bottom = flipbook:GetTexCoord()
+local tlx, tly, blx, bly, trx, try, brx, bry = flipbook:GetTexCoord()
+local left = math.min(tlx, blx, trx, brx)
+local right = math.max(tlx, blx, trx, brx)
+local top = math.min(tly, bly, try, bry)
+local bottom = math.max(tly, bly, try, bry)
 local rows = 2
 local cols = 4
 local cell_width = (atlas.rightTexCoord - atlas.leftTexCoord) / cols

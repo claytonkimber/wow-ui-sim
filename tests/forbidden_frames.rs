@@ -89,6 +89,28 @@ fn test_forbidden_scrollbar_track_has_thumb() {
 }
 
 #[test]
+fn has_access_constraints_reports_forbidden_frames_only() {
+    let env = env_with_shared_xml();
+    env.exec("local normal = CreateFrame('Frame', 'AccessConstraintNormal', UIParent)")
+        .unwrap();
+
+    env.state().borrow_mut().loading_forbidden = true;
+    env.exec("local forbidden = CreateFrame('Frame', 'AccessConstraintForbidden', UIParent)")
+        .unwrap();
+    env.state().borrow_mut().loading_forbidden = false;
+
+    let result: (String, bool, bool) = env
+        .eval(
+            "return type(AccessConstraintNormal:HasAccessConstraints()), \
+             AccessConstraintNormal:HasAccessConstraints(), \
+             AccessConstraintForbidden:HasAccessConstraints()",
+        )
+        .unwrap();
+
+    assert_eq!(result, ("boolean".to_string(), false, true));
+}
+
+#[test]
 fn test_forbidden_proxy_method_lookup_does_not_exhaust_aux_stack() {
     let env = env_with_shared_xml();
     env.state().borrow_mut().loading_forbidden = true;

@@ -141,9 +141,13 @@ pub(super) fn parse_frame_strata(strata: &str) -> Option<crate::widget::FrameStr
 // Mixin helpers
 // ---------------------------------------------------------------------------
 
-pub(crate) fn apply_frame_mixins(state: &mut LuaState, frame_id: u64, mixins: Option<&str>) {
+pub(crate) fn apply_frame_mixins(
+    state: &mut LuaState,
+    frame_id: u64,
+    mixins: Option<&str>,
+) -> LuaResult<()> {
     let Some(mixins) = mixins else {
-        return;
+        return Ok(());
     };
 
     for mixin_name in mixins
@@ -151,8 +155,9 @@ pub(crate) fn apply_frame_mixins(state: &mut LuaState, frame_id: u64, mixins: Op
         .map(str::trim)
         .filter(|name| !name.is_empty())
     {
-        apply_frame_mixin(state, frame_id, mixin_name, None);
+        apply_frame_mixin(state, frame_id, mixin_name, None)?;
     }
+    Ok(())
 }
 
 pub(crate) fn apply_frame_mixin(
@@ -160,8 +165,8 @@ pub(crate) fn apply_frame_mixin(
     frame_id: u64,
     mixin_name: &str,
     source: Option<&str>,
-) {
-    apply_frame_mixin_with_partitions(state, frame_id, mixin_name, source, None, None, false);
+) -> LuaResult<()> {
+    apply_frame_mixin_with_partitions(state, frame_id, mixin_name, source, None, None, false)
 }
 
 pub(crate) fn apply_frame_mixin_with_partitions(
@@ -172,7 +177,7 @@ pub(crate) fn apply_frame_mixin_with_partitions(
     target_partition: Option<&str>,
     inbound_partition: Option<&str>,
     secure_delegates: bool,
-) {
+) -> LuaResult<()> {
     let mixin_val = match source {
         Some("secure") => resolve_secure_or_scoped_global_path(state, mixin_name),
         Some("local") => resolve_local_template_path(state, mixin_name),
@@ -191,9 +196,38 @@ pub(crate) fn apply_frame_mixin_with_partitions(
             inbound_partition,
             secure_delegates,
         );
-        return;
+        return Ok(());
     }
+
+    let mixin_exists = matches!(mixin_val, Val::Table(_));
     copy_table_into_frame(state, frame_id, mixin_val);
+    if mixin_exists && mixin_name == "EditModeSystemMixin" {
+        seed_edit_mode_base_method_aliases(state, frame_id)?;
+    }
+    Ok(())
+}
+
+fn seed_edit_mode_base_method_aliases(state: &mut LuaState, frame_id: u64) -> LuaResult<()> {
+    let frame = frame_ref(state, frame_id)?;
+    for (method_name, alias_name) in [
+        ("SetScale", "SetScaleBase"),
+        ("SetPoint", "SetPointBase"),
+        ("ClearAllPoints", "ClearAllPointsBase"),
+        ("SetShown", "SetShownBase"),
+        ("Show", "ShowBase"),
+        ("Hide", "HideBase"),
+        ("IsShown", "IsShownBase"),
+    ] {
+        let method_key = create_string(state, method_name);
+        let method = state.gettable(frame, method_key)?;
+        if !matches!(method, Val::Function(_)) {
+            return Err(rilua::runtime_error(format!(
+                "EditModeSystemMixin requires callable frame method {method_name}"
+            )));
+        }
+        table_set(state, frame, alias_name, method);
+    }
+    Ok(())
 }
 
 fn apply_xml_mixin_helper(

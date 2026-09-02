@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 
-use wow_ui_sim::loader::load_addon;
 use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, find_toc_file};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
@@ -69,31 +68,6 @@ const POOL_FACTORIES: &[&str] = &[
     "CreateFontStringPoolCollection",
     "CreateMaskTexturePool",
 ];
-
-fn fresh_env() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-    wow_ui_sim::xml::register_intrinsic_templates();
-    env
-}
-
-fn load_full_game_ui() -> WowLuaEnv {
-    let env = fresh_env();
-
-    let addons = discover_blizzard_addons_for_screen(&blizzard_ui_dir(), ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    env.apply_post_load_workarounds();
-    env
-}
 
 #[test]
 fn find_toc_file_resolves_bare_toc() {
@@ -305,17 +279,12 @@ fn xml_files_load_after_their_lua_companions() {
         .position(|p| p == "ColorSwatch.lua")
         .expect("ColorSwatch.lua present");
     assert!(
-        swatch_xml < swatch_lua,
-        "ColorSwatch.xml is INTENTIONALLY loaded BEFORE ColorSwatch.lua — \
-         opposite of the CallbackRegistrant ordering. The XML's \
-         `mixin=\"ColorSwatchMixin\"` is a forward reference: \
-         ColorSwatchMixin gets published by ColorSwatch.lua AFTER the XML \
-         registers the virtual ColorSwatchTemplate. The XML template lives \
-         in the template registry and is materialized later when consumers \
-         use `inherits=\"ColorSwatchTemplate\"`, by which point the .lua \
-         has run. Got xml at {} lua at {}",
-        swatch_xml,
-        swatch_lua
+        swatch_lua < swatch_xml,
+        "ColorSwatch.lua must load before ColorSwatch.xml so the virtual \
+         ColorSwatchTemplate resolves ColorSwatchMixin at XML parse time. \
+         Got lua at {} xml at {}",
+        swatch_lua,
+        swatch_xml
     );
 }
 
@@ -403,333 +372,333 @@ fn eager_discovery_includes_addon_on_all_four_screens() {
     }
 }
 
-#[test]
-fn full_game_load_emits_no_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
-    let errors: Vec<String> = env.state().borrow().lua_errors.clone();
+prefork_full_ui_case! {
+    fn full_game_load_emits_no_addon_specific_lua_errors(env: &WowLuaEnv) {
+        let errors: Vec<String> = env.state().borrow().lua_errors.clone();
 
-    let addon_specific: Vec<&String> = errors
-        .iter()
-        .filter(|err| {
-            err.contains("Blizzard_SharedXMLBase")
-                || err.contains("CallbackRegistryMixin")
-                || err.contains("Compat.lua")
-                || err.contains("Mixin.lua")
-        })
-        .collect();
+        let addon_specific: Vec<&String> = errors
+            .iter()
+            .filter(|err| {
+                err.contains("Blizzard_SharedXMLBase")
+                    || err.contains("CallbackRegistryMixin")
+                    || err.contains("Compat.lua")
+                    || err.contains("Mixin.lua")
+            })
+            .collect();
 
-    assert!(
-        addon_specific.is_empty(),
-        "Full Game-screen UI load must produce zero SharedXMLBase-attributed \
-         Lua errors. Errors: {addon_specific:#?}"
-    );
-}
-
-#[test]
-fn is_addon_loaded_reports_true_after_eager_sweep() {
-    let env = load_full_game_ui();
-
-    let result: bool = env
-        .eval("return C_AddOns.IsAddOnLoaded(\"Blizzard_SharedXMLBase\")")
-        .expect("IsAddOnLoaded query succeeds");
-    assert!(
-        result,
-        "C_AddOns.IsAddOnLoaded(\"Blizzard_SharedXMLBase\") MUST return true \
-         after the eager sweep. The TOC has no LoadOnDemand and AllowLoad: \
-         Both, so the discovery pass guarantees inclusion regardless of \
-         whether any later addon hard-deps on it"
-    );
-
-    let dep: bool = env
-        .eval("return C_AddOns.IsAddOnLoaded(\"Blizzard_ScriptErrors\")")
-        .expect("Blizzard_ScriptErrors loaded check");
-    assert!(
-        dep,
-        "Blizzard_ScriptErrors must also be loaded — SharedXMLBase declares \
-         it as a hard dep, so the loader pulls it into the load set"
-    );
-}
-
-#[test]
-fn publishes_nineteen_foundation_mixin_tables() {
-    let env = load_full_game_ui();
-
-    for mixin in FOUNDATION_MIXINS {
-        let result: bool = env
-            .eval(&format!("return type(_G[{mixin:?}]) == \"table\""))
-            .unwrap_or_else(|err| panic!("eval for mixin {mixin}: {err}"));
         assert!(
-            result,
-            "Mixin {mixin} must be a `_G` table after SharedXMLBase loads. \
-             Every mixin in this list is consumed by either an XML \
-             `mixin=...` attribute (parsed at template load) or a later \
-             CreateFromMixins call. Missing the mixin breaks parse-time \
-             resolution"
+            addon_specific.is_empty(),
+            "Full Game-screen UI load must produce zero SharedXMLBase-attributed \
+             Lua errors. Errors: {addon_specific:#?}"
         );
     }
 }
 
-#[test]
-fn publishes_sixteen_foundation_util_namespace_tables() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+    fn is_addon_loaded_reports_true_after_eager_sweep(env: &WowLuaEnv) {
 
-    for util in FOUNDATION_UTIL_TABLES {
         let result: bool = env
-            .eval(&format!("return type(_G[{util:?}]) == \"table\""))
-            .unwrap_or_else(|err| panic!("eval for util {util}: {err}"));
+            .eval("return C_AddOns.IsAddOnLoaded(\"Blizzard_SharedXMLBase\")")
+            .expect("IsAddOnLoaded query succeeds");
         assert!(
             result,
-            "Util namespace {util} must be a `_G` table after \
-             SharedXMLBase loads. Util namespaces hold static helper \
-             functions (FrameUtil.RegisterFrameForEvents, \
-             TableUtil.SafeCountTable, EnumUtil.MakeEnum, etc.) — they're \
-             the public API surface every later addon imports as `_G.X`"
+            "C_AddOns.IsAddOnLoaded(\"Blizzard_SharedXMLBase\") MUST return true \
+             after the eager sweep. The TOC has no LoadOnDemand and AllowLoad: \
+             Both, so the discovery pass guarantees inclusion regardless of \
+             whether any later addon hard-deps on it"
+        );
+
+        let dep: bool = env
+            .eval("return C_AddOns.IsAddOnLoaded(\"Blizzard_ScriptErrors\")")
+            .expect("Blizzard_ScriptErrors loaded check");
+        assert!(
+            dep,
+            "Blizzard_ScriptErrors must also be loaded — SharedXMLBase declares \
+             it as a hard dep, so the loader pulls it into the load set"
         );
     }
 }
 
-#[test]
-fn publishes_eight_pool_factory_functions_aliased_to_secure_variants() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+    fn publishes_nineteen_foundation_mixin_tables(env: &WowLuaEnv) {
 
-    for factory in POOL_FACTORIES {
+        for mixin in FOUNDATION_MIXINS {
+            let result: bool = env
+                .eval(&format!("return type(_G[{mixin:?}]) == \"table\""))
+                .unwrap_or_else(|err| panic!("eval for mixin {mixin}: {err}"));
+            assert!(
+                result,
+                "Mixin {mixin} must be a `_G` table after SharedXMLBase loads. \
+                 Every mixin in this list is consumed by either an XML \
+                 `mixin=...` attribute (parsed at template load) or a later \
+                 CreateFromMixins call. Missing the mixin breaks parse-time \
+                 resolution"
+            );
+        }
+    }
+}
+
+prefork_full_ui_case! {
+    fn publishes_sixteen_foundation_util_namespace_tables(env: &WowLuaEnv) {
+
+        for util in FOUNDATION_UTIL_TABLES {
+            let result: bool = env
+                .eval(&format!("return type(_G[{util:?}]) == \"table\""))
+                .unwrap_or_else(|err| panic!("eval for util {util}: {err}"));
+            assert!(
+                result,
+                "Util namespace {util} must be a `_G` table after \
+                 SharedXMLBase loads. Util namespaces hold static helper \
+                 functions (FrameUtil.RegisterFrameForEvents, \
+                 TableUtil.SafeCountTable, EnumUtil.MakeEnum, etc.) — they're \
+                 the public API surface every later addon imports as `_G.X`"
+            );
+        }
+    }
+}
+
+prefork_full_ui_case! {
+    fn publishes_eight_pool_factory_functions_aliased_to_secure_variants(env: &WowLuaEnv) {
+
+        for factory in POOL_FACTORIES {
+            let result: bool = env
+                .eval(&format!("return type(_G[{factory:?}]) == \"function\""))
+                .unwrap_or_else(|err| panic!("eval for factory {factory}: {err}"));
+            assert!(
+                result,
+                "Pool factory {factory} must be a `_G` function. Pools.lua \
+                 tail-aliases each `Create*Pool` to its `CreateSecure*Pool` \
+                 counterpart so the secure pool is the default. Every later \
+                 addon (action bars, scroll boxes, talent buttons) uses \
+                 CreateFramePool — without these aliases the call would be nil"
+            );
+        }
+    }
+}
+
+prefork_full_ui_case! {
+    fn callback_registry_mixin_provides_register_callback_method(env: &WowLuaEnv) {
+
         let result: bool = env
-            .eval(&format!("return type(_G[{factory:?}]) == \"function\""))
-            .unwrap_or_else(|err| panic!("eval for factory {factory}: {err}"));
+            .eval(
+                "return type(CallbackRegistryMixin) == \"table\" and \
+                        type(CallbackRegistryMixin.RegisterCallback) == \"function\" and \
+                        type(CallbackRegistryMixin.OnLoad) == \"function\" and \
+                        type(CallbackRegistryMixin.TriggerEvent) == \"function\"",
+            )
+            .expect("CallbackRegistryMixin shape check");
         assert!(
             result,
-            "Pool factory {factory} must be a `_G` function. Pools.lua \
-             tail-aliases each `Create*Pool` to its `CreateSecure*Pool` \
-             counterpart so the secure pool is the default. Every later \
-             addon (action bars, scroll boxes, talent buttons) uses \
-             CreateFramePool — without these aliases the call would be nil"
+            "CallbackRegistryMixin must publish OnLoad / RegisterCallback / \
+             TriggerEvent — the pub/sub contract every CreateFromMixins \
+             subclass relies on. DataProviderMixin in SharedXML, \
+             SettingsCategoryListMixin in Settings_Shared, EventRegistry in \
+             this addon, and CVarCallbackRegistry all extend it via \
+             CreateFromMixins"
         );
     }
 }
 
-#[test]
-fn callback_registry_mixin_provides_register_callback_method() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+    fn event_registry_singleton_published_with_frame_event_methods(env: &WowLuaEnv) {
 
-    let result: bool = env
-        .eval(
-            "return type(CallbackRegistryMixin) == \"table\" and \
-                    type(CallbackRegistryMixin.RegisterCallback) == \"function\" and \
-                    type(CallbackRegistryMixin.OnLoad) == \"function\" and \
-                    type(CallbackRegistryMixin.TriggerEvent) == \"function\"",
-        )
-        .expect("CallbackRegistryMixin shape check");
-    assert!(
-        result,
-        "CallbackRegistryMixin must publish OnLoad / RegisterCallback / \
-         TriggerEvent — the pub/sub contract every CreateFromMixins \
-         subclass relies on. DataProviderMixin in SharedXML, \
-         SettingsCategoryListMixin in Settings_Shared, EventRegistry in \
-         this addon, and CVarCallbackRegistry all extend it via \
-         CreateFromMixins"
-    );
+        let result: bool = env
+            .eval(
+                "return type(EventRegistry) == \"table\" and \
+                        type(EventRegistry.RegisterFrameEvent) == \"function\" and \
+                        type(EventRegistry.RegisterFrameEventAndCallback) == \"function\"",
+            )
+            .expect("EventRegistry shape check");
+        assert!(
+            result,
+            "EventRegistry must be a populated singleton (table with \
+             CreateFromMixins(CallbackRegistryMixin) + the frame-event helper \
+             methods from GlobalCallbackRegistry.lua). Consumers do \
+             `EventRegistry:RegisterFrameEvent(\"PLAYER_LOGIN\")` to bridge \
+             legacy frame events into the callback registry, so it must be a \
+             live instance after load"
+        );
+    }
 }
 
-#[test]
-fn event_registry_singleton_published_with_frame_event_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+    fn enum_util_make_enum_produces_inverted_table(env: &WowLuaEnv) {
 
-    let result: bool = env
-        .eval(
-            "return type(EventRegistry) == \"table\" and \
-                    type(EventRegistry.RegisterFrameEvent) == \"function\" and \
-                    type(EventRegistry.RegisterFrameEventAndCallback) == \"function\"",
-        )
-        .expect("EventRegistry shape check");
-    assert!(
-        result,
-        "EventRegistry must be a populated singleton (table with \
-         CreateFromMixins(CallbackRegistryMixin) + the frame-event helper \
-         methods from GlobalCallbackRegistry.lua). Consumers do \
-         `EventRegistry:RegisterFrameEvent(\"PLAYER_LOGIN\")` to bridge \
-         legacy frame events into the callback registry, so it must be a \
-         live instance after load"
-    );
+        let result: bool = env
+            .eval(
+                "local e = EnumUtil.MakeEnum(\"Foo\", \"Bar\", \"Baz\") \
+                 return e.Foo == 1 and e.Bar == 2 and e.Baz == 3",
+            )
+            .expect("EnumUtil.MakeEnum eval");
+        assert!(
+            result,
+            "EnumUtil.MakeEnum must produce a name→1-based-index inverted \
+             table (it's `tInvert({{...}})` internally). Every CategorySet / \
+             ControlType / VarType enum in Settings_Shared, MapPinTags in \
+             SharedMapDataProviders, and TalentButtonAnimState in SharedTalentUI \
+             all key off this contract"
+        );
+    }
 }
 
-#[test]
-fn enum_util_make_enum_produces_inverted_table() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+    fn flags_util_make_flags_produces_bit_value_table(env: &WowLuaEnv) {
 
-    let result: bool = env
-        .eval(
-            "local e = EnumUtil.MakeEnum(\"Foo\", \"Bar\", \"Baz\") \
-             return e.Foo == 1 and e.Bar == 2 and e.Baz == 3",
-        )
-        .expect("EnumUtil.MakeEnum eval");
-    assert!(
-        result,
-        "EnumUtil.MakeEnum must produce a name→1-based-index inverted \
-         table (it's `tInvert({{...}})` internally). Every CategorySet / \
-         ControlType / VarType enum in Settings_Shared, MapPinTags in \
-         SharedMapDataProviders, and TalentButtonAnimState in SharedTalentUI \
-         all key off this contract"
-    );
+        let result: bool = env
+            .eval(
+                "local f = FlagsUtil.MakeFlags(\"A\", \"B\", \"C\") \
+                 return f.A == 1 and f.B == 2 and f.C == 4",
+            )
+            .expect("FlagsUtil.MakeFlags eval");
+        assert!(
+            result,
+            "FlagsUtil.MakeFlags must produce a name→2^index bitmask table. \
+             Settings.CommitFlag in Settings_Shared and various module-state \
+             bitmasks rely on this — name maps to a power of 2 so OR-combination \
+             and bit-test queries work"
+        );
+    }
 }
 
-#[test]
-fn flags_util_make_flags_produces_bit_value_table() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+    fn dirty_flags_mixin_inherits_flags_mixin_capability(env: &WowLuaEnv) {
 
-    let result: bool = env
-        .eval(
-            "local f = FlagsUtil.MakeFlags(\"A\", \"B\", \"C\") \
-             return f.A == 1 and f.B == 2 and f.C == 4",
-        )
-        .expect("FlagsUtil.MakeFlags eval");
-    assert!(
-        result,
-        "FlagsUtil.MakeFlags must produce a name→2^index bitmask table. \
-         Settings.CommitFlag in Settings_Shared and various module-state \
-         bitmasks rely on this — name maps to a power of 2 so OR-combination \
-         and bit-test queries work"
-    );
+        let result: bool = env
+            .eval(
+                "return type(DirtyFlagsMixin) == \"table\" and \
+                        type(DirtyFlagsMixin.Set) == \"function\" and \
+                        type(DirtyFlagsMixin.IsSet) == \"function\" and \
+                        type(DirtyFlagsMixin.MarkDirty) == \"function\" and \
+                        type(DirtyFlagsMixin.IsDirty) == \"function\"",
+            )
+            .expect("DirtyFlagsMixin shape check");
+        assert!(
+            result,
+            "DirtyFlagsMixin = CreateFromMixins(FlagsMixin) — it inherits the \
+             Set / IsSet / Clear flag-bit methods from FlagsMixin and adds \
+             MarkDirty / MarkClean / IsDirty on top. The inheritance path is \
+             what lets framework code that takes a generic Flags-like object \
+             also drive DirtyFlags-tagged state"
+        );
+    }
 }
 
-#[test]
-fn dirty_flags_mixin_inherits_flags_mixin_capability() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+    fn anchor_util_create_anchor_returns_anchor_mixin_instance(env: &WowLuaEnv) {
 
-    let result: bool = env
-        .eval(
-            "return type(DirtyFlagsMixin) == \"table\" and \
-                    type(DirtyFlagsMixin.Set) == \"function\" and \
-                    type(DirtyFlagsMixin.IsSet) == \"function\" and \
-                    type(DirtyFlagsMixin.MarkDirty) == \"function\" and \
-                    type(DirtyFlagsMixin.IsDirty) == \"function\"",
-        )
-        .expect("DirtyFlagsMixin shape check");
-    assert!(
-        result,
-        "DirtyFlagsMixin = CreateFromMixins(FlagsMixin) — it inherits the \
-         Set / IsSet / Clear flag-bit methods from FlagsMixin and adds \
-         MarkDirty / MarkClean / IsDirty on top. The inheritance path is \
-         what lets framework code that takes a generic Flags-like object \
-         also drive DirtyFlags-tagged state"
-    );
+        let result: bool = env
+            .eval(
+                "local anchor = AnchorUtil.CreateAnchor(\"TOPLEFT\", UIParent, \"TOPLEFT\", 10, -20) \
+                 return type(anchor) == \"table\" and type(anchor.SetPoint) == \"function\"",
+            )
+            .expect("AnchorUtil.CreateAnchor eval");
+        assert!(
+            result,
+            "AnchorUtil.CreateAnchor = GenerateClosure(CreateAndInitFromMixin, \
+             AnchorMixin) — calling it produces an AnchorMixin instance with \
+             SetPoint / GetPoint methods. Layout primitives in later addons \
+             (ResizeLayoutFrame, SettingsLayoutMixin) chain CreateAnchor for \
+             declarative anchor specification"
+        );
+    }
 }
 
-#[test]
-fn anchor_util_create_anchor_returns_anchor_mixin_instance() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+    fn frame_util_create_frame_helper_callable(env: &WowLuaEnv) {
 
-    let result: bool = env
-        .eval(
-            "local anchor = AnchorUtil.CreateAnchor(\"TOPLEFT\", UIParent, \"TOPLEFT\", 10, -20) \
-             return type(anchor) == \"table\" and type(anchor.SetPoint) == \"function\"",
-        )
-        .expect("AnchorUtil.CreateAnchor eval");
-    assert!(
-        result,
-        "AnchorUtil.CreateAnchor = GenerateClosure(CreateAndInitFromMixin, \
-         AnchorMixin) — calling it produces an AnchorMixin instance with \
-         SetPoint / GetPoint methods. Layout primitives in later addons \
-         (ResizeLayoutFrame, SettingsLayoutMixin) chain CreateAnchor for \
-         declarative anchor specification"
-    );
+        let result: bool = env
+            .eval(
+                "return type(FrameUtil) == \"table\" and \
+                        type(FrameUtil.CreateFrame) == \"function\" and \
+                        type(FrameUtil.RegisterFrameForEvents) == \"function\" and \
+                        type(FrameUtil.GetRootParent) == \"function\"",
+            )
+            .expect("FrameUtil shape check");
+        assert!(
+            result,
+            "FrameUtil must publish CreateFrame / RegisterFrameForEvents / \
+             GetRootParent at minimum. These wrap the raw `_G.CreateFrame` to \
+             add safe-default parent handling, batch-register events, and walk \
+             the parent chain to UIParent — used pervasively by later addons"
+        );
+    }
 }
 
-#[test]
-fn frame_util_create_frame_helper_callable() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+    fn create_and_init_from_mixin_constructs_initialized_instance(env: &WowLuaEnv) {
 
-    let result: bool = env
-        .eval(
-            "return type(FrameUtil) == \"table\" and \
-                    type(FrameUtil.CreateFrame) == \"function\" and \
-                    type(FrameUtil.RegisterFrameForEvents) == \"function\" and \
-                    type(FrameUtil.GetRootParent) == \"function\"",
-        )
-        .expect("FrameUtil shape check");
-    assert!(
-        result,
-        "FrameUtil must publish CreateFrame / RegisterFrameForEvents / \
-         GetRootParent at minimum. These wrap the raw `_G.CreateFrame` to \
-         add safe-default parent handling, batch-register events, and walk \
-         the parent chain to UIParent — used pervasively by later addons"
-    );
+        let result: bool = env
+            .eval(
+                "local TestMixin = {} \
+                 function TestMixin:Init(value) self.value = value end \
+                 local obj = CreateAndInitFromMixin(TestMixin, 42) \
+                 return obj.value == 42 and obj.Init == TestMixin.Init",
+            )
+            .expect("CreateAndInitFromMixin eval");
+        assert!(
+            result,
+            "CreateAndInitFromMixin(mixin, ...) must (1) create an object via \
+             CreateFromMixins(mixin), (2) call obj:Init(...) with the varargs. \
+             Every `CreateFramePool` resetterFunc and `AnchorUtil.CreateAnchor` \
+             call uses this pattern indirectly via GenerateClosure"
+        );
+    }
 }
 
-#[test]
-fn create_and_init_from_mixin_constructs_initialized_instance() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+    fn curve_constants_published_with_zero_to_one_curve(env: &WowLuaEnv) {
 
-    let result: bool = env
-        .eval(
-            "local TestMixin = {} \
-             function TestMixin:Init(value) self.value = value end \
-             local obj = CreateAndInitFromMixin(TestMixin, 42) \
-             return obj.value == 42 and obj.Init == TestMixin.Init",
-        )
-        .expect("CreateAndInitFromMixin eval");
-    assert!(
-        result,
-        "CreateAndInitFromMixin(mixin, ...) must (1) create an object via \
-         CreateFromMixins(mixin), (2) call obj:Init(...) with the varargs. \
-         Every `CreateFramePool` resetterFunc and `AnchorUtil.CreateAnchor` \
-         call uses this pattern indirectly via GenerateClosure"
-    );
+        let result: bool = env
+            .eval("return type(CurveConstants) == \"table\" and CurveConstants.ZeroToOne ~= nil")
+            .expect("CurveConstants eval");
+        assert!(
+            result,
+            "CurveConstants table must publish at least the ZeroToOne curve. \
+             Animation interpolation primitives (in InterpolatorUtil at \
+             SharedXML and onward) consume these named curves to drive eased \
+             transitions without each consumer redefining identity / linear \
+             scale curves"
+        );
+    }
 }
 
-#[test]
-fn curve_constants_published_with_zero_to_one_curve() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+    fn frame_watcher_singleton_initialized_with_watch_methods(env: &WowLuaEnv) {
 
-    let result: bool = env
-        .eval("return type(CurveConstants) == \"table\" and CurveConstants.ZeroToOne ~= nil")
-        .expect("CurveConstants eval");
-    assert!(
-        result,
-        "CurveConstants table must publish at least the ZeroToOne curve. \
-         Animation interpolation primitives (in InterpolatorUtil at \
-         SharedXML and onward) consume these named curves to drive eased \
-         transitions without each consumer redefining identity / linear \
-         scale curves"
-    );
+        let result: bool = env
+            .eval(
+                "return type(FrameWatcher) == \"table\" and \
+                        type(FrameWatcher.WatchFrame) == \"function\" and \
+                        type(FrameWatcher.StopWatchingFrame) == \"function\"",
+            )
+            .expect("FrameWatcher shape check");
+        assert!(
+            result,
+            "FrameWatcher must be a `_G` singleton with WatchFrame / \
+             StopWatchingFrame methods. The constructor calls FrameWatcher:Init() \
+             at the end of FrameWatcher.lua, so the table is a live initialized \
+             instance — not just a method bag. Consumers register frames to \
+             observe show/hide transitions for batched UI updates"
+        );
+    }
 }
 
-#[test]
-fn frame_watcher_singleton_initialized_with_watch_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+    fn templates_registered_from_xml_files(env: &WowLuaEnv) {
 
-    let result: bool = env
-        .eval(
-            "return type(FrameWatcher) == \"table\" and \
-                    type(FrameWatcher.WatchFrame) == \"function\" and \
-                    type(FrameWatcher.StopWatchingFrame) == \"function\"",
-        )
-        .expect("FrameWatcher shape check");
-    assert!(
-        result,
-        "FrameWatcher must be a `_G` singleton with WatchFrame / \
-         StopWatchingFrame methods. The constructor calls FrameWatcher:Init() \
-         at the end of FrameWatcher.lua, so the table is a live initialized \
-         instance — not just a method bag. Consumers register frames to \
-         observe show/hide transitions for batched UI updates"
-    );
-}
-
-#[test]
-fn templates_registered_from_xml_files() {
-    let env = load_full_game_ui();
-
-    let result: bool = env
-        .eval(
-            "local CreateFrame = _G.CreateFrame \
-             local f = CreateFrame(\"Frame\", nil, nil, \"ColorSwatchTemplate\") \
-             return type(f) == \"table\" and type(f.SetColor) == \"function\"",
-        )
-        .expect("ColorSwatchTemplate materialization");
-    assert!(
-        result,
-        "ColorSwatchTemplate (registered via ColorSwatch.xml) must be \
-         materializable through CreateFrame — instantiation must mix in \
-         ColorSwatchMixin's SetColor method. Validates the lua-then-xml \
-         load sequence binds template + mixin together"
-    );
+        let result: bool = env
+            .eval(
+                "local CreateFrame = _G.CreateFrame \
+                 local f = CreateFrame(\"Frame\", nil, nil, \"ColorSwatchTemplate\") \
+                 return type(f) == \"table\" and type(f.SetColor) == \"function\"",
+            )
+            .expect("ColorSwatchTemplate materialization");
+        assert!(
+            result,
+            "ColorSwatchTemplate (registered via ColorSwatch.xml) must be \
+             materializable through CreateFrame — instantiation must mix in \
+             ColorSwatchMixin's SetColor method. Validates the lua-then-xml \
+             load sequence binds template + mixin together"
+        );
+    }
 }

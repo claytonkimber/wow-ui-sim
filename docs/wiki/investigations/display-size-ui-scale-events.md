@@ -13,7 +13,7 @@ Captured via `docs/addons/ScaleEventProbe/` on the live desktop client (~37 even
 | Drag resize, auto scale (`useUiScale=0`) | Repeated ordered pairs during drag; effective scale tracks `768 / GetScreenHeight()` continuously |
 | Maximize / restore | Ordered pair per transition; some transitions produced two ordered pairs, including same-size snapshots (no dedupe) |
 | UI Scale slider change (no resize) | Ordered pair fires (UI-unit screen size changes even though physical size doesn't), then `CVAR_UPDATE` |
-| `useUiScale` toggle | Pair fires |
+| `useUiScale` toggle | Pair fires, then `CVAR_UPDATE` |
 | Resolution change | Pair fires |
 
 Additional invariants observed in every snapshot:
@@ -25,15 +25,16 @@ Additional invariants observed in every snapshot:
   including cases where the visible UI dimensions are unchanged. Continuous
   drag resize emits repeated ordered pairs during the drag, not a single event
   burst at the end.
-- **Events fire before `CVAR_UPDATE`**: at event time `UIParent:GetEffectiveScale()` already returns the *new* scale while `GetCVar("uiScale")` still reads the old value. Handlers can trust `GetEffectiveScale()`, not the CVar.
+- **Scale events fire before `CVAR_UPDATE`**: for `uiScale`/`useUiScale` changes, `UIParent:GetEffectiveScale()` already returns the new scale during `DISPLAY_SIZE_CHANGED` and `UI_SCALE_CHANGED`, while `GetCVar()` still reads the old value. The CVar update follows the pair. Handlers can trust `GetEffectiveScale()`, not the CVar, during the pair.
 - `GetScreenHeight() × UIParent:GetEffectiveScale() = 768` always holds, including the case where a manual scale is overridden because the window is too small (e.g. fixed 0.8 scale but effective 0.8581 at 895 UI height).
-- `UI_SCALE_CHANGED` is **not** CVar-driven — it fired dozens of times while `uiScale` never changed.
+- `UI_SCALE_CHANGED` is not exclusively CVar-driven — it fires for display/scale recalculations even when `uiScale` does not change. Explicit `uiScale`/`useUiScale` writes also trigger the ordered pair before `CVAR_UPDATE`.
 
 Corroborating community evidence: ElvUI registers **only** `UI_SCALE_CHANGED` for pixel-perfect rescaling (`PixelScaleChanged` re-reads `GetPhysicalScreenSize()`), and ElvUI commit `2934c29c` ("add option to ignore the UI Scale changed popup when changing the window size") plus tukui issue #1066 document the popup firing on resize/maximize — only reachable via `UI_SCALE_CHANGED`.
 
 ## Simulator Fix
 
 - `WowLuaEnv::set_screen_size` now fires `UI_SCALE_CHANGED` immediately after `DISPLAY_SIZE_CHANGED`, so window resizes emit the retail pair. The regression test was inverted: it previously asserted resize must **not** fire `UI_SCALE_CHANGED`; it now asserts the ordered pair.
+- `SetCVar` now dispatches successful `CVAR_UPDATE` notifications after storing ordinary CVar values. For `uiScale` and `useUiScale`, it applies the modeled UIParent scale where available, emits `DISPLAY_SIZE_CHANGED` then `UI_SCALE_CHANGED` before storage, and dispatches `CVAR_UPDATE` last while handlers observe the old CVar value during the pair.
 - **Startup ordering matched**: the post-login pair in `fire_post_login_events` was removed and the pair now fires in `fire_login_sequence` after `VARIABLES_LOADED`, before `PLAYER_LOGIN`. Combined with the `set_screen_size` pair fired during GUI canvas startup, the simulator emits two pre-login pairs and none post-login, matching the retail capture. Verified: lib test failure set unchanged, `lua-errors` clean both Blizzard-only and with all third-party addons.
 
 ## Known Observability Limit (not a behavior choice)

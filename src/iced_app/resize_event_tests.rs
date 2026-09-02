@@ -70,6 +70,61 @@ fn resizing_window_fires_display_size_changed_then_ui_scale_changed() {
     );
 }
 
+#[test]
+fn ui_scale_cvar_change_fires_pair_before_cvar_update() {
+    let app = build_test_app();
+    app.env
+        .borrow()
+        .state()
+        .borrow()
+        .cvars
+        .set("useUiScale", "1");
+    app.env
+        .borrow()
+        .exec(
+            r#"
+            local function captureScaleCVarOrder(cvarName, requestedValue, expectedScale)
+                local events = {}
+                local oldValue = GetCVar(cvarName)
+                local frame = CreateFrame("Frame")
+                frame:RegisterEvent("DISPLAY_SIZE_CHANGED")
+                frame:RegisterEvent("UI_SCALE_CHANGED")
+                frame:RegisterEvent("CVAR_UPDATE")
+                frame:SetScript("OnEvent", function(_, event, name, value)
+                    local pairStateMatches = GetCVar(cvarName) == oldValue
+                        and math.abs(UIParent:GetEffectiveScale() - expectedScale) < 0.0001
+                    local cvarStateMatches = name == cvarName
+                        and tostring(value) == tostring(requestedValue)
+                        and GetCVar(cvarName) == tostring(requestedValue)
+                    table.insert(events, table.concat({
+                        event,
+                        tostring(event == "CVAR_UPDATE" and cvarStateMatches or pairStateMatches),
+                    }, ":"))
+                end)
+
+                SetCVar(cvarName, requestedValue)
+                frame:UnregisterAllEvents()
+                return table.concat(events, "|")
+            end
+
+            __ui_scale_order = captureScaleCVarOrder("uiScale", 0.8, 0.8)
+            __use_ui_scale_order = captureScaleCVarOrder("useUiScale", 0, 0.8)
+            "#,
+        )
+        .expect("UI scale CVar probe should succeed");
+
+    let order: String = app
+        .env
+        .borrow()
+        .eval("return __ui_scale_order .. ';' .. __use_ui_scale_order")
+        .expect("UI scale CVar event order should be readable");
+    assert_eq!(
+        order,
+        "DISPLAY_SIZE_CHANGED:true|UI_SCALE_CHANGED:true|CVAR_UPDATE:true;\
+         DISPLAY_SIZE_CHANGED:true|UI_SCALE_CHANGED:true|CVAR_UPDATE:true"
+    );
+}
+
 // Retail fires the display/scale pair before PLAYER_LOGIN and never after it
 // at startup (live probe, see the wiki investigation page).
 #[test]

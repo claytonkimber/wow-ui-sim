@@ -123,7 +123,7 @@ const VIRTUAL_TEMPLATES_BASE: &[&str] = &[
     "WowStyle2DropdownTemplate",
     "WowStyle2IconButtonTemplate",
     "WowMenuAutoHideButtonTemplate",
-    "WowMenuDropdownHighlightRadioTemplate",
+    "WowMenuDropdownHighlightButtonTemplate",
 ];
 
 const VIRTUAL_TEMPLATES_RETAIL: &[&str] = &[
@@ -331,9 +331,8 @@ fn blizzard_menu_appears_on_every_screen_auto_discovery() {
     }
 }
 
-#[test]
-fn blizzard_menu_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_menu_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -358,10 +357,10 @@ fn blizzard_menu_loads_without_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_menu_is_addon_loaded_returns_true_after_load_first_pass() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_menu_is_addon_loaded_returns_true_after_load_first_pass(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_Menu')")
@@ -374,10 +373,10 @@ fn blizzard_menu_is_addon_loaded_returns_true_after_load_first_pass() {
          intrinsic / Menu.* / MenuUtil.* surface live by the time their own load runs"
     );
 }
+}
 
-#[test]
-fn blizzard_menu_publishes_eight_namespace_tables() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_menu_publishes_eight_namespace_tables(env: &WowLuaEnv) {
 
     for table in MENU_NAMESPACE_TABLES {
         let kind: String = env
@@ -398,10 +397,10 @@ fn blizzard_menu_publishes_eight_namespace_tables() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_menu_publishes_thirteen_shared_behavior_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_menu_publishes_thirteen_shared_behavior_mixins(env: &WowLuaEnv) {
 
     for mixin in SHARED_BEHAVIOR_MIXINS {
         let kind: String = env
@@ -425,10 +424,10 @@ fn blizzard_menu_publishes_thirteen_shared_behavior_mixins() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_menu_publishes_four_retail_specific_dropdown_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_menu_publishes_four_retail_specific_dropdown_mixins(env: &WowLuaEnv) {
 
     for mixin in RETAIL_DROPDOWN_MIXINS {
         let kind: String = env
@@ -451,10 +450,10 @@ fn blizzard_menu_publishes_four_retail_specific_dropdown_mixins() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_menu_response_table_carries_canonical_lifecycle_values() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_menu_response_table_carries_canonical_lifecycle_values(env: &WowLuaEnv) {
 
     for (key, expected) in MENU_RESPONSE_VALUES {
         let actual: i64 = env
@@ -473,10 +472,10 @@ fn blizzard_menu_response_table_carries_canonical_lifecycle_values() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_menu_constants_table_exposes_layout_direction_enum_values() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_menu_constants_table_exposes_layout_direction_enum_values(env: &WowLuaEnv) {
 
     for (key, expected) in [
         ("VerticalLinearDirection", 1),
@@ -498,10 +497,10 @@ fn blizzard_menu_constants_table_exposes_layout_direction_enum_values() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_menu_util_exposes_twenty_public_factory_functions() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_menu_util_exposes_twenty_public_factory_functions(env: &WowLuaEnv) {
 
     for func in MENU_UTIL_PUBLIC_FUNCTIONS {
         let kind: String = env
@@ -522,10 +521,10 @@ fn blizzard_menu_util_exposes_twenty_public_factory_functions() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_menu_namespace_exposes_seven_manager_functions() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_menu_namespace_exposes_seven_manager_functions(env: &WowLuaEnv) {
 
     for func in MENU_PUBLIC_FUNCTIONS {
         let kind: String = env
@@ -546,10 +545,10 @@ fn blizzard_menu_namespace_exposes_seven_manager_functions() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_menu_retail_filter_dropdown_atlas_constants_publish_as_strings() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_menu_retail_filter_dropdown_atlas_constants_publish_as_strings(env: &WowLuaEnv) {
 
     for atlas in RETAIL_FILTER_DROPDOWN_ATLAS_NAMES {
         let kind: String = env
@@ -571,10 +570,10 @@ fn blizzard_menu_retail_filter_dropdown_atlas_constants_publish_as_strings() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_menu_variants_overrides_menu_mixin_to_retail_style1() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_menu_variants_overrides_menu_mixin_to_retail_style1(env: &WowLuaEnv) {
 
     let style1_active: bool = env
         .eval(
@@ -593,10 +592,11 @@ fn blizzard_menu_variants_overrides_menu_mixin_to_retail_style1() {
          on line 8 before `[Family]\\MenuVariants.lua` on line 11"
     );
 }
+}
 
-#[test]
-fn blizzard_menu_xml_registers_eight_virtual_templates_for_retail() {
-    let _env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_menu_xml_registers_eight_virtual_templates_for_retail(env: &WowLuaEnv) {
+    let _env = env;
 
     let mut all_templates: Vec<&str> = Vec::new();
     all_templates.extend_from_slice(VIRTUAL_TEMPLATES_BASE);
@@ -614,7 +614,7 @@ fn blizzard_menu_xml_registers_eight_virtual_templates_for_retail() {
              OnMouseWheel scripts); MenuTemplates.xml declares 4 cross-flavor templates \
              (WowStyle2DropdownTemplate, WowStyle2IconButtonTemplate, \
              WowMenuAutoHideButtonTemplate (propagateMouseInput=Motion), \
-             WowMenuDropdownHighlightRadioTemplate (inherits DarkMenuElementTemplate, \
+             WowMenuDropdownHighlightButtonTemplate (inherits DarkMenuElementTemplate, \
              motionScriptsWhileDisabled=true)); Mainline/MenuTemplates.xml declares 3 \
              retail-only templates (WowStyle1DropdownTemplate, WowStyle1ArrowDropdownTemplate, \
              WowStyle1FilterDropdownTemplate — all DropdownButton-derived intrinsics consuming \
@@ -622,10 +622,11 @@ fn blizzard_menu_xml_registers_eight_virtual_templates_for_retail() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_menu_dropdown_button_intrinsic_registers_with_template_lookup() {
-    let _env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_menu_dropdown_button_intrinsic_registers_with_template_lookup(env: &WowLuaEnv) {
+    let _env = env;
 
     let registered = wow_ui_sim::xml::get_template("DropdownButton").is_some();
     assert!(
@@ -644,10 +645,10 @@ fn blizzard_menu_dropdown_button_intrinsic_registers_with_template_lookup() {
          pattern at src/loader/precompiled.rs:14-17"
     );
 }
+}
 
-#[test]
-fn blizzard_menu_util_create_function_helpers_alias_menu_templates() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_menu_util_create_function_helpers_alias_menu_templates(env: &WowLuaEnv) {
 
     let aliased: bool = env
         .eval(
@@ -665,4 +666,5 @@ fn blizzard_menu_util_create_function_helpers_alias_menu_templates() {
          for the divider / spacer factories — load-order constraint: MenuTemplates.lua must \
          execute BEFORE MenuUtil.lua, which it does (TOC body lines 17 vs 21)"
     );
+}
 }

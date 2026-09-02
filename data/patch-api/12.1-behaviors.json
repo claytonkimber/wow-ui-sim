@@ -1,0 +1,1284 @@
+{
+  "schema": "framexml-patch-audit/v2",
+  "patch": "12.1.0",
+  "target": {
+    "flavor": "ptr",
+    "build": "12.1.0",
+    "cache_manifest": "data/blizzard-ui-files/ptr.txt",
+    "cache_hash": "fa104a0f58bb1f86949aeec78fd82388b8d1cb8da39a1f3b51b4e3bd89e4ac66"
+  },
+  "source": {
+    "path": "data/patch-api/sources/12.1-behaviors.json",
+    "hash": "9e3ad69306c0e3d377e3aba6f5b928a21cd868ff98e5e9e43763385cdcecc83f",
+    "added_count": 0,
+    "changed_count": 54,
+    "removed_count": 0
+  },
+  "output": {
+    "checklist": "docs/generated/patch-12-1-behavior-checklist.md",
+    "inventory": "docs/wiki/investigations/patch-12-1-behavior-inventory.md"
+  },
+  "rows": [
+    {
+      "id": "changed:Patch12_1.UnitAura.AddonSecretError",
+      "symbol": "Patch12_1.UnitAura.AddonSecretError",
+      "change": "changed",
+      "status": "evidence-required",
+      "resolution": "unsafe",
+      "owner": "UnitAura secrecy",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "source",
+          "reference": "src/lua_api/globals/auras.rs",
+          "summary": "Public AuraData exists, but exact addon-vs-Blizzard secret error behavior is not modeled.",
+          "source_hash": "58480b33a2186d5ca847a12711c81639d2c4c31c29af51f4029ce4e2dfe9a5a6"
+        }
+      ],
+      "tests": [],
+      "assertions": [],
+      "commit": null,
+      "approval_id": null,
+      "notes": "Public AuraData exists, but exact addon-vs-Blizzard secret error behavior is not modeled."
+    },
+    {
+      "id": "changed:Patch12_1.UnitAura.BlizzardSecretAccess",
+      "symbol": "Patch12_1.UnitAura.BlizzardSecretAccess",
+      "change": "changed",
+      "status": "evidence-required",
+      "resolution": "unsafe",
+      "owner": "UnitAura secrecy",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "source",
+          "reference": "src/lua_api/globals/auras.rs",
+          "summary": "Public AuraData exists, but exact caller-sensitive Blizzard/internal secret access behavior is not modeled.",
+          "source_hash": "58480b33a2186d5ca847a12711c81639d2c4c31c29af51f4029ce4e2dfe9a5a6"
+        }
+      ],
+      "tests": [],
+      "assertions": [],
+      "commit": null,
+      "approval_id": null,
+      "notes": "Public AuraData exists, but exact caller-sensitive Blizzard/internal secret access behavior is not modeled."
+    },
+    {
+      "id": "changed:Patch12_1.UnitAura.SecretAuraData",
+      "symbol": "Patch12_1.UnitAura.SecretAuraData",
+      "change": "changed",
+      "status": "evidence-required",
+      "resolution": "unsafe",
+      "owner": "UnitAura secrecy",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "source",
+          "reference": "src/lua_api/globals/auras.rs",
+          "summary": "Public AuraData exists, but exact secret field accessibility and retail object behavior are not modeled.",
+          "source_hash": "58480b33a2186d5ca847a12711c81639d2c4c31c29af51f4029ce4e2dfe9a5a6"
+        }
+      ],
+      "tests": [],
+      "assertions": [],
+      "commit": null,
+      "approval_id": null,
+      "notes": "Public AuraData exists, but exact secret field accessibility and retail object behavior are not modeled."
+    },
+    {
+      "id": "changed:Patch12_1.UnitAura.SecretEventPayload",
+      "symbol": "Patch12_1.UnitAura.SecretEventPayload",
+      "change": "changed",
+      "status": "evidence-required",
+      "resolution": "unsafe",
+      "owner": "UnitAura secrecy",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "source",
+          "reference": "src/lua_api/globals/auras.rs",
+          "summary": "Public AuraData exists, but exact secret UNIT_AURA payload values and tuple behavior are not modeled.",
+          "source_hash": "58480b33a2186d5ca847a12711c81639d2c4c31c29af51f4029ce4e2dfe9a5a6"
+        }
+      ],
+      "tests": [],
+      "assertions": [],
+      "commit": null,
+      "approval_id": null,
+      "notes": "Public AuraData exists, but exact secret UNIT_AURA payload values and tuple behavior are not modeled."
+    },
+    {
+      "id": "changed:Patch12_1.PrivateScriptObjects.PrivateIdentity",
+      "symbol": "Patch12_1.PrivateScriptObjects.PrivateIdentity",
+      "change": "changed",
+      "status": "evidence-required",
+      "resolution": "unsafe",
+      "owner": "Private Script Objects",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "source",
+          "reference": "docs/wiki/systems/xml-template-system.md",
+          "summary": "Two-partition/delegate mechanics exist; exact retail private identity is unknown.",
+          "source_hash": "06ededeb014c3d8ece61b07add887c576ba7bcdb443b6906cd9369b89203cad7"
+        }
+      ],
+      "tests": [],
+      "assertions": [],
+      "commit": null,
+      "approval_id": null,
+      "notes": "Two-partition/delegate mechanics exist; exact retail private identity is unknown."
+    },
+    {
+      "id": "changed:Patch12_1.PrivateScriptObjects.InaccessiblePublicKeys",
+      "symbol": "Patch12_1.PrivateScriptObjects.InaccessiblePublicKeys",
+      "change": "changed",
+      "status": "evidence-required",
+      "resolution": "unsafe",
+      "owner": "Private Script Objects",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "source",
+          "reference": "docs/wiki/systems/xml-template-system.md",
+          "summary": "Two-partition/delegate mechanics exist; exact public-key access restrictions are unknown.",
+          "source_hash": "06ededeb014c3d8ece61b07add887c576ba7bcdb443b6906cd9369b89203cad7"
+        }
+      ],
+      "tests": [],
+      "assertions": [],
+      "commit": null,
+      "approval_id": null,
+      "notes": "Two-partition/delegate mechanics exist; exact public-key access restrictions are unknown."
+    },
+    {
+      "id": "changed:Patch12_1.PrivateScriptObjects.ChildVisibility",
+      "symbol": "Patch12_1.PrivateScriptObjects.ChildVisibility",
+      "change": "changed",
+      "status": "evidence-required",
+      "resolution": "unsafe",
+      "owner": "Private Script Objects",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "source",
+          "reference": "docs/wiki/systems/xml-template-system.md",
+          "summary": "Two-partition/delegate mechanics exist; exact private/forbidden child traversal visibility is unknown.",
+          "source_hash": "06ededeb014c3d8ece61b07add887c576ba7bcdb443b6906cd9369b89203cad7"
+        }
+      ],
+      "tests": [],
+      "assertions": [],
+      "commit": null,
+      "approval_id": null,
+      "notes": "Two-partition/delegate mechanics exist; exact private/forbidden child traversal visibility is unknown."
+    },
+    {
+      "id": "changed:Patch12_1.PrivateScriptObjects.HookBoundary",
+      "symbol": "Patch12_1.PrivateScriptObjects.HookBoundary",
+      "change": "changed",
+      "status": "evidence-required",
+      "resolution": "unsafe",
+      "owner": "Private Script Objects",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "source",
+          "reference": "docs/wiki/systems/xml-template-system.md",
+          "summary": "Two-partition/delegate mechanics exist; exact private/forbidden hook and taint boundaries are unknown.",
+          "source_hash": "06ededeb014c3d8ece61b07add887c576ba7bcdb443b6906cd9369b89203cad7"
+        }
+      ],
+      "tests": [],
+      "assertions": [],
+      "commit": null,
+      "approval_id": null,
+      "notes": "Two-partition/delegate mechanics exist; exact private/forbidden hook and taint boundaries are unknown."
+    },
+    {
+      "id": "changed:Patch12_1.PrivateScriptObjects.ScriptStorage",
+      "symbol": "Patch12_1.PrivateScriptObjects.ScriptStorage",
+      "change": "changed",
+      "status": "evidence-required",
+      "resolution": "unsafe",
+      "owner": "Private Script Objects",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "source",
+          "reference": "docs/wiki/systems/xml-template-system.md",
+          "summary": "Two-partition/delegate mechanics exist; exact private script storage and access behavior are unknown.",
+          "source_hash": "06ededeb014c3d8ece61b07add887c576ba7bcdb443b6906cd9369b89203cad7"
+        }
+      ],
+      "tests": [],
+      "assertions": [],
+      "commit": null,
+      "approval_id": null,
+      "notes": "Two-partition/delegate mechanics exist; exact private script storage and access behavior are unknown."
+    },
+    {
+      "id": "changed:Patch12_1.PrivateScriptObjects.SecureDelegateEnforcement",
+      "symbol": "Patch12_1.PrivateScriptObjects.SecureDelegateEnforcement",
+      "change": "changed",
+      "status": "evidence-required",
+      "resolution": "unsafe",
+      "owner": "Private Script Objects",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "source",
+          "reference": "docs/wiki/systems/xml-template-system.md",
+          "summary": "Two-partition/delegate mechanics exist; exact secure delegate receiver and taint enforcement are unknown.",
+          "source_hash": "06ededeb014c3d8ece61b07add887c576ba7bcdb443b6906cd9369b89203cad7"
+        }
+      ],
+      "tests": [],
+      "assertions": [],
+      "commit": null,
+      "approval_id": null,
+      "notes": "Two-partition/delegate mechanics exist; exact secure delegate receiver and taint enforcement are unknown."
+    },
+    {
+      "id": "changed:Patch12_1.ForbiddenAspects.UntrustedScriptExecution",
+      "symbol": "Patch12_1.ForbiddenAspects.UntrustedScriptExecution",
+      "change": "changed",
+      "status": "evidence-required",
+      "resolution": "unsafe",
+      "owner": "Forbidden Aspects",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "source",
+          "reference": "src/lua_api/frame/methods/forbidden_aspects.rs",
+          "summary": "Aspect masks, inheritance, and queries exist; runtime enforcement for trusted script execution is unknown.",
+          "source_hash": "51eb30e471ff4ff1db31890bea4b5804555ce0822cbe461c732bf25902a1e87b"
+        }
+      ],
+      "tests": [],
+      "assertions": [],
+      "commit": null,
+      "approval_id": null,
+      "notes": "Aspect masks, inheritance, and queries exist; runtime enforcement for trusted script execution is unknown."
+    },
+    {
+      "id": "changed:Patch12_1.ForbiddenAspects.UntrustedLayoutScriptExecution",
+      "symbol": "Patch12_1.ForbiddenAspects.UntrustedLayoutScriptExecution",
+      "change": "changed",
+      "status": "evidence-required",
+      "resolution": "unsafe",
+      "owner": "Forbidden Aspects",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "source",
+          "reference": "src/lua_api/frame/methods/forbidden_aspects.rs",
+          "summary": "Aspect masks, inheritance, and queries exist; runtime layout-script enforcement is unknown.",
+          "source_hash": "51eb30e471ff4ff1db31890bea4b5804555ce0822cbe461c732bf25902a1e87b"
+        }
+      ],
+      "tests": [],
+      "assertions": [],
+      "commit": null,
+      "approval_id": null,
+      "notes": "Aspect masks, inheritance, and queries exist; runtime layout-script enforcement is unknown."
+    },
+    {
+      "id": "changed:Patch12_1.ForbiddenAspects.EventRegistrations",
+      "symbol": "Patch12_1.ForbiddenAspects.EventRegistrations",
+      "change": "changed",
+      "status": "evidence-required",
+      "resolution": "unsafe",
+      "owner": "Forbidden Aspects",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "source",
+          "reference": "src/lua_api/frame/methods/forbidden_aspects.rs",
+          "summary": "Aspect masks, inheritance, and queries exist; EventRegistrations enforcement is unknown.",
+          "source_hash": "51eb30e471ff4ff1db31890bea4b5804555ce0822cbe461c732bf25902a1e87b"
+        }
+      ],
+      "tests": [],
+      "assertions": [],
+      "commit": null,
+      "approval_id": null,
+      "notes": "Aspect masks, inheritance, and queries exist; EventRegistrations enforcement is unknown."
+    },
+    {
+      "id": "changed:Patch12_1.ForbiddenAspects.AlwaysPropagateInput",
+      "symbol": "Patch12_1.ForbiddenAspects.AlwaysPropagateInput",
+      "change": "changed",
+      "status": "evidence-required",
+      "resolution": "unsafe",
+      "owner": "Forbidden Aspects",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "source",
+          "reference": "src/lua_api/frame/methods/forbidden_aspects.rs",
+          "summary": "Aspect masks, inheritance, and queries exist; AlwaysPropagateInput enforcement is unknown.",
+          "source_hash": "51eb30e471ff4ff1db31890bea4b5804555ce0822cbe461c732bf25902a1e87b"
+        }
+      ],
+      "tests": [],
+      "assertions": [],
+      "commit": null,
+      "approval_id": null,
+      "notes": "Aspect masks, inheritance, and queries exist; AlwaysPropagateInput enforcement is unknown."
+    },
+    {
+      "id": "changed:Patch12_1.ForbiddenAspects.ScriptedInput",
+      "symbol": "Patch12_1.ForbiddenAspects.ScriptedInput",
+      "change": "changed",
+      "status": "evidence-required",
+      "resolution": "unsafe",
+      "owner": "Forbidden Aspects",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "source",
+          "reference": "src/lua_api/frame/methods/forbidden_aspects.rs",
+          "summary": "Aspect masks, inheritance, and queries exist; ScriptedInput enforcement is unknown.",
+          "source_hash": "51eb30e471ff4ff1db31890bea4b5804555ce0822cbe461c732bf25902a1e87b"
+        }
+      ],
+      "tests": [],
+      "assertions": [],
+      "commit": null,
+      "approval_id": null,
+      "notes": "Aspect masks, inheritance, and queries exist; ScriptedInput enforcement is unknown."
+    },
+    {
+      "id": "changed:Patch12_1.ForbiddenAspects.QueryFocus",
+      "symbol": "Patch12_1.ForbiddenAspects.QueryFocus",
+      "change": "changed",
+      "status": "evidence-required",
+      "resolution": "unsafe",
+      "owner": "Forbidden Aspects",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "source",
+          "reference": "src/lua_api/frame/methods/forbidden_aspects.rs",
+          "summary": "Aspect masks, inheritance, and queries exist; QueryFocus enforcement is unknown.",
+          "source_hash": "51eb30e471ff4ff1db31890bea4b5804555ce0822cbe461c732bf25902a1e87b"
+        }
+      ],
+      "tests": [],
+      "assertions": [],
+      "commit": null,
+      "approval_id": null,
+      "notes": "Aspect masks, inheritance, and queries exist; QueryFocus enforcement is unknown."
+    },
+    {
+      "id": "changed:Patch12_1.AuraContainer.CreationTypes",
+      "symbol": "Patch12_1.AuraContainer.CreationTypes",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "AuraContainer",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/frames_and_attributes.rs::test_patch_12_1_aura_frame_types_create",
+          "summary": "AuraContainer, AuraButton, and ManagedAuraContainer creation returns the compatible frame object types.",
+          "source_hash": "6112f574cf998f589793324a36d393df8fa9b914e5db05cc78c63f410fec8b09"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/frames_and_attributes.rs::test_patch_12_1_aura_frame_types_create"
+      ],
+      "assertions": [],
+      "commit": "856bd7c6d",
+      "approval_id": null,
+      "notes": "AuraContainer, AuraButton, and ManagedAuraContainer creation returns the compatible frame object types."
+    },
+    {
+      "id": "changed:Patch12_1.AuraContainer.Assignment",
+      "symbol": "Patch12_1.AuraContainer.Assignment",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "AuraContainer",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "patch-tests/patch_12_1/aura_container.rs::aura_container_group_assigns_and_releases_frames_by_aura_instance",
+          "summary": "Aura groups assign aura data to frames by auraInstanceID and preserve retained frame ownership while removed frames are released.",
+          "source_hash": "aafe392ecbc2aa63306d2978235eb0735849f3ba650dab23fbe5fbf67d41a989"
+        }
+      ],
+      "tests": [
+        "patch-tests/patch_12_1/aura_container.rs::aura_container_group_assigns_and_releases_frames_by_aura_instance"
+      ],
+      "assertions": [],
+      "commit": "1ef98b6c7",
+      "approval_id": null,
+      "notes": "Assignment/ownership: aura groups assign aura data to frames by auraInstanceID; retained frames remain owned while removed entries are released."
+    },
+    {
+      "id": "changed:Patch12_1.AuraContainer.Filtering",
+      "symbol": "Patch12_1.AuraContainer.Filtering",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "AuraContainer",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "patch-tests/patch_12_1/aura_container.rs::aura_container_filters_helpful_harmful_and_player_auras",
+          "summary": "Aura groups select HELPFUL, HARMFUL, and PLAYER aura subsets through compatible filter combinations.",
+          "source_hash": "aafe392ecbc2aa63306d2978235eb0735849f3ba650dab23fbe5fbf67d41a989"
+        }
+      ],
+      "tests": [
+        "patch-tests/patch_12_1/aura_container.rs::aura_container_filters_helpful_harmful_and_player_auras"
+      ],
+      "assertions": [],
+      "commit": "1ef98b6c7",
+      "approval_id": null,
+      "notes": "HELPFUL/HARMFUL/PLAYER filtering: aura groups select compatible aura subsets."
+    },
+    {
+      "id": "changed:Patch12_1.AuraContainer.Sorting",
+      "symbol": "Patch12_1.AuraContainer.Sorting",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "AuraContainer",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "patch-tests/patch_12_1/aura_container.rs::aura_container_honors_configured_sort_order",
+          "summary": "Aura groups honor a configured comparator ordering; this does not claim the retail default comparator.",
+          "source_hash": "aafe392ecbc2aa63306d2978235eb0735849f3ba650dab23fbe5fbf67d41a989"
+        }
+      ],
+      "tests": [
+        "patch-tests/patch_12_1/aura_container.rs::aura_container_honors_configured_sort_order"
+      ],
+      "assertions": [],
+      "commit": "1ef98b6c7",
+      "approval_id": null,
+      "notes": "Configured comparator ordering, not retail default comparator."
+    },
+    {
+      "id": "changed:Patch12_1.AuraContainer.PartitionPlacement",
+      "symbol": "Patch12_1.AuraContainer.PartitionPlacement",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "AuraContainer",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "patch-tests/patch_12_1/aura_container.rs::aura_container_selects_public_private_and_edit_mode_partitions",
+          "summary": "Aura containers select public-only, public-and-private, and edit-mode aura source partitions compatibly.",
+          "source_hash": "aafe392ecbc2aa63306d2978235eb0735849f3ba650dab23fbe5fbf67d41a989"
+        }
+      ],
+      "tests": [
+        "patch-tests/patch_12_1/aura_container.rs::aura_container_selects_public_private_and_edit_mode_partitions"
+      ],
+      "assertions": [],
+      "commit": "cda0bc3f9",
+      "approval_id": null,
+      "notes": "Partition placement: managed AuraContainer selects public-only, public-and-private, or edit-mode aura source lists from its local compatibility state."
+    },
+    {
+      "id": "changed:Patch12_1.AuraContainer.ManagedButtonLifecycle",
+      "symbol": "Patch12_1.AuraContainer.ManagedButtonLifecycle",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "AuraContainer",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "patch-tests/patch_12_1/aura_container.rs::aura_container_group_assigns_and_releases_frames_by_aura_instance",
+          "summary": "Aura groups acquire, release, and reacquire frames as auraInstanceID entries are removed and re-added.",
+          "source_hash": "aafe392ecbc2aa63306d2978235eb0735849f3ba650dab23fbe5fbf67d41a989"
+        }
+      ],
+      "tests": [
+        "patch-tests/patch_12_1/aura_container.rs::aura_container_group_assigns_and_releases_frames_by_aura_instance"
+      ],
+      "assertions": [],
+      "commit": "1ef98b6c7",
+      "approval_id": null,
+      "notes": "Acquire-release-reacquire lifecycle for managed frames as auraInstanceID entries change."
+    },
+    {
+      "id": "changed:Patch12_1.AuraContainer.TooltipBinding",
+      "symbol": "Patch12_1.AuraContainer.TooltipBinding",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "AuraContainer",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "patch-tests/patch_12_1/aura_tooltip.rs::aura_button_tooltip_binding_uses_filter_instance_id_and_leave_hide",
+          "summary": "Aura buttons bind HELPFUL/HARMFUL filters, aura-instance tooltip lookup, and leave-hide behavior.",
+          "source_hash": "ebc997d9e1e84fdf53547b819be1ee600f631e67213c224a563408c400831dad"
+        }
+      ],
+      "tests": [
+        "patch-tests/patch_12_1/aura_tooltip.rs::aura_button_tooltip_binding_uses_filter_instance_id_and_leave_hide"
+      ],
+      "assertions": [],
+      "commit": "b49f99a20",
+      "approval_id": null,
+      "notes": "Tooltip filter/instance/leave-hide binding: aura buttons bind HELPFUL/HARMFUL filters, aura-instance lookup, and leave-hide behavior."
+    },
+    {
+      "id": "changed:Patch12_1.AuraContainer.SecretVisibility",
+      "symbol": "Patch12_1.AuraContainer.SecretVisibility",
+      "change": "changed",
+      "status": "evidence-required",
+      "resolution": "unsafe",
+      "owner": "AuraContainer",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "source",
+          "reference": "patch-tests/patch_12_1/aura_container.rs",
+          "summary": "Public/private/EditMode mechanics are covered; secret exposure, taint, and error behavior are unknown.",
+          "source_hash": "aafe392ecbc2aa63306d2978235eb0735849f3ba650dab23fbe5fbf67d41a989"
+        }
+      ],
+      "tests": [],
+      "assertions": [],
+      "commit": null,
+      "approval_id": null,
+      "notes": "Public/private/EditMode mechanics are covered; secret exposure, taint, and error behavior are unknown."
+    },
+    {
+      "id": "changed:Patch12_1.TextureRadialProgress.Surface",
+      "symbol": "Patch12_1.TextureRadialProgress.Surface",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "Texture radial progress",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/frames_and_attributes.rs::test_patch_12_1_texture_radial_progress_surface_and_state",
+          "summary": "A created Texture exposes the radial method family without claiming a standalone RadialProgress constructor or object.",
+          "source_hash": "6112f574cf998f589793324a36d393df8fa9b914e5db05cc78c63f410fec8b09"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/frames_and_attributes.rs::test_patch_12_1_texture_radial_progress_surface_and_state"
+      ],
+      "assertions": [],
+      "commit": "2ef0bd475",
+      "approval_id": null,
+      "notes": "Texture method availability and value storage are tested; exact retail clamping and visual rendering remain best-effort."
+    },
+    {
+      "id": "changed:Patch12_1.TextureRadialProgress.MethodDispatch",
+      "symbol": "Patch12_1.TextureRadialProgress.MethodDispatch",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "Texture radial progress",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/frames_and_attributes.rs::test_patch_12_1_texture_radial_progress_surface_and_state",
+          "summary": "Radial progress methods dispatch on a Texture receiver.",
+          "source_hash": "6112f574cf998f589793324a36d393df8fa9b914e5db05cc78c63f410fec8b09"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/frames_and_attributes.rs::test_patch_12_1_texture_radial_progress_surface_and_state"
+      ],
+      "assertions": [],
+      "commit": "2ef0bd475",
+      "approval_id": null,
+      "notes": "Texture method availability and value storage are tested; exact retail clamping and visual rendering remain best-effort."
+    },
+    {
+      "id": "changed:Patch12_1.TextureRadialProgress.StateBehavior",
+      "symbol": "Patch12_1.TextureRadialProgress.StateBehavior",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "Texture radial progress",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/frames_and_attributes.rs::test_patch_12_1_texture_radial_progress_surface_and_state",
+          "summary": "Texture-backed radial progress defaults, setters/getters, visual mode, and Clear reset are modeled.",
+          "source_hash": "6112f574cf998f589793324a36d393df8fa9b914e5db05cc78c63f410fec8b09"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/frames_and_attributes.rs::test_patch_12_1_texture_radial_progress_surface_and_state"
+      ],
+      "assertions": [],
+      "commit": "2ef0bd475",
+      "approval_id": null,
+      "notes": "Texture method availability and value storage are tested; exact retail clamping and visual rendering remain best-effort."
+    },
+    {
+      "id": "changed:Patch12_1.DurationTextBinding.Lifetime",
+      "symbol": "Patch12_1.DurationTextBinding.Lifetime",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "DurationTextBinding",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_1_duration_binding_reference_lifetime_and_identity",
+          "summary": "A binding retained through a Lua table remains usable after the original local reference is released and garbage collection runs.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_1_duration_binding_reference_lifetime_and_identity"
+      ],
+      "assertions": [],
+      "commit": "27f8fb213",
+      "approval_id": null,
+      "notes": "A binding retained through a Lua table remains usable after the original local reference is released and garbage collection runs."
+    },
+    {
+      "id": "changed:Patch12_1.DurationTextBinding.StableIdentity",
+      "symbol": "Patch12_1.DurationTextBinding.StableIdentity",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "DurationTextBinding",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_1_duration_binding_reference_lifetime_and_identity",
+          "summary": "Factory calls return distinct Lua tables whose identity and methods remain stable while referenced.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_1_duration_binding_reference_lifetime_and_identity"
+      ],
+      "assertions": [],
+      "commit": "27f8fb213",
+      "approval_id": null,
+      "notes": "Factory calls return distinct Lua tables whose identity and methods remain stable while referenced."
+    },
+    {
+      "id": "changed:Patch12_1.DurationTextBinding.RepresentationFidelity",
+      "symbol": "Patch12_1.DurationTextBinding.RepresentationFidelity",
+      "change": "changed",
+      "status": "evidence-required",
+      "resolution": "unsafe",
+      "owner": "DurationTextBinding",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "source",
+          "reference": "src/lua_api/globals/lua_duration_object.rs",
+          "summary": "Compatible table behavior exists; exact Blizzard representation, metatable, GC/finalization, ownership, and invalidation are unknown.",
+          "source_hash": "f20fe5f9637bc087a79e58ed417246efa74d5bbfced7527b4fde070f1dfb4c45"
+        }
+      ],
+      "tests": [],
+      "assertions": [],
+      "commit": null,
+      "approval_id": null,
+      "notes": "Compatible table behavior exists; exact Blizzard representation, metatable, GC/finalization, ownership, and invalidation are unknown."
+    },
+    {
+      "id": "changed:Patch12_1.DurationTextBinding.Formatter",
+      "symbol": "Patch12_1.DurationTextBinding.Formatter",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "DurationTextBinding",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Duration binding formatting methods preserve the documented compatibility-table values.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "0198c5cb6",
+      "approval_id": null,
+      "notes": "Duration binding formatting methods preserve the documented compatibility-table values."
+    },
+    {
+      "id": "changed:Patch12_1.DurationTextBinding.ColorCurve",
+      "symbol": "Patch12_1.DurationTextBinding.ColorCurve",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "DurationTextBinding",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_1_safe_global_bridges",
+          "summary": "Duration binding color-curve methods exist and preserve compatible state.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_1_safe_global_bridges"
+      ],
+      "assertions": [],
+      "commit": "85c2b11d3",
+      "approval_id": null,
+      "notes": "Duration binding color-curve methods exist and preserve compatible state."
+    },
+    {
+      "id": "changed:Patch12_1.DurationTextBinding.FontStringUpdate",
+      "symbol": "Patch12_1.DurationTextBinding.FontStringUpdate",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "DurationTextBinding",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Duration binding FontString assignment and update-facing methods preserve the documented compatibility contract.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "0198c5cb6",
+      "approval_id": null,
+      "notes": "Duration binding FontString assignment and update-facing methods preserve the documented compatibility contract."
+    },
+    {
+      "id": "changed:Patch12_1.Service.Discord.OAuthState",
+      "symbol": "Patch12_1.Service.Discord.OAuthState",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "Service payloads",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_1_discord_state_surface",
+          "summary": "Discord authorization and refresh operations update and expose local compatibility state.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_1_discord_state_surface"
+      ],
+      "assertions": [],
+      "commit": "1701c1c4e",
+      "approval_id": null,
+      "notes": "Discord authorization and refresh operations update and expose local compatibility state."
+    },
+    {
+      "id": "changed:Patch12_1.Service.Discord.GuildState",
+      "symbol": "Patch12_1.Service.Discord.GuildState",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "Service payloads",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_1_discord_state_surface",
+          "summary": "Discord guild link, unlink, settings, and lobby operations update local compatibility state.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_1_discord_state_surface"
+      ],
+      "assertions": [],
+      "commit": "1701c1c4e",
+      "approval_id": null,
+      "notes": "Discord guild link, unlink, settings, and lobby operations update local compatibility state."
+    },
+    {
+      "id": "changed:Patch12_1.Service.Discord.ServerChannelPayload",
+      "symbol": "Patch12_1.Service.Discord.ServerChannelPayload",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "Service payloads",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_1_discord_state_surface",
+          "summary": "Discord server and channel getters return the seeded local compatibility payloads.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_1_discord_state_surface"
+      ],
+      "assertions": [],
+      "commit": "1701c1c4e",
+      "approval_id": null,
+      "notes": "Discord server and channel getters return the seeded local compatibility payloads."
+    },
+    {
+      "id": "changed:Patch12_1.Service.Housing.OwnedHouseState",
+      "symbol": "Patch12_1.Service.Housing.OwnedHouseState",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "Service payloads",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_1_housing_inside_owned_state_and_reset",
+          "summary": "Owned-house and plot queries plus ResetHouse follow the local housing state model.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_1_housing_inside_owned_state_and_reset"
+      ],
+      "assertions": [],
+      "commit": "4728e37ab",
+      "approval_id": null,
+      "notes": "Owned-house and plot queries plus ResetHouse follow the local housing state model."
+    },
+    {
+      "id": "changed:Patch12_1.Service.Housing.BlueprintPayload",
+      "symbol": "Patch12_1.Service.Housing.BlueprintPayload",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "Service payloads",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_1_housing_blueprint_best_effort_state",
+          "summary": "Blueprint export, validation, import, rename, delete, and request calls follow the local housing blueprint model.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_1_housing_blueprint_best_effort_state"
+      ],
+      "assertions": [],
+      "commit": "ec807facb",
+      "approval_id": null,
+      "notes": "Blueprint export, validation, import, rename, delete, and request calls follow the local housing blueprint model."
+    },
+    {
+      "id": "changed:Patch12_1.Service.Housing.AvailabilityCodes",
+      "symbol": "Patch12_1.Service.Housing.AvailabilityCodes",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "Service payloads",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_1_housing_blueprint_availability_state",
+          "summary": "Housing blueprint availability helpers return configurable local result codes.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_1_housing_blueprint_availability_state"
+      ],
+      "assertions": [],
+      "commit": "d91e8a342",
+      "approval_id": null,
+      "notes": "Housing blueprint availability helpers return configurable local result codes."
+    },
+    {
+      "id": "changed:Patch12_1.Service.Housing.EditorDecorLayoutPayload",
+      "symbol": "Patch12_1.Service.Housing.EditorDecorLayoutPayload",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "Service payloads",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_1_housing_editor_decor_layout_state",
+          "summary": "Housing editor, decor, room, budget, and layout calls read or update the local housing state model.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_1_housing_editor_decor_layout_state"
+      ],
+      "assertions": [],
+      "commit": "96299bb1b",
+      "approval_id": null,
+      "notes": "Housing editor, decor, room, budget, and layout calls read or update the local housing state model."
+    },
+    {
+      "id": "changed:Patch12_1.Service.BattleNet.FriendInvitePayload",
+      "symbol": "Patch12_1.Service.BattleNet.FriendInvitePayload",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "Service payloads",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_1_safe_global_bridges",
+          "summary": "Verified friend invites create one deduplicated local pending invite and expose modeled invite fields.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_1_safe_global_bridges"
+      ],
+      "assertions": [],
+      "commit": "78f8053ec",
+      "approval_id": null,
+      "notes": "Verified friend invites create one deduplicated local pending invite and expose modeled ID, account, level, and timestamp fields; server validation and lifecycle semantics remain unmodeled."
+    },
+    {
+      "id": "changed:Patch12_1.Service.BattleNet.TitleFriendPayload",
+      "symbol": "Patch12_1.Service.BattleNet.TitleFriendPayload",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "Service payloads",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_1_safe_global_bridges",
+          "summary": "Title-friend custom names, tags, feature probes, and friend metadata use local compatibility state.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        },
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_1_battle_net_presence_state",
+          "summary": "Appear-offline intent is recorded in local Battle.net presence state.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_1_safe_global_bridges",
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_1_battle_net_presence_state"
+      ],
+      "assertions": [],
+      "commit": "fdcdd4c62",
+      "approval_id": null,
+      "notes": "Title-friend custom names, tags, feature probes, friend metadata, and appear-offline intent use local compatibility state; exact service gating, persistence, events, and full payloads remain unmodeled."
+    },
+    {
+      "id": "changed:Patch12_1.Service.BattleNet.TitleFriendUnitInvite",
+      "symbol": "Patch12_1.Service.BattleNet.TitleFriendUnitInvite",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "Service payloads",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_1_battle_net_presence_state",
+          "summary": "Title-friend unit invite eligibility returns the documented deterministic unsupported-state result.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_1_battle_net_presence_state"
+      ],
+      "assertions": [],
+      "commit": "fdcdd4c62",
+      "approval_id": null,
+      "notes": "Title-friend unit invite eligibility deterministically returns false because service eligibility is not modeled; this is not a claim about retail eligibility results."
+    },
+    {
+      "id": "changed:Patch12_1.Service.EncounterJournal.DifficultyPayload",
+      "symbol": "Patch12_1.Service.EncounterJournal.DifficultyPayload",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "Service payloads",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_1_safe_global_bridges",
+          "summary": "Encounter Journal base and valid difficulty helpers return the generated-data compatibility guesses.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_1_safe_global_bridges"
+      ],
+      "assertions": [],
+      "commit": "1211024cef",
+      "approval_id": null,
+      "notes": "Encounter Journal base and valid difficulty helpers return the generated-data compatibility guesses."
+    },
+    {
+      "id": "changed:Patch12_1.Service.Cooldown.Payloads",
+      "symbol": "Patch12_1.Service.Cooldown.Payloads",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "Service payloads",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/patch_12_1_service_payloads.rs::test_patch_12_1_spell_cooldown_payload",
+          "summary": "Seeded and inactive spell cooldown queries return the modeled start, duration, enabled, active, and rate fields.",
+          "source_hash": "6e1194d6dafbe3c8f7c259a40ef4830229dace40ca9f59927517097cfb46ee2a"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/patch_12_1_service_payloads.rs::test_patch_12_1_spell_cooldown_payload"
+      ],
+      "assertions": [],
+      "commit": "16fefe3b5",
+      "approval_id": null,
+      "notes": "C_Spell.GetSpellCooldown returns a deterministic local cooldown table with startTime, duration, isEnabled, isActive, and modRate; secret-field semantics and update payloads remain unmodeled."
+    },
+    {
+      "id": "changed:Patch12_1.Service.Pet.Payloads",
+      "symbol": "Patch12_1.Service.Pet.Payloads",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "Service payloads",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/patch_12_1_service_payloads.rs::test_patch_12_1_pet_and_lfg_payloads",
+          "summary": "Seeded and unknown species queries verify the modeled 12.1 pet information fields and nil boundary.",
+          "source_hash": "6e1194d6dafbe3c8f7c259a40ef4830229dace40ca9f59927517097cfb46ee2a"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/patch_12_1_service_payloads.rs::test_patch_12_1_pet_and_lfg_payloads"
+      ],
+      "assertions": [],
+      "commit": "856bd7c6d",
+      "approval_id": null,
+      "notes": "C_PetJournal.GetPetInfoTableBySpeciesID returns modeled identity, battle, trade, obtainability, decor, and scale fields for seeded pets and nil for unknown species; complete retail ownership and validation semantics remain unmodeled."
+    },
+    {
+      "id": "changed:Patch12_1.Service.LFG.Payloads",
+      "symbol": "Patch12_1.Service.LFG.Payloads",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "Service payloads",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/patch_12_1_service_payloads.rs::test_patch_12_1_pet_and_lfg_payloads",
+          "summary": "Seeded and unknown search-result queries verify the modeled LFG identity, activity, size, GUID, and censored fields.",
+          "source_hash": "6e1194d6dafbe3c8f7c259a40ef4830229dace40ca9f59927517097cfb46ee2a"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/patch_12_1_service_payloads.rs::test_patch_12_1_pet_and_lfg_payloads"
+      ],
+      "assertions": [],
+      "commit": "856bd7c6d",
+      "approval_id": null,
+      "notes": "C_LFGList.GetSearchResultInfo returns modeled listing identity, activity IDs, member counts, party GUID, and censored=false for seeded results and nil for unknown IDs; server result and requirement semantics remain unmodeled."
+    },
+    {
+      "id": "changed:Patch12_1.Service.PlayerChoice.Payloads",
+      "symbol": "Patch12_1.Service.PlayerChoice.Payloads",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "Service payloads",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/patch_12_1_service_payloads.rs::test_patch_12_1_player_choice_payload_and_mutator_intent",
+          "summary": "Default and seeded PlayerChoice queries expose the generated nested payload shape while response, reroll, and close calls record local intent.",
+          "source_hash": "6e1194d6dafbe3c8f7c259a40ef4830229dace40ca9f59927517097cfb46ee2a"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/patch_12_1_service_payloads.rs::test_patch_12_1_player_choice_payload_and_mutator_intent"
+      ],
+      "assertions": [],
+      "commit": "75caab884",
+      "approval_id": null,
+      "notes": "C_PlayerChoice exposes deterministic no-choice defaults, seeded PlayerChoiceInfo/options/buttons/rewards, and local response/reroll/close intent. Retail timing, server validation, reroll economics, events, and live service values remain unmodeled."
+    },
+    {
+      "id": "changed:Patch12_1.Service.TieredEntrance.Payloads",
+      "symbol": "Patch12_1.Service.TieredEntrance.Payloads",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "Service payloads",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/patch_12_1_service_payloads.rs::test_patch_12_1_tiered_entrance_payloads",
+          "summary": "Seeded and default C_DelvesUI TieredEntrance queries expose the documented tier and nested reward fields.",
+          "source_hash": "6e1194d6dafbe3c8f7c259a40ef4830229dace40ca9f59927517097cfb46ee2a"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/patch_12_1_service_payloads.rs::test_patch_12_1_tiered_entrance_payloads"
+      ],
+      "assertions": [],
+      "commit": "efc164112",
+      "approval_id": null,
+      "notes": "Deterministic C_DelvesUI TieredEntrance rows and nested rewards are modeled; live reward IDs, quantities, unlock timing, eligibility, and economics are not claimed."
+    },
+    {
+      "id": "changed:Patch12_1.Service.PrivateAura.Payloads",
+      "symbol": "Patch12_1.Service.PrivateAura.Payloads",
+      "change": "changed",
+      "status": "evidence-required",
+      "resolution": "unsafe",
+      "owner": "Service payloads",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "source",
+          "reference": "src/lua_api/workarounds/temporary/private_aura_state.rs",
+          "summary": "Deterministic private-aura mechanics exist; inaccessible and secret payload fidelity is unknown.",
+          "source_hash": "03b413196f536a74a69a286b11dac2bf4e22e19e4c7cd97d7a36c9c0e138384c"
+        }
+      ],
+      "tests": [],
+      "assertions": [],
+      "commit": null,
+      "approval_id": null,
+      "notes": "Deterministic private-aura mechanics exist; inaccessible and secret payload fidelity is unknown."
+    },
+    {
+      "id": "changed:Patch12_1.StrictRemoval.PreStartupVisibility",
+      "symbol": "Patch12_1.StrictRemoval.PreStartupVisibility",
+      "change": "changed",
+      "status": "evidence-required",
+      "resolution": "unsafe",
+      "owner": "Strict removal timing",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "source",
+          "reference": "src/ptr/strict_removals.lua",
+          "summary": "The safe boundary is after Blizzard loading/startup; exact earlier visibility timing is unknown and unsafe to move.",
+          "source_hash": "58309e5384154e54c2c5f74727033cd85707dd3b744d45aac0b5c3cd14e60acd"
+        }
+      ],
+      "tests": [],
+      "assertions": [],
+      "commit": null,
+      "approval_id": null,
+      "notes": "The safe boundary is after Blizzard loading/startup; exact earlier visibility timing is unknown and unsafe to move."
+    },
+    {
+      "id": "changed:Patch12_1.StrictRemoval.BlizzardLoadCompatibility",
+      "symbol": "Patch12_1.StrictRemoval.BlizzardLoadCompatibility",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "Strict removal timing",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "patch-tests/patch_12_1/remaining_observations.rs::remaining_symbols_match_observed_publications",
+          "summary": "The existing all-LoD PTR load leaves representative compatibility functions callable and enum fields available before strict-removal activation.",
+          "source_hash": "ea7558c745974bbcdf70b92fa3991f79eb2f98be0806cb522a8d53acf1de4091"
+        }
+      ],
+      "tests": [
+        "patch-tests/patch_12_1/remaining_observations.rs::remaining_symbols_match_observed_publications"
+      ],
+      "assertions": [],
+      "commit": "9fa01d4f1",
+      "approval_id": null,
+      "notes": "The complete pinned PTR addon closure loads while representative removed compatibility functions and enum fields remain callable before the post-event strict-removal boundary."
+    },
+    {
+      "id": "changed:Patch12_1.StrictRemoval.PostStartupHiding",
+      "symbol": "Patch12_1.StrictRemoval.PostStartupHiding",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "Strict removal timing",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_1_strict_removed_symbols_are_hidden",
+          "summary": "Strictly removed 12.1 symbols are absent from addon-facing globals after startup.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_1_strict_removed_symbols_are_hidden"
+      ],
+      "assertions": [],
+      "commit": "390086d312",
+      "approval_id": null,
+      "notes": "Strictly removed 12.1 symbols are absent from addon-facing globals after startup."
+    },
+    {
+      "id": "changed:Patch12_1.StrictRemoval.WrapperTiming",
+      "symbol": "Patch12_1.StrictRemoval.WrapperTiming",
+      "change": "changed",
+      "status": "evidence-required",
+      "resolution": "unsafe",
+      "owner": "Strict removal timing",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "source",
+          "reference": "src/ptr/strict_removals.lua",
+          "summary": "The safe boundary is after Blizzard loading/startup; exact per-wrapper retirement timing is unknown and unsafe to move.",
+          "source_hash": "58309e5384154e54c2c5f74727033cd85707dd3b744d45aac0b5c3cd14e60acd"
+        }
+      ],
+      "tests": [],
+      "assertions": [],
+      "commit": null,
+      "approval_id": null,
+      "notes": "The safe boundary is after Blizzard loading/startup; exact per-wrapper retirement timing is unknown and unsafe to move."
+    }
+  ]
+}

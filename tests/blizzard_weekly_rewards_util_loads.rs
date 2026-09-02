@@ -240,9 +240,8 @@ fn absent_from_glue_screen_auto_discovery() {
     }
 }
 
-#[test]
-fn loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -262,10 +261,10 @@ fn loads_without_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn is_addon_loaded_after_full_game_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn is_addon_loaded_after_full_game_load(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_WeeklyRewardsUtil')")
@@ -277,10 +276,10 @@ fn is_addon_loaded_after_full_game_load() {
          puts it in the eager bring-up path"
     );
 }
+}
 
-#[test]
-fn weekly_rewards_util_table_publishes_with_constants() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn weekly_rewards_util_table_publishes_with_constants(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(WeeklyRewardsUtil)")
@@ -315,10 +314,10 @@ fn weekly_rewards_util_table_publishes_with_constants() {
          (no level-1 keystone exists in the live game)"
     );
 }
+}
 
-#[test]
-fn weekly_rewards_util_methods_publish_as_functions() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn weekly_rewards_util_methods_publish_as_functions(env: &WowLuaEnv) {
 
     for fn_name in UTIL_FUNCTIONS {
         let kind: String = env
@@ -332,10 +331,10 @@ fn weekly_rewards_util_methods_publish_as_functions() {
         );
     }
 }
+}
 
-#[test]
-fn get_next_mythic_level_jumps_zero_to_two() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn get_next_mythic_level_jumps_zero_to_two(env: &WowLuaEnv) {
 
     let from_mythic: i64 = env
         .eval("return WeeklyRewardsUtil.GetNextMythicLevel(WeeklyRewardsUtil.MythicLevel)")
@@ -364,10 +363,10 @@ fn get_next_mythic_level_jumps_zero_to_two() {
          above MythicLevel=0"
     );
 }
+}
 
-#[test]
-fn weekly_reward_mixin_publishes_with_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn weekly_reward_mixin_publishes_with_methods(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(WeeklyRewardMixin)")
@@ -392,10 +391,10 @@ fn weekly_reward_mixin_publishes_with_methods() {
         );
     }
 }
+}
 
-#[test]
-fn weekly_reward_mixin_methods_delegate_to_util_functions() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn weekly_reward_mixin_methods_delegate_to_util_functions(env: &WowLuaEnv) {
 
     let delegates: bool = env
         .eval(
@@ -423,10 +422,10 @@ fn weekly_reward_mixin_methods_delegate_to_util_functions() {
          table directly"
     );
 }
+}
 
-#[test]
-fn weekly_reward_mixin_on_mouse_up_calls_show_ui_for_left_click_inside() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn weekly_reward_mixin_on_mouse_up_calls_show_ui_for_left_click_inside(env: &WowLuaEnv) {
 
     let triggered: bool = env
         .eval(
@@ -454,4 +453,5 @@ fn weekly_reward_mixin_on_mouse_up_calls_show_ui_for_left_click_inside() {
          trigger the vault open — the MMO standard click-to-open contract from the chest button \
          in the Mythic+ challenges panel"
     );
+}
 }

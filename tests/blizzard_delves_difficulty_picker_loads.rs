@@ -78,9 +78,8 @@ fn blizzard_delves_difficulty_picker_is_absent_from_game_discovery() {
     );
 }
 
-#[test]
-fn blizzard_delves_difficulty_picker_loads_via_explicit_load_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_delves_difficulty_picker_loads_via_explicit_load_without_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -99,10 +98,10 @@ fn blizzard_delves_difficulty_picker_loads_via_explicit_load_without_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_delves_difficulty_picker_toplevel_frame_is_created() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_delves_difficulty_picker_toplevel_frame_is_created(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &delves_difficulty_picker_toc())
         .expect("LOD load should succeed");
 
@@ -120,10 +119,10 @@ fn blizzard_delves_difficulty_picker_toplevel_frame_is_created() {
          DelvesDifficultyPickerFrameMixin) should be created and hidden by default"
     );
 }
+}
 
-#[test]
-fn blizzard_delves_difficulty_picker_main_mixin_is_published() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_delves_difficulty_picker_main_mixin_is_published(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &delves_difficulty_picker_toc())
         .expect("LOD load should succeed");
 
@@ -162,10 +161,10 @@ fn blizzard_delves_difficulty_picker_main_mixin_is_published() {
          hook for CustomGossipFrameBaseTemplate"
     );
 }
+}
 
-#[test]
-fn blizzard_delves_difficulty_picker_secondary_mixins_are_published() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_delves_difficulty_picker_secondary_mixins_are_published(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &delves_difficulty_picker_toc())
         .expect("LOD load should succeed");
 
@@ -198,29 +197,27 @@ fn blizzard_delves_difficulty_picker_secondary_mixins_are_published() {
          eligibility tooltips on hover via OnEnter)"
     );
 }
+}
 
-#[test]
-fn blizzard_delves_difficulty_picker_publishes_get_player_key_state_global() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_delves_difficulty_picker_keeps_player_key_state_local(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &delves_difficulty_picker_toc())
         .expect("LOD load should succeed");
 
-    let helper_present: bool = env
-        .eval("return type(GetPlayerKeyState) == 'function'")
+    let helper_is_local: bool = env
+        .eval("return GetPlayerKeyState == nil")
         .expect("GetPlayerKeyState query should succeed");
     assert!(
-        helper_present,
-        "Blizzard_DelvesDifficultyPicker.lua line 40 should publish a global \
-         `GetPlayerKeyState()` helper that maps the player's delve-key currency quantity to \
-         the local DelvesKeyState enum (None / Normal). It's a global (not local) so the \
-         bountiful-widget tooltip handlers in this same addon and any companion Blizzard \
-         delves addons can read the current key-tier state"
+        helper_is_local,
+        "Retail 12.1 declares GetPlayerKeyState as a local helper in \
+         Blizzard_DelvesDifficultyPicker.lua; loading the addon must not publish it globally"
     );
 }
+}
 
-#[test]
-fn blizzard_delves_difficulty_picker_xml_templates_are_registered() {
-    load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_delves_difficulty_picker_xml_templates_are_registered(env: &WowLuaEnv) {
+    let _env = env;
     let env = WowLuaEnv::new().expect("Failed to create Lua environment");
     env.set_screen_mode(ScreenKind::Game);
     {
@@ -251,6 +248,7 @@ fn blizzard_delves_difficulty_picker_xml_templates_are_registered() {
          should be registered with the XML template registry — it owns the VFX overlay shown \
          on top of the bountiful UI widget when the player holds a delve key"
     );
+}
 }
 
 #[test]

@@ -72,9 +72,8 @@ fn unexpected_collections_errors(env: &WowLuaEnv) -> Vec<String> {
         .collect()
 }
 
-#[test]
-fn blizzard_collections_loads_via_explicit_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_collections_loads_via_explicit_load(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -93,10 +92,10 @@ fn blizzard_collections_loads_via_explicit_load() {
         collections_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_collections_top_level_frames_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_collections_top_level_frames_are_defined(env: &WowLuaEnv) {
 
     load_addon(&env.loader_env(), &collections_toc()).expect("Blizzard_Collections should load");
 
@@ -133,10 +132,10 @@ fn blizzard_collections_top_level_frames_are_defined() {
         "CollectionsJournal should expose its six tab parentKeys after XML load"
     );
 }
+}
 
-#[test]
-fn warband_scene_footer_controls_do_not_overlap() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn warband_scene_footer_controls_do_not_overlap(env: &WowLuaEnv) {
 
     load_addon(&env.loader_env(), &collections_toc()).expect("Blizzard_Collections should load");
 
@@ -239,10 +238,10 @@ fn warband_scene_footer_controls_do_not_overlap() {
          pageTextRight={page_text_right}, prevButtonLeft={prev_button_left}"
     );
 }
+}
 
-#[test]
-fn blizzard_collections_mixins_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_collections_mixins_are_defined(env: &WowLuaEnv) {
 
     load_addon(&env.loader_env(), &collections_toc()).expect("Blizzard_Collections should load");
 
@@ -260,10 +259,10 @@ fn blizzard_collections_mixins_are_defined() {
         "Top-level Collections mixins should be populated after load"
     );
 }
+}
 
-#[test]
-fn blizzard_collections_journal_helpers_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_collections_journal_helpers_are_defined(env: &WowLuaEnv) {
 
     load_addon(&env.loader_env(), &collections_toc()).expect("Blizzard_Collections should load");
 
@@ -282,16 +281,16 @@ fn blizzard_collections_journal_helpers_are_defined() {
         "Six top-level CollectionsJournal helper functions should be defined after load"
     );
 }
+}
 
-/// Regression: opening the Wardrobe (Appearances) tab must populate the
-/// items collection with at least one appearance for the active slot.
-/// Earlier this returned 0 because `IsUnitModelReadyForUI`,
-/// `SetUseTransmogSkin`, `IsSlotAllowed`, and friends were missing — the
-/// `ChangeModelsSlot`/`SetActiveCategory` chain bailed out before
-/// `RefreshVisualsList` ran.
-#[test]
-fn wardrobe_appearances_panel_populates_for_head_slot() {
-    let env = load_full_game_ui();
+// Regression: opening the Wardrobe (Appearances) tab must populate the
+// items collection with at least one appearance for the active slot.
+// Earlier this returned 0 because `IsUnitModelReadyForUI`,
+// `SetUseTransmogSkin`, `IsSlotAllowed`, and friends were missing — the
+// `ChangeModelsSlot`/`SetActiveCategory` chain bailed out before
+// `RefreshVisualsList` ran.
+prefork_full_ui_case! {
+fn wardrobe_appearances_panel_populates_for_head_slot(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &collections_toc()).expect("Blizzard_Collections should load");
 
     env.eval::<()>("CollectionsJournal:Show(); CollectionsJournal_SetTab(CollectionsJournal, 5)")
@@ -324,10 +323,10 @@ fn wardrobe_appearances_panel_populates_for_head_slot() {
         "First appearance tile (Models[1]) should be visible after the wardrobe populates"
     );
 }
+}
 
-#[test]
-fn wardrobe_appearances_filter_dropdown_has_rows() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn wardrobe_appearances_filter_dropdown_has_rows(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &collections_toc()).expect("Blizzard_Collections should load");
 
     let result: String = env
@@ -372,4 +371,5 @@ fn wardrobe_appearances_filter_dropdown_has_rows() {
         result, "ok",
         "Appearances filter and class dropdowns should expose menu rows"
     );
+}
 }

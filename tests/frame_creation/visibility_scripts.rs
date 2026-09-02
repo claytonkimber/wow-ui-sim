@@ -18,6 +18,67 @@ fn test_cross_frame_show_recursion_does_not_overflow() {
 }
 
 #[test]
+fn test_onshow_hide_preserves_handler_selected_hidden_state() {
+    let env = WowLuaEnv::new().unwrap();
+    let (log, is_shown, is_visible): (String, bool, bool) = env
+        .eval(
+            r#"
+            local log = {}
+            local f = CreateFrame("Frame", "OneWayVisibilityFrame", UIParent)
+            f:Hide()
+            f:SetScript("OnShow", function(self)
+                table.insert(log, self:IsVisible() and "show-visible" or "show-hidden")
+                self:Hide()
+                table.insert(log, self:IsVisible() and "after-visible" or "after-hidden")
+            end)
+            f:SetScript("OnHide", function(self)
+                table.insert(log, self:IsVisible() and "hide-visible" or "hide-hidden")
+            end)
+
+            f:Show()
+            return table.concat(log, ","), f:IsShown(), f:IsVisible()
+        "#,
+        )
+        .unwrap();
+
+    assert_eq!(log, "show-visible,after-hidden,hide-hidden");
+    assert!(!is_shown, "OnShow-selected hidden state must persist");
+    assert!(!is_visible, "hidden frame must not remain visible");
+}
+
+#[test]
+fn test_cross_frame_show_recursion_stops_at_dispatch_depth_limit() {
+    let env = WowLuaEnv::new().unwrap();
+    let (fired, last_shown): (i32, bool) = env
+        .eval(
+            r#"
+            local frames = {}
+            local fired = 0
+            for i = 1, 41 do
+                frames[i] = CreateFrame("Frame", "DepthFrame" .. i, UIParent)
+                frames[i]:Hide()
+                frames[i]:SetScript("OnShow", function()
+                    fired = fired + 1
+                    if frames[i + 1] then
+                        frames[i + 1]:Show()
+                    end
+                end)
+            end
+
+            frames[1]:Show()
+            return fired, frames[41]:IsShown()
+        "#,
+        )
+        .unwrap();
+
+    assert_eq!(fired, 40, "cross-frame dispatch must stop at depth 40");
+    assert!(
+        last_shown,
+        "the depth-limited frame still receives its requested state"
+    );
+}
+
+#[test]
 fn test_onshow_onhide_mutual_recursion_terminates_with_reference_order() {
     let env = WowLuaEnv::new().unwrap();
     let log: String = env

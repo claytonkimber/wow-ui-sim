@@ -150,16 +150,8 @@ fn blizzard_event_trace_is_absent_from_auto_discovery_on_game_and_login() {
     );
 }
 
-#[test]
-fn blizzard_event_trace_loads_via_load_addon_with_only_create_window_gap_error() {
-    // The single expected error during EventTrace load is from `Blizzard_SharedXML/
-    // ToolWindowOwnerMixin.lua:5` calling the OS-level `CreateWindow` global, which the
-    // simulator does not stub (real WoW uses it to spawn a floating native window — well
-    // outside the simulator's UI rendering scope). EventTrace's panel has no `hidden=true`
-    // in XML so OnShow fires automatically on load and calls `self:MoveToNewWindow(...)` →
-    // `CreateWindow(popupStyle, topMost)`. We document the gap here and assert that this is
-    // the ONLY error from the addon.
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_event_trace_loads_via_load_addon_without_addon_specific_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -180,44 +172,78 @@ fn blizzard_event_trace_loads_via_load_addon_with_only_create_window_gap_error()
             message.contains("EventTrace")
                 || message.contains("Blizzard_EventTrace")
                 || message.contains("EventTracePanel")
+                || message.contains("ToolWindowOwnerMixin")
         })
         .cloned()
         .collect();
 
-    let unexpected: Vec<&String> = load_errors
-        .iter()
-        .filter(|message| !message.contains("CreateWindow"))
-        .collect();
     assert!(
-        unexpected.is_empty(),
-        "Blizzard_EventTrace emitted unexpected Lua errors during explicit load (the only \
-         allowed error is the documented `CreateWindow` simulator gap from ToolWindowOwnerMixin):\n  {}",
-        unexpected
-            .iter()
-            .map(|s| s.as_str())
-            .collect::<Vec<_>>()
-            .join("\n  ")
-    );
-
-    let create_window_errors: Vec<&String> = load_errors
-        .iter()
-        .filter(|message| {
-            message.contains("ToolWindowOwnerMixin") && message.contains("CreateWindow")
-        })
-        .collect();
-    assert!(
-        !create_window_errors.is_empty(),
-        "Expected at least one `CreateWindow` error from `ToolWindowOwnerMixin.lua:5` — the \
-         simulator does not stub the OS-level `CreateWindow` global that real WoW provides \
-         for spawning native floating windows. If this assertion flips (no errors), \
-         someone added a `CreateWindow` stub and this test should be simplified to \
-         `assert!(load_errors.is_empty())`"
+        load_errors.is_empty(),
+        "Blizzard_EventTrace emitted addon-specific Lua errors during explicit load:\n  {}",
+        load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_event_trace_is_addon_loaded_returns_true_after_explicit_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn create_window_supports_tool_window_owner_contract(env: &WowLuaEnv) {
+
+    let result: (bool, bool, f64, f64, bool, bool, bool) = env
+        .eval(
+            r#"
+            local window = CreateWindow(false, true)
+            local owner = CreateFrame("Frame")
+
+            window:SetTitle("Event Trace")
+            window:SetWindowSize(640, 480)
+            window:SetMinSize(700, 500)
+            window:SetFocus()
+            window:StartMoving()
+            window:StopMovingOrSizing()
+            window:StartSizing()
+            window:StopMovingOrSizing()
+
+            owner:SetWindow(window)
+            owner:SetAllPoints(window)
+
+            local _, relativeTo = owner:GetPoint(1)
+            local width, height = window:GetSize()
+            local startsTopmost = window:IsTopmost()
+            window:SetTopmost(false)
+            local endsTopmost = window:IsTopmost()
+            window:Close()
+
+            return owner:GetWindow() == window,
+                relativeTo == window,
+                width,
+                height,
+                startsTopmost,
+                endsTopmost,
+                window:IsShown()
+            "#,
+        )
+        .expect("CreateWindow behavior probe should evaluate");
+
+    assert!(
+        result.0,
+        "SetWindow/GetWindow must preserve SimpleWindow identity"
+    );
+    assert!(
+        result.1,
+        "SetAllPoints must anchor the owner to the SimpleWindow"
+    );
+    assert_eq!((result.2, result.3), (700.0, 500.0));
+    assert!(
+        result.4,
+        "topMost creation argument must initialize topmost state"
+    );
+    assert!(!result.5, "SetTopmost(false) must update topmost state");
+    assert!(!result.6, "Close must hide the modeled external window");
+}
+}
+
+prefork_full_ui_case! {
+fn blizzard_event_trace_is_addon_loaded_returns_true_after_explicit_load(env: &WowLuaEnv) {
 
     let pre_load: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_EventTrace') and true or false")
@@ -241,10 +267,10 @@ fn blizzard_event_trace_is_addon_loaded_returns_true_after_explicit_load() {
          loaded-set"
     );
 }
+}
 
-#[test]
-fn blizzard_event_trace_singleton_publishes_with_correct_parent_after_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_event_trace_singleton_publishes_with_correct_parent_after_load(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &event_trace_toc())
         .expect("Blizzard_EventTrace should load via Rust loader");
 
@@ -261,10 +287,10 @@ fn blizzard_event_trace_singleton_publishes_with_correct_parent_after_load() {
          under the in-game UIParent and not the glue-screen GlueParent"
     );
 }
+}
 
-#[test]
-fn blizzard_event_trace_publishes_six_mixin_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_event_trace_publishes_six_mixin_globals(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &event_trace_toc())
         .expect("Blizzard_EventTrace should load via Rust loader");
 
@@ -291,10 +317,10 @@ fn blizzard_event_trace_publishes_six_mixin_globals() {
          messages), `EventTraceFilterButtonMixin` (lua:955 — filter-list row toggle)"
     );
 }
+}
 
-#[test]
-fn blizzard_event_trace_panel_mixin_inherits_tool_window_owner_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_event_trace_panel_mixin_inherits_tool_window_owner_methods(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &event_trace_toc())
         .expect("Blizzard_EventTrace should load via Rust loader");
 
@@ -315,10 +341,10 @@ fn blizzard_event_trace_panel_mixin_inherits_tool_window_owner_methods() {
          `SET_DEBUG_TOOL_VISIBLE` from OnLoad at lua:120)"
     );
 }
+}
 
-#[test]
-fn blizzard_event_trace_panel_has_six_named_subframes_after_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_event_trace_panel_has_six_named_subframes_after_load(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &event_trace_toc())
         .expect("Blizzard_EventTrace should load via Rust loader");
 
@@ -343,10 +369,10 @@ fn blizzard_event_trace_panel_has_six_named_subframes_after_load() {
          publish as `:GetParent()`-reachable tables via the parentKey pipeline"
     );
 }
+}
 
-#[test]
-fn blizzard_event_trace_panel_has_subtitle_bar_with_three_navigation_buttons() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_event_trace_panel_has_subtitle_bar_with_three_navigation_buttons(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &event_trace_toc())
         .expect("Blizzard_EventTrace should load via Rust loader");
 
@@ -369,10 +395,10 @@ fn blizzard_event_trace_panel_has_subtitle_bar_with_three_navigation_buttons() {
          EventTraceButtonBehaviorTemplate) resolves at XML-load time"
     );
 }
+}
 
-#[test]
-fn blizzard_event_trace_log_view_has_search_bar_and_scrollbox_pair() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_event_trace_log_view_has_search_bar_and_scrollbox_pair(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &event_trace_toc())
         .expect("Blizzard_EventTrace should load via Rust loader");
 
@@ -396,10 +422,10 @@ fn blizzard_event_trace_log_view_has_search_bar_and_scrollbox_pair() {
          WowScrollBoxList / MinimalScrollBar intrinsics resolve"
     );
 }
+}
 
-#[test]
-fn blizzard_event_trace_filter_view_has_three_action_buttons_and_scrollbox() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_event_trace_filter_view_has_three_action_buttons_and_scrollbox(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &event_trace_toc())
         .expect("Blizzard_EventTrace should load via Rust loader");
 
@@ -421,10 +447,10 @@ fn blizzard_event_trace_filter_view_has_three_action_buttons_and_scrollbox() {
          368, WowScrollBoxList + MinimalScrollBar). All five must publish"
     );
 }
+}
 
-#[test]
-fn blizzard_event_trace_tooltip_publishes_as_hidden_game_tooltip_child() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_event_trace_tooltip_publishes_as_hidden_game_tooltip_child(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &event_trace_toc())
         .expect("Blizzard_EventTrace should load via Rust loader");
 
@@ -449,10 +475,10 @@ fn blizzard_event_trace_tooltip_publishes_as_hidden_game_tooltip_child() {
          non-UIParent parent"
     );
 }
+}
 
-#[test]
-fn blizzard_event_trace_saved_vars_seed_default_panel_size_and_show_toggles() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_event_trace_saved_vars_seed_default_panel_size_and_show_toggles(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &event_trace_toc())
         .expect("Blizzard_EventTrace should load via Rust loader");
 
@@ -487,4 +513,5 @@ fn blizzard_event_trace_saved_vars_seed_default_panel_size_and_show_toggles() {
          user-edited filter list starts empty and is populated when the user adds entries \
          via the filter view"
     );
+}
 }

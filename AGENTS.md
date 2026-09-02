@@ -8,6 +8,12 @@
 - **NEVER modify files in `Interface/BlizzardUI/`** — this legacy symlink tree is no longer the runtime source. Run `./scripts/setup-blizzard-ui.sh` or `./scripts/init-worktree.sh` to sync the active profile cache.
 - **NEVER override, monkey-patch, or otherwise change Blizzard/vendor Lua behavior as a performance optimization.** Blizzard Lua is the compatibility target. For perf work, optimize simulator-side primitive/method/dirty/dispatch costs (`SetAlpha`, `SetFormattedText`, `SetPoint`, `SetFontObject`, etc.) instead. Only patch Blizzard/vendor behavior when matching real WoW semantics/correctness, never as a performance shortcut.
 
+## Debugging Priorities
+
+- Do not jump to local UI or output-layer patches just because they are the fastest visible fix.
+- Treat render/layout/UI mismatches as evidence first, not as proof that the render/layout/UI layer is the right fix target.
+- If a framework or Blizzard/vendor path is behaving badly, prefer fixing the simulator/model/input state first unless evidence shows the downstream layer itself is wrong.
+
 ## Wiki
 
 LLM-maintained knowledge base at `docs/wiki/`. See `docs/wiki/SCHEMA.md` for conventions and workflows. Read `docs/wiki/index.md` first when answering questions about the project.

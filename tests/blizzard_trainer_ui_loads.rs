@@ -16,7 +16,7 @@ fn trainer_dir() -> PathBuf {
 }
 
 fn trainer_toc() -> PathBuf {
-    trainer_dir().join("Blizzard_TrainerUI.toc")
+    find_toc_file(&trainer_dir()).expect("Blizzard_TrainerUI TOC should resolve")
 }
 
 const ALL_FOUR_SCREENS: &[ScreenKind] = &[
@@ -27,8 +27,6 @@ const ALL_FOUR_SCREENS: &[ScreenKind] = &[
 ];
 
 const PUBLISHED_GLOBAL_FUNCTIONS: &[&str] = &[
-    "ClassTrainerFrame_Show",
-    "ClassTrainerFrame_Hide",
     "ClassTrainerFrame_OnLoad",
     "ClassTrainerFrame_OnShow",
     "ClassTrainerFrame_OnHide",
@@ -78,14 +76,12 @@ fn load_full_game_ui() -> WowLuaEnv {
 }
 
 #[test]
-fn find_toc_file_resolves_bare_toc() {
-    let resolved = find_toc_file(&trainer_dir()).expect("TrainerUI TOC resolves");
+fn find_toc_file_resolves_mainline_toc() {
+    let resolved = trainer_toc();
     assert_eq!(
-        resolved,
-        trainer_toc(),
-        "Bare TOC — no flavor suffix; classic-era LoD addon resolved \
-         via the bare-TOC path in find_toc_file at \
-         src/loader/mod.rs:65-95"
+        resolved.file_name().and_then(|name| name.to_str()),
+        Some("Blizzard_TrainerUI_Mainline.toc"),
+        "retail resolves the mainline TrainerUI TOC through find_toc_file"
     );
 }
 
@@ -118,23 +114,16 @@ fn toc_is_load_on_demand_with_no_dependencies() {
     assert!(!toc.is_secure_env());
     assert!(
         !toc.is_game_type_restricted(),
-        "AllowLoadGameType absent → not restricted (false). \
-         Class trainers exist on every flavor (mainline, classic, mists, \
-         etc.) so the addon stays unrestricted."
+        "AllowLoadGameType: mainline is the active profile's non-restricting game type"
     );
     assert!(toc.default_enabled());
 }
 
 #[test]
-fn allow_load_absent_defaults_to_game_only_screen() {
+fn allow_load_game_restricts_to_in_world_screen() {
     let toc = TocFile::from_file(&trainer_toc()).expect("TOC parses");
 
-    assert!(
-        toc.allows_screen(ScreenKind::Game),
-        "AllowLoad absent → toc.rs:305-313 None branch defaults to \
-         Game-only — class-trainer dialogs only open via in-world NPC \
-         interaction, so the panel is meaningless on glue screens"
-    );
+    assert!(toc.allows_screen(ScreenKind::Game));
     for screen in [
         ScreenKind::Login,
         ScreenKind::CharacterSelect,
@@ -142,56 +131,31 @@ fn allow_load_absent_defaults_to_game_only_screen() {
     ] {
         assert!(
             !toc.allows_screen(screen),
-            "Glue screen {screen:?} must be excluded — trainers are \
-             world-NPC-driven and cannot exist before character entry"
+            "AllowLoad: game excludes TrainerUI from {screen:?}"
         );
     }
 }
 
 #[test]
-fn toc_raw_bytes_pin_minimal_two_directive_shape() {
+fn toc_raw_bytes_pin_current_mainline_contract() {
     let raw = std::fs::read_to_string(trainer_toc()).expect("TOC reads utf-8");
-
-    let expected_lines = [
-        "## Title: Blizzard Trainer UI",
-        "## LoadOnDemand: 1",
-        "Blizzard_TrainerUI.xml",
-        "Localization.lua",
-    ];
-
-    for line in expected_lines {
-        assert!(
-            raw.contains(line),
-            "Raw TOC must pin `{line}` — minimal 2-directive shape \
-             (Title + LoadOnDemand) plus 2 body files. Note: \
-             `Blizzard_TrainerUI.lua` is NOT listed in the TOC body — \
-             it's pulled in via the XML's `<Script \
-             file=\"Blizzard_TrainerUI.lua\"/>` directive at xml:3 \
-             (lua-via-XML-Script body shape, same pattern as \
-             TorghastLevelPicker)"
-        );
-    }
-
-    assert!(!raw.contains("## Author"));
-    assert!(!raw.contains("## Version"));
-    assert!(!raw.contains("## DefaultState"));
-    assert!(!raw.contains("## Dependencies"));
-    assert!(!raw.contains("## RequiredDep"));
-    assert!(!raw.contains("## OptionalDep"));
-    assert!(!raw.contains("## SavedVariables"));
-    assert!(!raw.contains("## AllowLoad"));
-    assert!(!raw.contains("## AllowLoadGameType"));
-    assert!(!raw.contains("## UseSecureEnvironment"));
-    assert!(!raw.contains("## LoadFirst"));
-    assert!(
-        !raw.contains("Blizzard_TrainerUI.lua\n") && !raw.ends_with("Blizzard_TrainerUI.lua"),
-        "TOC body must NOT list Blizzard_TrainerUI.lua directly — the \
-         lua is loaded only via the XML <Script file=...> directive"
+    assert_eq!(
+        raw.lines().collect::<Vec<_>>(),
+        [
+            "## Title: Blizzard Trainer UI",
+            "## LoadOnDemand: 1",
+            "## AllowLoad: game",
+            "## AllowLoadGameType: mainline",
+            "Blizzard_TrainerUI_Bootstrap.lua [Bootstrap]",
+            "Mainline\\Blizzard_TrainerUI.xml",
+            "Localization.lua",
+        ],
+        "Retail 12.1 TrainerUI TOC must retain its current directives, bootstrap, and Mainline XML body"
     );
 }
 
 #[test]
-fn body_resolves_to_xml_and_localization_lua() {
+fn body_resolves_to_bootstrap_mainline_xml_and_localization_lua() {
     let toc = TocFile::from_file(&trainer_toc()).expect("TOC parses");
 
     let body: Vec<String> = toc
@@ -203,26 +167,34 @@ fn body_resolves_to_xml_and_localization_lua() {
     assert_eq!(
         body,
         vec![
-            "Blizzard_TrainerUI.xml".to_string(),
+            "Blizzard_TrainerUI_Bootstrap.lua".to_string(),
+            "Mainline/Blizzard_TrainerUI.xml".to_string(),
             "Localization.lua".to_string(),
         ],
-        "Body must be exactly 2 entries in this order — XML first \
-         (which transitively pulls Blizzard_TrainerUI.lua via <Script \
-         file=...>) then the empty Localization.lua trailer (just a \
-         single comment line at Localization.lua:1). Got: {body:?}"
+        "Retail 12.1 body must retain the bootstrap, Mainline XML, and localization trailer in order. Got: {body:?}"
     );
 }
 
 #[test]
-fn absent_from_every_screen_eager_discovery() {
-    for screen in ALL_FOUR_SCREENS {
-        let addons = discover_blizzard_addons_for_screen(&blizzard_ui_dir(), *screen);
-        let found = addons.iter().any(|(name, _)| name == "Blizzard_TrainerUI");
+fn trainer_ui_is_game_startup_publisher_only() {
+    let game_addons = discover_blizzard_addons_for_screen(&blizzard_ui_dir(), ScreenKind::Game);
+    assert!(
+        game_addons
+            .iter()
+            .any(|(name, _)| name == "Blizzard_TrainerUI"),
+        "Blizzard_TrainerUI remains `## LoadOnDemand: 1` but is selected on Game so its \
+         bootstrap publishes ClassTrainerFrame_LoadUI before startup interaction registration"
+    );
+
+    for screen in [
+        ScreenKind::Login,
+        ScreenKind::CharacterSelect,
+        ScreenKind::CharacterCreate,
+    ] {
+        let addons = discover_blizzard_addons_for_screen(&blizzard_ui_dir(), screen);
         assert!(
-            !found,
-            "Blizzard_TrainerUI must be absent from {screen:?} eager \
-             discovery — `## LoadOnDemand: 1` excludes LoD addons from \
-             the eager sweep"
+            !addons.iter().any(|(name, _)| name == "Blizzard_TrainerUI"),
+            "Blizzard_TrainerUI must remain absent from non-game discovery ({screen:?})"
         );
     }
 }
@@ -263,9 +235,8 @@ fn no_addon_declares_trainer_ui_as_dependency() {
     );
 }
 
-#[test]
-fn explicit_load_publishes_constants() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn explicit_load_publishes_constants(env: &WowLuaEnv) {
 
     load_addon(&env.loader_env(), &trainer_toc())
         .expect("Blizzard_TrainerUI must load via Rust loader");
@@ -283,10 +254,10 @@ fn explicit_load_publishes_constants() {
         );
     }
 }
+}
 
-#[test]
-fn explicit_load_publishes_global_functions() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn explicit_load_publishes_global_functions(env: &WowLuaEnv) {
 
     load_addon(&env.loader_env(), &trainer_toc())
         .expect("Blizzard_TrainerUI must load via Rust loader");
@@ -298,21 +269,17 @@ fn explicit_load_publishes_global_functions() {
         assert_eq!(
             kind, "function",
             "Global function `{fn_name}` must be defined after LoD load. \
-             These cover the 4 frame scripts (OnLoad/OnShow/OnHide/\
-             OnEvent at lua:50-130), 2 panel-manager entry points \
-             (ClassTrainerFrame_Show/Hide at lua:38-48), the train-\
-             button enable wrapper (lua:132-151), the data-provider \
-             rebuild (lua:153-207), per-row init (lua:209-331), \
-             auto-selection (lua:333-364), selection state (lua:366-\
-             402), and the 2 button click handlers (lua:404-416). Got \
-             type={kind} for {fn_name}"
+             These cover the frame scripts, train-button enable wrapper, data-provider rebuild, \
+             per-row initialization, auto-selection, selection state, and button click handlers. \
+             ClassTrainerFrame_Show and ClassTrainerFrame_Hide are local bootstrap callbacks, not \
+             addon globals. Got type={kind} for {fn_name}"
         );
     }
 }
+}
 
-#[test]
-fn explicit_load_creates_class_trainer_frame_global() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn explicit_load_creates_class_trainer_frame_global(env: &WowLuaEnv) {
 
     load_addon(&env.loader_env(), &trainer_toc())
         .expect("Blizzard_TrainerUI must load via Rust loader");
@@ -332,10 +299,10 @@ fn explicit_load_creates_class_trainer_frame_global() {
          instantiated by the WowScrollBoxList view"
     );
 }
+}
 
-#[test]
-fn explicit_load_registers_ui_panel_windows_entry() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn explicit_load_registers_ui_panel_windows_entry(env: &WowLuaEnv) {
 
     load_addon(&env.loader_env(), &trainer_toc())
         .expect("Blizzard_TrainerUI must load via Rust loader");
@@ -364,39 +331,29 @@ fn explicit_load_registers_ui_panel_windows_entry() {
          interaction windows (merchant, banker, mailbox)"
     );
 }
-
-#[test]
-fn player_interaction_frame_manager_routes_trainer_via_load_addon() {
-    let raw = std::fs::read_to_string(
-        blizzard_ui_dir().join("Blizzard_UIPanels_Game/Shared/PlayerInteractionFrameManager.lua"),
-    )
-    .expect("PlayerInteractionFrameManager.lua reads utf-8");
-
-    assert!(
-        raw.contains("[Enum.PlayerInteractionType.Trainer]"),
-        "PlayerInteractionFrameManager must key the trainer entry by \
-         `Enum.PlayerInteractionType.Trainer` (line 29) — this is the \
-         single dispatch point that the C side hits when the player \
-         engages an NPC trainer"
-    );
-    assert!(
-        raw.contains("frame = \"ClassTrainerFrame\"")
-            && raw.contains("showFunc = \"ClassTrainerFrame_Show\"")
-            && raw.contains("hideFunc = \"ClassTrainerFrame_Hide\"")
-            && raw.contains("loadFunc = ClassTrainerFrame_LoadUI"),
-        "Trainer interaction entry at \
-         PlayerInteractionFrameManager.lua:29-35 must wire all 4 keys \
-         — frame, showFunc, hideFunc (string lookups so the manager \
-         tolerates the addon being unloaded) plus loadFunc (a direct \
-         function reference resolved at boot from UIParent.lua:265-\
-         267 BEFORE Blizzard_TrainerUI itself loads, so first \
-         interaction can lazily load the addon)"
-    );
 }
 
 #[test]
-fn class_trainer_frame_load_ui_published_at_boot() {
-    let env = load_full_game_ui();
+fn bootstrap_registers_trainer_interaction() {
+    let raw = std::fs::read_to_string(
+        trainer_toc()
+            .parent()
+            .expect("Trainer TOC has an addon directory")
+            .join("Blizzard_TrainerUI_Bootstrap.lua"),
+    )
+    .expect("Trainer bootstrap reads utf-8");
+
+    assert!(
+        raw.contains("function ClassTrainerFrame_LoadUI()")
+            && raw.contains("RegisterPlayerInteraction(Enum.PlayerInteractionType.Trainer")
+            && raw.contains("frame = \"ClassTrainerFrame\"")
+            && raw.contains("loadFunc = ClassTrainerFrame_LoadUI"),
+        "Retail 12.1 TrainerUI bootstrap owns its lazy-load wrapper and PlayerInteraction registration"
+    );
+}
+
+prefork_full_ui_case! {
+fn class_trainer_frame_load_ui_published_at_boot(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(ClassTrainerFrame_LoadUI)")
@@ -413,10 +370,10 @@ fn class_trainer_frame_load_ui_published_at_boot() {
          playerInteractionToFrameInfo table is constructed)"
     );
 }
+}
 
-#[test]
-fn explicit_load_emits_no_addon_specific_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn explicit_load_emits_no_addon_specific_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -445,4 +402,5 @@ fn explicit_load_emits_no_addon_specific_errors() {
         addon_specific.len(),
         addon_specific
     );
+}
 }

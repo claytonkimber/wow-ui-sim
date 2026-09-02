@@ -4,16 +4,49 @@ pub mod addon_coverage_baseline;
 pub mod blizzard_addon_harness;
 pub mod blizzard_addon_manifest;
 mod event_helpers;
+pub mod game_menu_fixture;
 pub mod panel_fixtures;
+#[cfg(target_os = "linux")]
+pub(crate) mod prefork_process;
+#[cfg(target_os = "linux")]
+mod timeout_reexec;
+pub(crate) mod workload_gate;
 
 use std::ops::Deref;
-use std::path::PathBuf;
-use std::sync::{Mutex, MutexGuard, OnceLock};
-use wow_ui_sim::loader::load_addon;
+use std::path::{Path, PathBuf};
+use wow_ui_sim::loader::{find_toc_file, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
 
-/// Per-test timeout. Exits the process if the closure doesn't complete within `secs`.
+/// Run a test closure with a per-call timeout.
 /// Default 120s — enough for full Blizzard UI load + test logic.
+#[cfg(target_os = "linux")]
+pub fn with_timeout<F: FnOnce() + Send + 'static>(secs: u64, f: F) {
+    timeout_reexec::run(secs, workload_gate::Mode::Shared, f);
+}
+
+#[cfg(target_os = "linux")]
+pub fn with_performance_timeout<F: FnOnce() + Send + 'static>(secs: u64, f: F) {
+    timeout_reexec::run(secs, workload_gate::Mode::Exclusive, f);
+}
+
+#[cfg(target_os = "linux")]
+pub(crate) const TIMEOUT_FIXTURE_CAPACITY_ENV: &str = "WOW_SIM_TIMEOUT_FIXTURE_CAPACITY";
+
+#[cfg(target_os = "linux")]
+pub(crate) fn with_timeout_fixture_capacity<T>(body: impl FnOnce() -> T) -> T {
+    workload_gate::with_lock(workload_gate::Mode::Exclusive, body)
+}
+
+#[cfg(target_os = "linux")]
+pub(crate) fn with_performance_timeout_at<F: FnOnce() + Send + 'static>(
+    secs: u64,
+    path: &Path,
+    f: F,
+) {
+    timeout_reexec::run_at(secs, path, workload_gate::Mode::Exclusive, f);
+}
+
+#[cfg(not(target_os = "linux"))]
 pub fn with_timeout<F: FnOnce() + Send + 'static>(secs: u64, f: F) {
     let (tx, rx) = std::sync::mpsc::channel();
     let handle = std::thread::spawn(move || {
@@ -23,47 +56,48 @@ pub fn with_timeout<F: FnOnce() + Send + 'static>(secs: u64, f: F) {
     match rx.recv_timeout(std::time::Duration::from_secs(secs)) {
         Ok(()) => handle.join().expect("test thread panicked"),
         Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
-            eprintln!("test timed out after {secs}s");
-            std::process::exit(1);
+            panic!("test timed out after {secs}s")
         }
         Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
-            handle
-                .join()
-                .expect_err("test thread panicked but join succeeded");
-            eprintln!("test thread panicked (see above)");
-            std::process::exit(1);
+            handle.join().expect("test thread panicked")
         }
     }
 }
 
-/// Serialize perf-sensitive integration tests so their thresholds measure one
-/// startup/load scenario at a time instead of competing with sibling tests.
+#[cfg(not(target_os = "linux"))]
+pub fn with_performance_timeout<F: FnOnce() + Send + 'static>(secs: u64, f: F) {
+    with_timeout(secs, f);
+}
+
+/// Run an ordinary expensive workload alongside other shared workloads.
+pub fn with_shared_workload<T>(f: impl FnOnce() -> T) -> T {
+    workload_gate::with_lock(workload_gate::Mode::Shared, f)
+}
+
+/// Run a performance workload without competing test processes.
+pub fn with_exclusive_workload<T>(f: impl FnOnce() -> T) -> T {
+    workload_gate::with_lock(workload_gate::Mode::Exclusive, f)
+}
+
+/// Existing full-UI call sites are ordinary shared workloads.
 pub fn with_perf_lock<T>(f: impl FnOnce() -> T) -> T {
-    let _guard = lock_perf_tests();
-    f()
+    with_shared_workload(f)
 }
 
-fn lock_perf_tests() -> MutexGuard<'static, ()> {
-    static PERF_TEST_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-    let perf_lock = PERF_TEST_LOCK.get_or_init(|| Mutex::new(()));
-    match perf_lock.lock() {
-        Ok(guard) => guard,
-        // Coverage shards intentionally probe failing paths; a prior panic
-        // must not cascade into unrelated later shards in the same process.
-        Err(poisoned) => poisoned.into_inner(),
-    }
-}
-
-/// Keep a `WowLuaEnv` alive under the global perf lock for the lifetime of a test.
+/// Keep a `WowLuaEnv` under the shared workload gate for the lifetime of a test.
 pub struct LockedEnv {
-    _guard: MutexGuard<'static, ()>,
+    _permit: workload_gate::Permit,
     env: WowLuaEnv,
 }
 
 pub fn lock_env(build: impl FnOnce() -> WowLuaEnv) -> LockedEnv {
-    let guard = lock_perf_tests();
+    let permit = workload_gate::acquire(workload_gate::Mode::Shared)
+        .unwrap_or_else(|error| panic!("acquire shared workload gate: {error}"));
     let env = build();
-    LockedEnv { _guard: guard, env }
+    LockedEnv {
+        _permit: permit,
+        env,
+    }
 }
 
 impl Deref for LockedEnv {
@@ -72,6 +106,17 @@ impl Deref for LockedEnv {
     fn deref(&self) -> &Self::Target {
         &self.env
     }
+}
+
+#[macro_export]
+macro_rules! prefork_full_ui_case {
+    (fn $name:ident($env:ident: &WowLuaEnv) $body:block) => {
+        pub(crate) mod $name {
+            use super::*;
+
+            pub(crate) fn run($env: &WowLuaEnv) $body
+        }
+    };
 }
 
 /// Convenience macro: wraps a test body with a 120s timeout.
@@ -89,6 +134,14 @@ impl Deref for LockedEnv {
 macro_rules! test_timeout {
     ($($body:tt)*) => {
         $crate::common::with_timeout(120, move || { $($body)* })
+    };
+}
+
+/// Run a performance test under the existing 120-second child timeout.
+#[macro_export]
+macro_rules! perf_test_timeout {
+    ($($body:tt)*) => {
+        $crate::common::with_performance_timeout(120, move || { $($body)* })
     };
 }
 
@@ -123,25 +176,30 @@ fn blizzard_ui_dir() -> PathBuf {
     )))
 }
 
+pub fn load_required_blizzard_addon(env: &WowLuaEnv, ui: &Path, addon_name: &str) {
+    let addon_dir = ui.join(addon_name);
+    let toc_path = find_toc_file(&addon_dir).unwrap_or_else(|| {
+        panic!(
+            "required Blizzard addon `{addon_name}` has no compatible TOC under {}",
+            addon_dir.display()
+        )
+    });
+    load_addon(&env.loader_env(), &toc_path).unwrap_or_else(|error| {
+        panic!(
+            "failed to load required Blizzard addon `{addon_name}` from {}: {error}",
+            toc_path.display()
+        )
+    });
+}
+
 /// Helper to load Blizzard_SharedXML templates for tests that need them.
 /// Returns the environment with templates loaded.
 pub fn env_with_shared_xml() -> WowLuaEnv {
     let env = WowLuaEnv::new().expect("Failed to create Lua environment");
     let ui = blizzard_ui_dir();
 
-    let base_toc = ui.join("Blizzard_SharedXMLBase/Blizzard_SharedXMLBase.toc");
-    if base_toc.exists()
-        && let Err(e) = load_addon(&env.loader_env(), &base_toc)
-    {
-        eprintln!("Warning: Failed to load SharedXMLBase: {}", e);
-    }
-
-    let shared_toc = ui.join("Blizzard_SharedXML/Blizzard_SharedXML_Mainline.toc");
-    if shared_toc.exists()
-        && let Err(e) = load_addon(&env.loader_env(), &shared_toc)
-    {
-        eprintln!("Warning: Failed to load SharedXML: {}", e);
-    }
+    load_required_blizzard_addon(&env, &ui, "Blizzard_SharedXMLBase");
+    load_required_blizzard_addon(&env, &ui, "Blizzard_SharedXML");
 
     env
 }
@@ -211,6 +269,7 @@ type EnvBuilder = fn() -> WowLuaEnv;
 // part of the shared test API while remaining unused in one specific target.
 const _: () = {
     let _ = with_timeout::<TimeoutBody> as fn(u64, TimeoutBody);
+    let _ = with_performance_timeout::<TimeoutBody> as fn(u64, TimeoutBody);
     let _ = with_perf_lock::<()> as fn(PerfBody);
     let _ = std::mem::size_of::<LockedEnv>();
     let _ = lock_env as fn(EnvBuilder) -> LockedEnv;

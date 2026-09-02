@@ -13,6 +13,7 @@ fn blizzard_ui_dir() -> PathBuf {
 /// Blizzard addons needed for the panel system (dependency order).
 const PANEL_ADDONS: &[(&str, &str)] = &[
     ("Blizzard_SharedXMLBase", "Blizzard_SharedXMLBase.toc"),
+    ("Blizzard_Menu", "Blizzard_Menu.toc"),
     ("Blizzard_Colors", "Blizzard_Colors_Mainline.toc"),
     ("Blizzard_SharedXML", "Blizzard_SharedXML_Mainline.toc"),
     (
@@ -73,6 +74,9 @@ const PANEL_ADDONS: &[(&str, &str)] = &[
         "Blizzard_UIPanels_Game",
         "Blizzard_UIPanels_Game_Mainline.toc",
     ),
+    ("Blizzard_ActionBar", "Blizzard_ActionBar_Mainline.toc"),
+    ("Blizzard_UnitFrame", "Blizzard_UnitFrame_Mainline.toc"),
+    ("Blizzard_TokenUI", "Blizzard_TokenUI.toc"),
 ];
 
 fn setup_env() -> WowLuaEnv {
@@ -337,7 +341,7 @@ fn show_ui_panel_locks_reputation_frame_layout() {
 fn reputation_filter_dropdown_mouse_down_materializes_menu_rows() {
     test_timeout! {
         let env = setup_env();
-        let result: String = env
+        let setup_result: String = env
             .eval(
                 r#"
                 if not CharacterFrame or not ReputationFrame or not ReputationFrame.filterDropdown then
@@ -346,23 +350,44 @@ fn reputation_filter_dropdown_mouse_down_materializes_menu_rows() {
                 if PanelTemplates_SetTab then
                     PanelTemplates_SetTab(CharacterFrame, ReputationFrame:GetID())
                 end
-                ReputationFrame:Show()
-                ShowUIPanel(CharacterFrame)
-                if ReputationFrame.OnShow then
-                    ReputationFrame:OnShow()
-                end
+                return "ready"
+                "#,
+            )
+            .unwrap();
+        assert_eq!(setup_result, "ready");
 
+        let state = env.state();
+        let (reputation_id, dropdown_id) = {
+            let sim = state.borrow();
+            let reputation_id = sim
+                .widgets
+                .get_id_by_name("ReputationFrame")
+                .expect("ReputationFrame should exist");
+            let dropdown_id = sim
+                .widgets
+                .get(reputation_id)
+                .and_then(|frame| frame.children_keys.get("filterDropdown"))
+                .copied()
+                .expect("ReputationFrame filterDropdown should exist");
+            (reputation_id, dropdown_id)
+        };
+        env.fire_script_handler(reputation_id, "OnShow", Vec::new())
+            .expect("ReputationFrame OnShow should dispatch");
+        let left_button = env.lua_string("LeftButton");
+        env.fire_script_handler(dropdown_id, "OnMouseDown", vec![left_button])
+            .expect("reputation filter OnMouseDown should dispatch");
+
+        let result: String = env
+            .eval(
+                r#"
                 local dropdown = ReputationFrame.filterDropdown
-                local handler = dropdown:GetScript("OnMouseDown")
-                if type(handler) ~= "function" then
-                    return "missing_mouse_down_handler"
-                end
-
-                handler(dropdown, "LeftButton")
-
-                local buttons = dropdown.__wow_menu_buttons
-                if type(buttons) ~= "table" then
-                    return "missing_buttons"
+                local buttons = {}
+                if dropdown.menu then
+                    for _, child in ipairs({ dropdown.menu:GetChildren() }) do
+                        if child:GetObjectType() == "Button" then
+                            buttons[#buttons + 1] = child
+                        end
+                    end
                 end
                 if #buttons ~= 4 then
                     return "button_count=" .. tostring(#buttons)
@@ -377,10 +402,14 @@ fn reputation_filter_dropdown_mouse_down_materializes_menu_rows() {
                     if not button:IsShown() then
                         return "hidden_button_" .. tostring(index)
                     end
-                    if button:GetText() ~= expectedText then
-                        return "button_" .. tostring(index) .. "=" .. tostring(button:GetText())
+                    local text = button:GetText()
+                    if (text == nil or text == "") and button.fontString then
+                        text = button.fontString:GetText()
                     end
-                    if button:GetFrameStrata() ~= "TOOLTIP" then
+                    if text ~= expectedText then
+                        return "button_" .. tostring(index) .. "=" .. tostring(text)
+                    end
+                    if button:GetFrameStrata() ~= "FULLSCREEN_DIALOG" then
                         return "button_" .. tostring(index) .. "_strata=" .. tostring(button:GetFrameStrata())
                     end
                 end

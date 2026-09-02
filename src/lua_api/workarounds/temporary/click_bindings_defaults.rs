@@ -1,8 +1,7 @@
 //! Temporary `C_ClickBindings` profile defaults.
 //!
-//! Click-binding profiles are client/account state we do not model yet. Keep
-//! the no-profile fallback here so secure unit-button clicks still target units
-//! until profile storage and macro/spell execution are modeled.
+//! Click-binding profiles are client/account state we do not model yet. Missing
+//! profile state reports no binding so secure unit buttons use their attributes.
 
 const CLICK_BINDINGS_DEFAULTS_LUA: &str = r#"
 C_ClickBindings = C_ClickBindings or __wow_namespace()
@@ -14,16 +13,13 @@ if rawget(C_ClickBindings, "CanSpellBeClickBound") == nil then
 end
 
 if rawget(C_ClickBindings, "ExecuteBinding") == nil then
-    function C_ClickBindings.ExecuteBinding(targetToken, _button, _modifiers)
-        if type(targetToken) == "string" and type(TargetUnit) == "function" then
-            TargetUnit(targetToken)
-        end
+    function C_ClickBindings.ExecuteBinding(_targetToken, _button, _modifiers)
     end
 end
 
 if rawget(C_ClickBindings, "GetBindingType") == nil then
-    function C_ClickBindings.GetBindingType(button, _modifiers)
-        return button == "LeftButton" and 2 or 3
+    function C_ClickBindings.GetBindingType(_button, _modifiers)
+        return Enum.ClickBindingType.None
     end
 end
 
@@ -109,22 +105,22 @@ mod tests {
     use crate::lua_api::WowLuaEnv;
 
     #[test]
-    fn installs_left_click_targeting_defaults() {
+    fn no_profile_reports_no_binding_and_execute_is_inert() {
         let env = WowLuaEnv::new().expect("lua env should initialize");
         env.exec("ClearTarget()").expect("target should clear");
 
         let binding_type: i32 = env
             .eval("return C_ClickBindings.GetBindingType('LeftButton', MakeModifiers())")
             .expect("binding type should be queryable");
-        assert_eq!(binding_type, 2);
+        assert_eq!(binding_type, 0);
 
         env.exec("C_ClickBindings.ExecuteBinding('party1', 'LeftButton', 0)")
-            .expect("click binding should execute");
+            .expect("missing click binding should be inert");
 
-        let target_name: String = env
-            .eval("return UnitName('target')")
-            .expect("target should be readable");
-        assert_eq!(target_name, "Thrynn");
+        let target_exists: bool = env
+            .eval("return UnitExists('target')")
+            .expect("target state should be readable");
+        assert!(!target_exists);
     }
 
     #[test]

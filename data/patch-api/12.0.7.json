@@ -1,0 +1,3172 @@
+{
+  "schema": "framexml-patch-audit/v2",
+  "patch": "12.0.7",
+  "target": {
+    "flavor": "retail",
+    "build": "12.0.7",
+    "cache_manifest": "data/blizzard-ui-files/retail.txt",
+    "cache_hash": "42abf0ff8118e6be4d41ed321f6a0e7daeb83234928e451f33851d14a488b5ef"
+  },
+  "source": {
+    "path": "data/patch-api/sources/12.0.7-register.json",
+    "hash": "389e3b19174bf77c3646028f764cf186ccfe1b7dddaca2a3b3fcba75e3bdec60",
+    "added_count": 79,
+    "changed_count": 29,
+    "removed_count": 23
+  },
+  "output": {
+    "checklist": "docs/generated/patch-12-0-7-checklist.md",
+    "inventory": "docs/wiki/investigations/patch-12-0-7-occurrence-inventory.md"
+  },
+  "rows": [
+    {
+      "id": "added:C_BattleNet.InviteFriend",
+      "symbol": "C_BattleNet.InviteFriend",
+      "change": "added",
+      "status": "implemented",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges",
+          "summary": "Focused 12.0.7 safe-global bridge test exercises this API contract.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Behavior is covered by the profile-gated safe bridge test; exact Blizzard service/payload fidelity is best-effort where noted."
+    },
+    {
+      "id": "added:C_Container.CalculateTotalNumberOfFreeBagSlots",
+      "symbol": "C_Container.CalculateTotalNumberOfFreeBagSlots",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges",
+          "summary": "Focused 12.0.7 safe-global bridge test exercises this API contract.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Returns the simulator bag-model free-slot total; exact Blizzard container-family and hidden-bag semantics remain best-effort."
+    },
+    {
+      "id": "added:C_DelvesUI.GetDelveEntranceTitleString",
+      "symbol": "C_DelvesUI.GetDelveEntranceTitleString",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges",
+          "summary": "Focused 12.0.7 safe-global bridge test exercises this API contract.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Returns deterministic seeded Delves UI text; exact content-data localization and area selection remain best-effort."
+    },
+    {
+      "id": "added:C_DelvesUI.GetWorldTierDifficultyForActivePlayer",
+      "symbol": "C_DelvesUI.GetWorldTierDifficultyForActivePlayer",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges",
+          "summary": "Focused 12.0.7 safe-global bridge test exercises this API contract.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Returns the simulator Delves tier value; exact active-player world-tier service state remains best-effort."
+    },
+    {
+      "id": "added:C_DurationUtil.CreateDurationTextBinding",
+      "symbol": "C_DurationUtil.CreateDurationTextBinding",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "0198c5cb6",
+      "approval_id": null,
+      "notes": "Compatibility binding state and methods are directly tested; native lifetime, identity, formatter, and secret semantics remain best-effort."
+    },
+    {
+      "id": "added:C_DurationUtil.CreateManualClock",
+      "symbol": "C_DurationUtil.CreateManualClock",
+      "change": "added",
+      "status": "implemented",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "1e80ccbd",
+      "approval_id": null,
+      "notes": "Manual clock construction and all documented clock mutations are directly state-tested."
+    },
+    {
+      "id": "added:C_EncounterTimeline.GetEventColor",
+      "symbol": "C_EncounterTimeline.GetEventColor",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges",
+          "summary": "Focused 12.0.7 safe-global bridge test exercises this API contract.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Behavior is covered by the profile-gated safe bridge test; exact Blizzard service/payload fidelity is best-effort where noted."
+    },
+    {
+      "id": "added:C_HousingCatalog.GetCatalogCategoryAndSubcategoryNames",
+      "symbol": "C_HousingCatalog.GetCatalogCategoryAndSubcategoryNames",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges",
+          "summary": "Focused 12.0.7 safe-global bridge test exercises this API contract.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Behavior is covered by the profile-gated safe bridge test; exact Blizzard service/payload fidelity is best-effort where noted."
+    },
+    {
+      "id": "added:C_HousingCustomizeMode.RoomConnectionSupportsDoorType",
+      "symbol": "C_HousingCustomizeMode.RoomConnectionSupportsDoorType",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges",
+          "summary": "Focused 12.0.7 safe-global bridge test exercises this API contract.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Behavior is covered by the profile-gated safe bridge test; exact Blizzard service/payload fidelity is best-effort where noted."
+    },
+    {
+      "id": "added:C_HousingLayout.CanSetViewedFloor",
+      "symbol": "C_HousingLayout.CanSetViewedFloor",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges",
+          "summary": "Focused 12.0.7 safe-global bridge test exercises this API contract.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Behavior is covered by the profile-gated safe bridge test; exact Blizzard service/payload fidelity is best-effort where noted."
+    },
+    {
+      "id": "added:C_MerchantFrame.GetMerchantCurrencies",
+      "symbol": "C_MerchantFrame.GetMerchantCurrencies",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges",
+          "summary": "Focused 12.0.7 safe-global bridge test exercises this API contract.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Returns a deterministic empty currency list until merchant-currency state is modeled; API shape is directly tested."
+    },
+    {
+      "id": "added:C_PartyInfo.ConfirmReadyCheck",
+      "symbol": "C_PartyInfo.ConfirmReadyCheck",
+      "change": "added",
+      "status": "implemented",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges",
+          "summary": "Focused 12.0.7 safe-global bridge test exercises this API contract.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Behavior is covered by the profile-gated safe bridge test; exact Blizzard service/payload fidelity is best-effort where noted."
+    },
+    {
+      "id": "added:C_PartyInfo.DemoteAssistant",
+      "symbol": "C_PartyInfo.DemoteAssistant",
+      "change": "added",
+      "status": "implemented",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges",
+          "summary": "Focused 12.0.7 safe-global bridge test exercises this API contract.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Behavior is covered by the profile-gated safe bridge test; exact Blizzard service/payload fidelity is best-effort where noted."
+    },
+    {
+      "id": "added:C_PartyInfo.DoReadyCheck",
+      "symbol": "C_PartyInfo.DoReadyCheck",
+      "change": "added",
+      "status": "implemented",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges",
+          "summary": "Focused 12.0.7 safe-global bridge test exercises this API contract.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Behavior is covered by the profile-gated safe bridge test; exact Blizzard service/payload fidelity is best-effort where noted."
+    },
+    {
+      "id": "added:C_PartyInfo.IsGUIDInGroup",
+      "symbol": "C_PartyInfo.IsGUIDInGroup",
+      "change": "added",
+      "status": "implemented",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges",
+          "summary": "Focused 12.0.7 safe-global bridge test exercises this API contract.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Behavior is covered by the profile-gated safe bridge test; exact Blizzard service/payload fidelity is best-effort where noted."
+    },
+    {
+      "id": "added:C_PartyInfo.PromoteToAssistant",
+      "symbol": "C_PartyInfo.PromoteToAssistant",
+      "change": "added",
+      "status": "implemented",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges",
+          "summary": "Focused 12.0.7 safe-global bridge test exercises this API contract.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Behavior is covered by the profile-gated safe bridge test; exact Blizzard service/payload fidelity is best-effort where noted."
+    },
+    {
+      "id": "added:C_PartyInfo.PromoteToLeader",
+      "symbol": "C_PartyInfo.PromoteToLeader",
+      "change": "added",
+      "status": "implemented",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges",
+          "summary": "Focused 12.0.7 safe-global bridge test exercises this API contract.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Behavior is covered by the profile-gated safe bridge test; exact Blizzard service/payload fidelity is best-effort where noted."
+    },
+    {
+      "id": "added:C_PartyInfo.SetEveryoneIsAssistant",
+      "symbol": "C_PartyInfo.SetEveryoneIsAssistant",
+      "change": "added",
+      "status": "implemented",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges",
+          "summary": "Focused 12.0.7 safe-global bridge test exercises this API contract.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Behavior is covered by the profile-gated safe bridge test; exact Blizzard service/payload fidelity is best-effort where noted."
+    },
+    {
+      "id": "added:C_PartyInfo.UninviteUnit",
+      "symbol": "C_PartyInfo.UninviteUnit",
+      "change": "added",
+      "status": "implemented",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges",
+          "summary": "Focused 12.0.7 safe-global bridge test exercises this API contract.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Behavior is covered by the profile-gated safe bridge test; exact Blizzard service/payload fidelity is best-effort where noted."
+    },
+    {
+      "id": "added:C_PingSecure.ClearPendingPingOffScreenCallback",
+      "symbol": "C_PingSecure.ClearPendingPingOffScreenCallback",
+      "change": "added",
+      "status": "implemented",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges",
+          "summary": "Focused 12.0.7 safe-global bridge test exercises this API contract.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Behavior is covered by the profile-gated safe bridge test; exact Blizzard service/payload fidelity is best-effort where noted."
+    },
+    {
+      "id": "added:C_PingSecure.SetPendingPingOffScreenCallback",
+      "symbol": "C_PingSecure.SetPendingPingOffScreenCallback",
+      "change": "added",
+      "status": "implemented",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges",
+          "summary": "Focused 12.0.7 safe-global bridge test exercises this API contract.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Behavior is covered by the profile-gated safe bridge test; exact Blizzard service/payload fidelity is best-effort where noted."
+    },
+    {
+      "id": "added:C_QuestHub.GetDragonridingRacesForAreaPOI",
+      "symbol": "C_QuestHub.GetDragonridingRacesForAreaPOI",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges",
+          "summary": "Focused 12.0.7 safe-global bridge test exercises this API contract.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Behavior is covered by the profile-gated safe bridge test; exact Blizzard service/payload fidelity is best-effort where noted."
+    },
+    {
+      "id": "added:C_UIFileAsset.GetFileID",
+      "symbol": "C_UIFileAsset.GetFileID",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges",
+          "summary": "Focused 12.0.7 safe-global bridge test exercises this API contract.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Behavior is covered by the profile-gated safe bridge test; exact Blizzard service/payload fidelity is best-effort where noted."
+    },
+    {
+      "id": "added:C_UIFileAsset.IsKnownFile",
+      "symbol": "C_UIFileAsset.IsKnownFile",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges",
+          "summary": "Focused 12.0.7 safe-global bridge test exercises this API contract.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Behavior is covered by the profile-gated safe bridge test; exact Blizzard service/payload fidelity is best-effort where noted."
+    },
+    {
+      "id": "added:C_UIFileAsset.IsLooseFile",
+      "symbol": "C_UIFileAsset.IsLooseFile",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges",
+          "summary": "Focused 12.0.7 safe-global bridge test exercises this API contract.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Behavior is covered by the profile-gated safe bridge test; exact Blizzard service/payload fidelity is best-effort where noted."
+    },
+    {
+      "id": "added:GetEventCPUUsage",
+      "symbol": "GetEventCPUUsage",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges",
+          "summary": "Focused 12.0.7 safe-global bridge test exercises this API contract.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Behavior is covered by the profile-gated safe bridge test; exact Blizzard service/payload fidelity is best-effort where noted."
+    },
+    {
+      "id": "added:GetFunctionCPUUsage",
+      "symbol": "GetFunctionCPUUsage",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges",
+          "summary": "Focused 12.0.7 safe-global bridge test exercises this API contract.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Behavior is covered by the profile-gated safe bridge test; exact Blizzard service/payload fidelity is best-effort where noted."
+    },
+    {
+      "id": "added:GetScriptCPUUsage",
+      "symbol": "GetScriptCPUUsage",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges",
+          "summary": "Focused 12.0.7 safe-global bridge test exercises this API contract.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Behavior is covered by the profile-gated safe bridge test; exact Blizzard service/payload fidelity is best-effort where noted."
+    },
+    {
+      "id": "added:GetSecurePendingButtonCallback",
+      "symbol": "GetSecurePendingButtonCallback",
+      "change": "added",
+      "status": "implemented",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges",
+          "summary": "Focused 12.0.7 safe-global bridge test exercises this API contract.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Behavior is covered by the profile-gated safe bridge test; exact Blizzard service/payload fidelity is best-effort where noted."
+    },
+    {
+      "id": "added:GetSecurePendingPingOffScreenCallback",
+      "symbol": "GetSecurePendingPingOffScreenCallback",
+      "change": "added",
+      "status": "implemented",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges",
+          "summary": "Focused 12.0.7 safe-global bridge test exercises this API contract.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Behavior is covered by the profile-gated safe bridge test; exact Blizzard service/payload fidelity is best-effort where noted."
+    },
+    {
+      "id": "added:GetSecurePendingToggleRunCallback",
+      "symbol": "GetSecurePendingToggleRunCallback",
+      "change": "added",
+      "status": "implemented",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges",
+          "summary": "Focused 12.0.7 safe-global bridge test exercises this API contract.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Behavior is covered by the profile-gated safe bridge test; exact Blizzard service/payload fidelity is best-effort where noted."
+    },
+    {
+      "id": "added:GameTooltip_AddMoneyLine",
+      "symbol": "GameTooltip_AddMoneyLine",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges",
+          "summary": "Focused 12.0.7 safe-global bridge test exercises this API contract.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Behavior is covered by the profile-gated safe bridge test; exact Blizzard service/payload fidelity is best-effort where noted."
+    },
+    {
+      "id": "added:SetSecurePendingButtonCallback",
+      "symbol": "SetSecurePendingButtonCallback",
+      "change": "added",
+      "status": "implemented",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges",
+          "summary": "Focused 12.0.7 safe-global bridge test exercises this API contract.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Behavior is covered by the profile-gated safe bridge test; exact Blizzard service/payload fidelity is best-effort where noted."
+    },
+    {
+      "id": "added:SetSecurePendingPingOffScreenCallback",
+      "symbol": "SetSecurePendingPingOffScreenCallback",
+      "change": "added",
+      "status": "implemented",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges",
+          "summary": "Focused 12.0.7 safe-global bridge test exercises this API contract.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Behavior is covered by the profile-gated safe bridge test; exact Blizzard service/payload fidelity is best-effort where noted."
+    },
+    {
+      "id": "added:SetSecurePendingToggleRunCallback",
+      "symbol": "SetSecurePendingToggleRunCallback",
+      "change": "added",
+      "status": "implemented",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges",
+          "summary": "Focused 12.0.7 safe-global bridge test exercises this API contract.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_safe_global_bridges"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Behavior is covered by the profile-gated safe bridge test; exact Blizzard service/payload fidelity is best-effort where noted."
+    },
+    {
+      "id": "added:DurationClock.GetTime",
+      "symbol": "DurationClock.GetTime",
+      "change": "added",
+      "status": "implemented",
+      "resolution": "behavioral",
+      "owner": "script-object-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "baba5a540",
+      "approval_id": null,
+      "notes": "Manual clock construction and this documented mutation/query are directly state-tested."
+    },
+    {
+      "id": "added:DurationManualClock.AdvanceTime",
+      "symbol": "DurationManualClock.AdvanceTime",
+      "change": "added",
+      "status": "implemented",
+      "resolution": "behavioral",
+      "owner": "script-object-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "baba5a540",
+      "approval_id": null,
+      "notes": "Manual clock construction and this documented mutation/query are directly state-tested."
+    },
+    {
+      "id": "added:DurationManualClock.ResetTime",
+      "symbol": "DurationManualClock.ResetTime",
+      "change": "added",
+      "status": "implemented",
+      "resolution": "behavioral",
+      "owner": "script-object-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "baba5a540",
+      "approval_id": null,
+      "notes": "Manual clock construction and this documented mutation/query are directly state-tested."
+    },
+    {
+      "id": "added:DurationManualClock.RewindTime",
+      "symbol": "DurationManualClock.RewindTime",
+      "change": "added",
+      "status": "implemented",
+      "resolution": "behavioral",
+      "owner": "script-object-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "baba5a540",
+      "approval_id": null,
+      "notes": "Manual clock construction and this documented mutation/query are directly state-tested."
+    },
+    {
+      "id": "added:DurationManualClock.SetTime",
+      "symbol": "DurationManualClock.SetTime",
+      "change": "added",
+      "status": "implemented",
+      "resolution": "behavioral",
+      "owner": "script-object-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "baba5a540",
+      "approval_id": null,
+      "notes": "Manual clock construction and this documented mutation/query are directly state-tested."
+    },
+    {
+      "id": "added:DurationObject.GetClock",
+      "symbol": "DurationObject.GetClock",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "script-object-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "1e80ccbd",
+      "approval_id": null,
+      "notes": "Duration-object clock storage is directly tested; lifecycle queries retain explicit compatibility defaults."
+    },
+    {
+      "id": "added:DurationObject.HasExpired",
+      "symbol": "DurationObject.HasExpired",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "script-object-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "1e80ccbd",
+      "approval_id": null,
+      "notes": "Duration-object clock storage is directly tested; lifecycle queries retain explicit compatibility defaults."
+    },
+    {
+      "id": "added:DurationObject.HasStarted",
+      "symbol": "DurationObject.HasStarted",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "script-object-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "1e80ccbd",
+      "approval_id": null,
+      "notes": "Duration-object clock storage is directly tested; lifecycle queries retain explicit compatibility defaults."
+    },
+    {
+      "id": "added:DurationObject.IsActive",
+      "symbol": "DurationObject.IsActive",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "script-object-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "1e80ccbd",
+      "approval_id": null,
+      "notes": "Duration-object clock storage is directly tested; lifecycle queries retain explicit compatibility defaults."
+    },
+    {
+      "id": "added:DurationObject.SetClock",
+      "symbol": "DurationObject.SetClock",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "script-object-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "1e80ccbd",
+      "approval_id": null,
+      "notes": "Duration-object clock storage is directly tested; lifecycle queries retain explicit compatibility defaults."
+    },
+    {
+      "id": "added:DurationTextBinding.CanFormatText",
+      "symbol": "DurationTextBinding.CanFormatText",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "script-object-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "0198c5cb6",
+      "approval_id": null,
+      "notes": "The compatibility binding method is directly exercised; native identity, formatter, interpolation, and secret semantics remain best-effort."
+    },
+    {
+      "id": "added:DurationTextBinding.CanUpdateFontString",
+      "symbol": "DurationTextBinding.CanUpdateFontString",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "script-object-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "0198c5cb6",
+      "approval_id": null,
+      "notes": "The compatibility binding method is directly exercised; native identity, formatter, interpolation, and secret semantics remain best-effort."
+    },
+    {
+      "id": "added:DurationTextBinding.Disable",
+      "symbol": "DurationTextBinding.Disable",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "script-object-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "0198c5cb6",
+      "approval_id": null,
+      "notes": "The compatibility binding method is directly exercised; native identity, formatter, interpolation, and secret semantics remain best-effort."
+    },
+    {
+      "id": "added:DurationTextBinding.Enable",
+      "symbol": "DurationTextBinding.Enable",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "script-object-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "0198c5cb6",
+      "approval_id": null,
+      "notes": "The compatibility binding method is directly exercised; native identity, formatter, interpolation, and secret semantics remain best-effort."
+    },
+    {
+      "id": "added:DurationTextBinding.GetDuration",
+      "symbol": "DurationTextBinding.GetDuration",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "script-object-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "0198c5cb6",
+      "approval_id": null,
+      "notes": "The compatibility binding method is directly exercised; native identity, formatter, interpolation, and secret semantics remain best-effort."
+    },
+    {
+      "id": "added:DurationTextBinding.GetExpiredText",
+      "symbol": "DurationTextBinding.GetExpiredText",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "script-object-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "0198c5cb6",
+      "approval_id": null,
+      "notes": "The compatibility binding method is directly exercised; native identity, formatter, interpolation, and secret semantics remain best-effort."
+    },
+    {
+      "id": "added:DurationTextBinding.GetFontString",
+      "symbol": "DurationTextBinding.GetFontString",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "script-object-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "0198c5cb6",
+      "approval_id": null,
+      "notes": "The compatibility binding method is directly exercised; native identity, formatter, interpolation, and secret semantics remain best-effort."
+    },
+    {
+      "id": "added:DurationTextBinding.GetFormattedText",
+      "symbol": "DurationTextBinding.GetFormattedText",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "script-object-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "0198c5cb6",
+      "approval_id": null,
+      "notes": "The compatibility binding method is directly exercised; native identity, formatter, interpolation, and secret semantics remain best-effort."
+    },
+    {
+      "id": "added:DurationTextBinding.GetTimeModifier",
+      "symbol": "DurationTextBinding.GetTimeModifier",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "script-object-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "0198c5cb6",
+      "approval_id": null,
+      "notes": "The compatibility binding method is directly exercised; native identity, formatter, interpolation, and secret semantics remain best-effort."
+    },
+    {
+      "id": "added:DurationTextBinding.GetUpdateInterval",
+      "symbol": "DurationTextBinding.GetUpdateInterval",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "script-object-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "0198c5cb6",
+      "approval_id": null,
+      "notes": "The compatibility binding method is directly exercised; native identity, formatter, interpolation, and secret semantics remain best-effort."
+    },
+    {
+      "id": "added:DurationTextBinding.GetZeroDurationText",
+      "symbol": "DurationTextBinding.GetZeroDurationText",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "script-object-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "0198c5cb6",
+      "approval_id": null,
+      "notes": "The compatibility binding method is directly exercised; native identity, formatter, interpolation, and secret semantics remain best-effort."
+    },
+    {
+      "id": "added:DurationTextBinding.IsEnabled",
+      "symbol": "DurationTextBinding.IsEnabled",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "script-object-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "0198c5cb6",
+      "approval_id": null,
+      "notes": "The compatibility binding method is directly exercised; native identity, formatter, interpolation, and secret semantics remain best-effort."
+    },
+    {
+      "id": "added:DurationTextBinding.SetDuration",
+      "symbol": "DurationTextBinding.SetDuration",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "script-object-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "0198c5cb6",
+      "approval_id": null,
+      "notes": "The compatibility binding method is directly exercised; native identity, formatter, interpolation, and secret semantics remain best-effort."
+    },
+    {
+      "id": "added:DurationTextBinding.SetExpiredText",
+      "symbol": "DurationTextBinding.SetExpiredText",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "script-object-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "0198c5cb6",
+      "approval_id": null,
+      "notes": "The compatibility binding method is directly exercised; native identity, formatter, interpolation, and secret semantics remain best-effort."
+    },
+    {
+      "id": "added:DurationTextBinding.SetFontString",
+      "symbol": "DurationTextBinding.SetFontString",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "script-object-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "0198c5cb6",
+      "approval_id": null,
+      "notes": "The compatibility binding method is directly exercised; native identity, formatter, interpolation, and secret semantics remain best-effort."
+    },
+    {
+      "id": "added:DurationTextBinding.SetTimeModifier",
+      "symbol": "DurationTextBinding.SetTimeModifier",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "script-object-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "0198c5cb6",
+      "approval_id": null,
+      "notes": "The compatibility binding method is directly exercised; native identity, formatter, interpolation, and secret semantics remain best-effort."
+    },
+    {
+      "id": "added:DurationTextBinding.SetUpdateInterval",
+      "symbol": "DurationTextBinding.SetUpdateInterval",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "script-object-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "0198c5cb6",
+      "approval_id": null,
+      "notes": "The compatibility binding method is directly exercised; native identity, formatter, interpolation, and secret semantics remain best-effort."
+    },
+    {
+      "id": "added:DurationTextBinding.SetZeroDurationText",
+      "symbol": "DurationTextBinding.SetZeroDurationText",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "script-object-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "0198c5cb6",
+      "approval_id": null,
+      "notes": "The compatibility binding method is directly exercised; native identity, formatter, interpolation, and secret semantics remain best-effort."
+    },
+    {
+      "id": "added:DurationTextFormattingOptions.GetAddRemainingText",
+      "symbol": "DurationTextFormattingOptions.GetAddRemainingText",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "script-object-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "f8d51c468",
+      "approval_id": null,
+      "notes": "The extracted object family has no constructor: the focused test verifies its factory remains nil, so these methods are unreachable stale-source entries."
+    },
+    {
+      "id": "added:DurationTextFormattingOptions.GetDurationType",
+      "symbol": "DurationTextFormattingOptions.GetDurationType",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "script-object-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "f8d51c468",
+      "approval_id": null,
+      "notes": "The extracted object family has no constructor: the focused test verifies its factory remains nil, so these methods are unreachable stale-source entries."
+    },
+    {
+      "id": "added:DurationTextFormattingOptions.SetAddRemainingText",
+      "symbol": "DurationTextFormattingOptions.SetAddRemainingText",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "script-object-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "f8d51c468",
+      "approval_id": null,
+      "notes": "The extracted object family has no constructor: the focused test verifies its factory remains nil, so these methods are unreachable stale-source entries."
+    },
+    {
+      "id": "added:DurationTextFormattingOptions.SetDurationType",
+      "symbol": "DurationTextFormattingOptions.SetDurationType",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "script-object-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "f8d51c468",
+      "approval_id": null,
+      "notes": "The extracted object family has no constructor: the focused test verifies its factory remains nil, so these methods are unreachable stale-source entries."
+    },
+    {
+      "id": "added:DurationTextRawValue.GetMilliseconds",
+      "symbol": "DurationTextRawValue.GetMilliseconds",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "script-object-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "f8d51c468",
+      "approval_id": null,
+      "notes": "The extracted object family has no constructor: the focused test verifies its factory remains nil, so these methods are unreachable stale-source entries."
+    },
+    {
+      "id": "added:DurationTextRawValue.GetSeconds",
+      "symbol": "DurationTextRawValue.GetSeconds",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "script-object-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "f8d51c468",
+      "approval_id": null,
+      "notes": "The extracted object family has no constructor: the focused test verifies its factory remains nil, so these methods are unreachable stale-source entries."
+    },
+    {
+      "id": "added:DurationTextRawValue.SetMilliseconds",
+      "symbol": "DurationTextRawValue.SetMilliseconds",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "script-object-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "f8d51c468",
+      "approval_id": null,
+      "notes": "The extracted object family has no constructor: the focused test verifies its factory remains nil, so these methods are unreachable stale-source entries."
+    },
+    {
+      "id": "added:DurationTextRawValue.SetSeconds",
+      "symbol": "DurationTextRawValue.SetSeconds",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "script-object-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding",
+          "summary": "Focused 12.0.7 duration test exercises this exact modeled method or its unreachable stale-object family.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_duration_objects_and_text_binding"
+      ],
+      "assertions": [],
+      "commit": "f8d51c468",
+      "approval_id": null,
+      "notes": "The extracted object family has no constructor: the focused test verifies its factory remains nil, so these methods are unreachable stale-source entries."
+    },
+    {
+      "id": "added:ENCOUNTER_TIMELINE_EVENT_COLOR_CHANGED",
+      "symbol": "ENCOUNTER_TIMELINE_EVENT_COLOR_CHANGED",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "event",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface",
+          "summary": "Focused 12.0.7 event-surface test registers this event successfully.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Registration is tested; live payload/firing semantics remain best-effort."
+    },
+    {
+      "id": "added:URL_TEXTURE_REQUEST_RESULT",
+      "symbol": "URL_TEXTURE_REQUEST_RESULT",
+      "change": "added",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "event",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface",
+          "summary": "Focused 12.0.7 event-surface test registers this event successfully.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Registration is tested; live payload/firing semantics remain best-effort."
+    },
+    {
+      "id": "added:assistedCombatReduceHighlights",
+      "symbol": "assistedCombatReduceHighlights",
+      "change": "added",
+      "status": "implemented",
+      "resolution": "behavioral",
+      "owner": "cvar",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/cvars.rs::patch_12_0_7_cvar_defaults_match_retail",
+          "summary": "Profile-gated retail 12.0.7 CVar default is 1; focused test verifies runtime and registered default values.",
+          "source_hash": "e4a1e46a35988dd137b95c4afeab0c95f6e65516ef8401f25397f3f2a1a13e6d"
+        }
+      ],
+      "tests": [
+        "src/cvars.rs::patch_12_0_7_cvar_defaults_match_retail"
+      ],
+      "assertions": [],
+      "commit": "569374a7b",
+      "approval_id": null,
+      "notes": "Implemented profile-gated default 1; crawler-omitted CVar claims remain outside occurrence rows."
+    },
+    {
+      "id": "added:developerLogFilterDebug",
+      "symbol": "developerLogFilterDebug",
+      "change": "added",
+      "status": "implemented",
+      "resolution": "behavioral",
+      "owner": "cvar",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/cvars.rs::patch_12_0_7_cvar_defaults_match_retail",
+          "summary": "Profile-gated retail 12.0.7 CVar default is 0; focused test verifies runtime and registered default values.",
+          "source_hash": "e4a1e46a35988dd137b95c4afeab0c95f6e65516ef8401f25397f3f2a1a13e6d"
+        }
+      ],
+      "tests": [
+        "src/cvars.rs::patch_12_0_7_cvar_defaults_match_retail"
+      ],
+      "assertions": [],
+      "commit": "569374a7b",
+      "approval_id": null,
+      "notes": "Implemented profile-gated default 0; crawler-omitted CVar claims remain outside occurrence rows."
+    },
+    {
+      "id": "added:developerLogFilterError",
+      "symbol": "developerLogFilterError",
+      "change": "added",
+      "status": "implemented",
+      "resolution": "behavioral",
+      "owner": "cvar",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/cvars.rs::patch_12_0_7_cvar_defaults_match_retail",
+          "summary": "Profile-gated retail 12.0.7 CVar default is 1; focused test verifies runtime and registered default values.",
+          "source_hash": "e4a1e46a35988dd137b95c4afeab0c95f6e65516ef8401f25397f3f2a1a13e6d"
+        }
+      ],
+      "tests": [
+        "src/cvars.rs::patch_12_0_7_cvar_defaults_match_retail"
+      ],
+      "assertions": [],
+      "commit": "569374a7b",
+      "approval_id": null,
+      "notes": "Implemented profile-gated default 1; crawler-omitted CVar claims remain outside occurrence rows."
+    },
+    {
+      "id": "added:developerLogFilterFatal",
+      "symbol": "developerLogFilterFatal",
+      "change": "added",
+      "status": "implemented",
+      "resolution": "behavioral",
+      "owner": "cvar",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/cvars.rs::patch_12_0_7_cvar_defaults_match_retail",
+          "summary": "Profile-gated retail 12.0.7 CVar default is 1; focused test verifies runtime and registered default values.",
+          "source_hash": "e4a1e46a35988dd137b95c4afeab0c95f6e65516ef8401f25397f3f2a1a13e6d"
+        }
+      ],
+      "tests": [
+        "src/cvars.rs::patch_12_0_7_cvar_defaults_match_retail"
+      ],
+      "assertions": [],
+      "commit": "569374a7b",
+      "approval_id": null,
+      "notes": "Implemented profile-gated default 1; crawler-omitted CVar claims remain outside occurrence rows."
+    },
+    {
+      "id": "added:developerLogFilterNormal",
+      "symbol": "developerLogFilterNormal",
+      "change": "added",
+      "status": "implemented",
+      "resolution": "behavioral",
+      "owner": "cvar",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/cvars.rs::patch_12_0_7_cvar_defaults_match_retail",
+          "summary": "Profile-gated retail 12.0.7 CVar default is 1; focused test verifies runtime and registered default values.",
+          "source_hash": "e4a1e46a35988dd137b95c4afeab0c95f6e65516ef8401f25397f3f2a1a13e6d"
+        }
+      ],
+      "tests": [
+        "src/cvars.rs::patch_12_0_7_cvar_defaults_match_retail"
+      ],
+      "assertions": [],
+      "commit": "569374a7b",
+      "approval_id": null,
+      "notes": "Implemented profile-gated default 1; crawler-omitted CVar claims remain outside occurrence rows."
+    },
+    {
+      "id": "added:developerLogFilterSpam",
+      "symbol": "developerLogFilterSpam",
+      "change": "added",
+      "status": "implemented",
+      "resolution": "behavioral",
+      "owner": "cvar",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/cvars.rs::patch_12_0_7_cvar_defaults_match_retail",
+          "summary": "Profile-gated retail 12.0.7 CVar default is 0; focused test verifies runtime and registered default values.",
+          "source_hash": "e4a1e46a35988dd137b95c4afeab0c95f6e65516ef8401f25397f3f2a1a13e6d"
+        }
+      ],
+      "tests": [
+        "src/cvars.rs::patch_12_0_7_cvar_defaults_match_retail"
+      ],
+      "assertions": [],
+      "commit": "569374a7b",
+      "approval_id": null,
+      "notes": "Implemented profile-gated default 0; crawler-omitted CVar claims remain outside occurrence rows."
+    },
+    {
+      "id": "changed:Button.GetButtonState",
+      "symbol": "Button.GetButtonState",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "widget-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface",
+          "summary": "Focused 12.0.7 widget compatibility test verifies method availability.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Compatibility presence is tested; exact changed secret/aspect semantics remain best-effort."
+    },
+    {
+      "id": "changed:Button.IsEnabled",
+      "symbol": "Button.IsEnabled",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "widget-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface",
+          "summary": "Focused 12.0.7 widget compatibility test verifies method availability.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Compatibility presence is tested; exact changed secret/aspect semantics remain best-effort."
+    },
+    {
+      "id": "changed:Button.SetButtonState",
+      "symbol": "Button.SetButtonState",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "widget-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface",
+          "summary": "Focused 12.0.7 widget compatibility test verifies method availability.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Compatibility presence is tested; exact changed secret/aspect semantics remain best-effort."
+    },
+    {
+      "id": "changed:Button.SetEnabled",
+      "symbol": "Button.SetEnabled",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "widget-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface",
+          "summary": "Focused 12.0.7 widget compatibility test verifies method availability.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Compatibility presence is tested; exact changed secret/aspect semantics remain best-effort."
+    },
+    {
+      "id": "changed:EditBox.SetFont",
+      "symbol": "EditBox.SetFont",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "widget-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface",
+          "summary": "Focused 12.0.7 widget compatibility test verifies method availability.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Compatibility presence is tested; exact changed secret/aspect semantics remain best-effort."
+    },
+    {
+      "id": "changed:Font.SetFont",
+      "symbol": "Font.SetFont",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "widget-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface",
+          "summary": "Focused 12.0.7 widget compatibility test verifies method availability.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Compatibility presence is tested; exact changed secret/aspect semantics remain best-effort."
+    },
+    {
+      "id": "changed:FontString.SetFont",
+      "symbol": "FontString.SetFont",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "widget-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface",
+          "summary": "Focused 12.0.7 widget compatibility test verifies method availability.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Compatibility presence is tested; exact changed secret/aspect semantics remain best-effort."
+    },
+    {
+      "id": "changed:MessageFrame.SetFont",
+      "symbol": "MessageFrame.SetFont",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "widget-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface",
+          "summary": "Focused 12.0.7 widget compatibility test verifies method availability.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Compatibility presence is tested; exact changed secret/aspect semantics remain best-effort."
+    },
+    {
+      "id": "changed:ModelSceneActorBase.GetModelUnitGUID",
+      "symbol": "ModelSceneActorBase.GetModelUnitGUID",
+      "change": "changed",
+      "status": "exception-requested",
+      "resolution": "impossible",
+      "owner": "widget-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface",
+          "summary": "Focused 12.0.7 widget compatibility test verifies method availability.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface"
+      ],
+      "assertions": [],
+      "commit": null,
+      "approval_id": null,
+      "scope_exception": {
+        "rule": "permanent-project-scope",
+        "reference": "AGENTS.md#intentional-gaps",
+        "summary": "Permanent no-3D project scope excludes model-unit GUID behavior."
+      },
+      "notes": "Repository scope exception: the permanent project 2D/no-3D scope leaves this model-unit GUID method absent; conditional-secret 3D model behavior is impossible to model faithfully without adding the excluded 3D subsystem."
+    },
+    {
+      "id": "changed:ScrollFrame.GetHorizontalScroll",
+      "symbol": "ScrollFrame.GetHorizontalScroll",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "widget-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface",
+          "summary": "Focused 12.0.7 widget compatibility test verifies method availability.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Compatibility presence is tested; exact changed secret/aspect semantics remain best-effort."
+    },
+    {
+      "id": "changed:ScrollFrame.GetVerticalScroll",
+      "symbol": "ScrollFrame.GetVerticalScroll",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "widget-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface",
+          "summary": "Focused 12.0.7 widget compatibility test verifies method availability.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Compatibility presence is tested; exact changed secret/aspect semantics remain best-effort."
+    },
+    {
+      "id": "changed:ScrollFrame.SetHorizontalScroll",
+      "symbol": "ScrollFrame.SetHorizontalScroll",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "widget-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface",
+          "summary": "Focused 12.0.7 widget compatibility test verifies method availability.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Compatibility presence is tested; exact changed secret/aspect semantics remain best-effort."
+    },
+    {
+      "id": "changed:ScrollFrame.SetVerticalScroll",
+      "symbol": "ScrollFrame.SetVerticalScroll",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "widget-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface",
+          "summary": "Focused 12.0.7 widget compatibility test verifies method availability.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Compatibility presence is tested; exact changed secret/aspect semantics remain best-effort."
+    },
+    {
+      "id": "changed:SimpleHTML.SetFont",
+      "symbol": "SimpleHTML.SetFont",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "widget-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface",
+          "summary": "Focused 12.0.7 widget compatibility test verifies method availability.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Compatibility presence is tested; exact changed secret/aspect semantics remain best-effort."
+    },
+    {
+      "id": "changed:CHAT_MSG_COMBAT_FACTION_CHANGE",
+      "symbol": "CHAT_MSG_COMBAT_FACTION_CHANGE",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "event",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface",
+          "summary": "Focused 12.0.7 event-surface test registers this changed event.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Registration is tested; changed payload and secret-lockdown semantics remain best-effort."
+    },
+    {
+      "id": "changed:CHAT_MSG_COMBAT_HONOR_GAIN",
+      "symbol": "CHAT_MSG_COMBAT_HONOR_GAIN",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "event",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface",
+          "summary": "Focused 12.0.7 event-surface test registers this changed event.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Registration is tested; changed payload and secret-lockdown semantics remain best-effort."
+    },
+    {
+      "id": "changed:CHAT_MSG_COMBAT_MISC_INFO",
+      "symbol": "CHAT_MSG_COMBAT_MISC_INFO",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "event",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface",
+          "summary": "Focused 12.0.7 event-surface test registers this changed event.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Registration is tested; changed payload and secret-lockdown semantics remain best-effort."
+    },
+    {
+      "id": "changed:CHAT_MSG_COMBAT_XP_GAIN",
+      "symbol": "CHAT_MSG_COMBAT_XP_GAIN",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "event",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface",
+          "summary": "Focused 12.0.7 event-surface test registers this changed event.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Registration is tested; changed payload and secret-lockdown semantics remain best-effort."
+    },
+    {
+      "id": "changed:CHAT_MSG_CURRENCY",
+      "symbol": "CHAT_MSG_CURRENCY",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "event",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface",
+          "summary": "Focused 12.0.7 event-surface test registers this changed event.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Registration is tested; changed payload and secret-lockdown semantics remain best-effort."
+    },
+    {
+      "id": "changed:CHAT_MSG_FILTERED",
+      "symbol": "CHAT_MSG_FILTERED",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "event",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface",
+          "summary": "Focused 12.0.7 event-surface test registers this changed event.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Registration is tested; changed payload and secret-lockdown semantics remain best-effort."
+    },
+    {
+      "id": "changed:CHAT_MSG_LOOT",
+      "symbol": "CHAT_MSG_LOOT",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "event",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface",
+          "summary": "Focused 12.0.7 event-surface test registers this changed event.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Registration is tested; changed payload and secret-lockdown semantics remain best-effort."
+    },
+    {
+      "id": "changed:CHAT_MSG_MONEY",
+      "symbol": "CHAT_MSG_MONEY",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "event",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface",
+          "summary": "Focused 12.0.7 event-surface test registers this changed event.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Registration is tested; changed payload and secret-lockdown semantics remain best-effort."
+    },
+    {
+      "id": "changed:CHAT_MSG_RESTRICTED",
+      "symbol": "CHAT_MSG_RESTRICTED",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "event",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface",
+          "summary": "Focused 12.0.7 event-surface test registers this changed event.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Registration is tested; changed payload and secret-lockdown semantics remain best-effort."
+    },
+    {
+      "id": "changed:CLUB_MEMBER_ADDED",
+      "symbol": "CLUB_MEMBER_ADDED",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "event",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface",
+          "summary": "Focused 12.0.7 event-surface test registers this changed event.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Registration is tested; changed payload and secret-lockdown semantics remain best-effort."
+    },
+    {
+      "id": "changed:CLUB_MEMBER_PRESENCE_UPDATED",
+      "symbol": "CLUB_MEMBER_PRESENCE_UPDATED",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "event",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface",
+          "summary": "Focused 12.0.7 event-surface test registers this changed event.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Registration is tested; changed payload and secret-lockdown semantics remain best-effort."
+    },
+    {
+      "id": "changed:CLUB_MEMBER_REMOVED",
+      "symbol": "CLUB_MEMBER_REMOVED",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "event",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface",
+          "summary": "Focused 12.0.7 event-surface test registers this changed event.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Registration is tested; changed payload and secret-lockdown semantics remain best-effort."
+    },
+    {
+      "id": "changed:CLUB_MEMBER_ROLE_UPDATED",
+      "symbol": "CLUB_MEMBER_ROLE_UPDATED",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "event",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface",
+          "summary": "Focused 12.0.7 event-surface test registers this changed event.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Registration is tested; changed payload and secret-lockdown semantics remain best-effort."
+    },
+    {
+      "id": "changed:CLUB_MEMBER_UPDATED",
+      "symbol": "CLUB_MEMBER_UPDATED",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "event",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface",
+          "summary": "Focused 12.0.7 event-surface test registers this changed event.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Registration is tested; changed payload and secret-lockdown semantics remain best-effort."
+    },
+    {
+      "id": "changed:ENCOUNTER_END",
+      "symbol": "ENCOUNTER_END",
+      "change": "changed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "event",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface",
+          "summary": "Focused 12.0.7 event-surface test registers this changed event.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Registration is tested; changed payload and secret-lockdown semantics remain best-effort."
+    },
+    {
+      "id": "removed:BNInviteFriend",
+      "symbol": "BNInviteFriend",
+      "change": "removed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface",
+          "summary": "Focused 12.0.7 removal-surface test records the symbol absent at initialization.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Startup removal behavior is tested; exact Blizzard load-order timing remains best-effort. Runtime availability/removal is captured by the startup compatibility test; post-reset timing is not claimed."
+    },
+    {
+      "id": "removed:C_ClickBindings.GetStringFromModifiers",
+      "symbol": "C_ClickBindings.GetStringFromModifiers",
+      "change": "removed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface",
+          "summary": "Focused 12.0.7 removal-surface test records the retained compatibility function.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Patch list marks removal, but simulator retains a compatibility function to support loaded UI. Runtime availability/removal is captured by the startup compatibility test; post-reset timing is not claimed."
+    },
+    {
+      "id": "removed:C_ClickBindings.MakeModifiers",
+      "symbol": "C_ClickBindings.MakeModifiers",
+      "change": "removed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface",
+          "summary": "Focused 12.0.7 removal-surface test records the retained compatibility function.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Patch list marks removal, but simulator retains a compatibility function to support loaded UI. Runtime availability/removal is captured by the startup compatibility test; post-reset timing is not claimed."
+    },
+    {
+      "id": "removed:C_Spell.GetMawPowerBorderAtlasBySpellID",
+      "symbol": "C_Spell.GetMawPowerBorderAtlasBySpellID",
+      "change": "removed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface",
+          "summary": "Focused 12.0.7 removal-surface test records the retained compatibility function.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Patch list marks removal, but simulator retains a compatibility function to support loaded UI. Runtime availability/removal is captured by the startup compatibility test; post-reset timing is not claimed."
+    },
+    {
+      "id": "removed:ConfirmReadyCheck",
+      "symbol": "ConfirmReadyCheck",
+      "change": "removed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface",
+          "summary": "Focused 12.0.7 removal-surface test records the symbol absent at initialization.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Startup removal behavior is tested; exact Blizzard load-order timing remains best-effort. Runtime availability/removal is captured by the startup compatibility test; post-reset timing is not claimed."
+    },
+    {
+      "id": "removed:DemoteAssistant",
+      "symbol": "DemoteAssistant",
+      "change": "removed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface",
+          "summary": "Focused 12.0.7 removal-surface test records the symbol absent at initialization.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Startup removal behavior is tested; exact Blizzard load-order timing remains best-effort. Runtime availability/removal is captured by the startup compatibility test; post-reset timing is not claimed."
+    },
+    {
+      "id": "removed:DoReadyCheck",
+      "symbol": "DoReadyCheck",
+      "change": "removed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface",
+          "summary": "Focused 12.0.7 removal-surface test records the symbol absent at initialization.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Startup removal behavior is tested; exact Blizzard load-order timing remains best-effort. Runtime availability/removal is captured by the startup compatibility test; post-reset timing is not claimed."
+    },
+    {
+      "id": "removed:GetMerchantCurrencies",
+      "symbol": "GetMerchantCurrencies",
+      "change": "removed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface",
+          "summary": "Focused 12.0.7 removal-surface test records the symbol absent at initialization.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Startup removal behavior is tested; exact Blizzard load-order timing remains best-effort. Runtime availability/removal is captured by the startup compatibility test; post-reset timing is not claimed."
+    },
+    {
+      "id": "removed:IsGUIDInGroup",
+      "symbol": "IsGUIDInGroup",
+      "change": "removed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface",
+          "summary": "Focused 12.0.7 removal-surface test records the symbol absent at initialization.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Startup removal behavior is tested; exact Blizzard load-order timing remains best-effort. Runtime availability/removal is captured by the startup compatibility test; post-reset timing is not claimed."
+    },
+    {
+      "id": "removed:PromoteToAssistant",
+      "symbol": "PromoteToAssistant",
+      "change": "removed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface",
+          "summary": "Focused 12.0.7 removal-surface test records the symbol absent at initialization.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Startup removal behavior is tested; exact Blizzard load-order timing remains best-effort. Runtime availability/removal is captured by the startup compatibility test; post-reset timing is not claimed."
+    },
+    {
+      "id": "removed:PromoteToLeader",
+      "symbol": "PromoteToLeader",
+      "change": "removed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface",
+          "summary": "Focused 12.0.7 removal-surface test records the symbol absent at initialization.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Startup removal behavior is tested; exact Blizzard load-order timing remains best-effort. Runtime availability/removal is captured by the startup compatibility test; post-reset timing is not claimed."
+    },
+    {
+      "id": "removed:SetEveryoneIsAssistant",
+      "symbol": "SetEveryoneIsAssistant",
+      "change": "removed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface",
+          "summary": "Focused 12.0.7 removal-surface test records the symbol absent at initialization.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Startup removal behavior is tested; exact Blizzard load-order timing remains best-effort. Runtime availability/removal is captured by the startup compatibility test; post-reset timing is not claimed."
+    },
+    {
+      "id": "removed:UninviteUnit",
+      "symbol": "UninviteUnit",
+      "change": "removed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface",
+          "summary": "Focused 12.0.7 removal-surface test records the retained compatibility function.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Patch list marks removal, but simulator retains a compatibility function to support loaded UI. Runtime availability/removal is captured by the startup compatibility test; post-reset timing is not claimed."
+    },
+    {
+      "id": "removed:GetAutoCompletePresenceID",
+      "symbol": "GetAutoCompletePresenceID",
+      "change": "removed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface",
+          "summary": "Focused 12.0.7 removal-surface test records the symbol absent at initialization.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Startup removal behavior is tested; exact Blizzard load-order timing remains best-effort. Runtime availability/removal is captured by the startup compatibility test; post-reset timing is not claimed."
+    },
+    {
+      "id": "removed:GetAutoCompleteResults",
+      "symbol": "GetAutoCompleteResults",
+      "change": "removed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface",
+          "summary": "Focused 12.0.7 removal-surface test records the retained compatibility function.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Patch list marks removal, but simulator retains a compatibility function to support loaded UI. Runtime availability/removal is captured by the startup compatibility test; post-reset timing is not claimed."
+    },
+    {
+      "id": "removed:GetAutoCompleteRealms",
+      "symbol": "GetAutoCompleteRealms",
+      "change": "removed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface",
+          "summary": "Focused 12.0.7 removal-surface test records the retained compatibility function.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Patch list marks removal, but simulator retains a compatibility function to support loaded UI. Runtime availability/removal is captured by the startup compatibility test; post-reset timing is not claimed."
+    },
+    {
+      "id": "removed:IsRecognizedName",
+      "symbol": "IsRecognizedName",
+      "change": "removed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "global-api",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface",
+          "summary": "Focused 12.0.7 removal-surface test records the symbol absent at initialization.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_removal_and_event_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Startup removal behavior is tested; exact Blizzard load-order timing remains best-effort. Runtime availability/removal is captured by the startup compatibility test; post-reset timing is not claimed."
+    },
+    {
+      "id": "removed:Minimap.SetBlipTexture",
+      "symbol": "Minimap.SetBlipTexture",
+      "change": "removed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "widget-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface",
+          "summary": "Focused 12.0.7 widget compatibility test verifies the retained Minimap method.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Patch list marks removal, but method remains as compatibility surface; exact vendor lifecycle semantics are best-effort."
+    },
+    {
+      "id": "removed:Minimap.SetCorpsePOIArrowTexture",
+      "symbol": "Minimap.SetCorpsePOIArrowTexture",
+      "change": "removed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "widget-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface",
+          "summary": "Focused 12.0.7 widget compatibility test verifies the retained Minimap method.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Patch list marks removal, but method remains as compatibility surface; exact vendor lifecycle semantics are best-effort."
+    },
+    {
+      "id": "removed:Minimap.SetIconTexture",
+      "symbol": "Minimap.SetIconTexture",
+      "change": "removed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "widget-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface",
+          "summary": "Focused 12.0.7 widget compatibility test verifies the retained Minimap method.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Patch list marks removal, but method remains as compatibility surface; exact vendor lifecycle semantics are best-effort."
+    },
+    {
+      "id": "removed:Minimap.SetPOIArrowTexture",
+      "symbol": "Minimap.SetPOIArrowTexture",
+      "change": "removed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "widget-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface",
+          "summary": "Focused 12.0.7 widget compatibility test verifies the retained Minimap method.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Patch list marks removal, but method remains as compatibility surface; exact vendor lifecycle semantics are best-effort."
+    },
+    {
+      "id": "removed:Minimap.SetPlayerTexture",
+      "symbol": "Minimap.SetPlayerTexture",
+      "change": "removed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "widget-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface",
+          "summary": "Focused 12.0.7 widget compatibility test verifies the retained Minimap method.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Patch list marks removal, but method remains as compatibility surface; exact vendor lifecycle semantics are best-effort."
+    },
+    {
+      "id": "removed:Minimap.SetStaticPOIArrowTexture",
+      "symbol": "Minimap.SetStaticPOIArrowTexture",
+      "change": "removed",
+      "status": "best-effort",
+      "resolution": "behavioral",
+      "owner": "widget-method",
+      "load_addon": null,
+      "evidence": [
+        {
+          "kind": "test",
+          "reference": "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface",
+          "summary": "Focused 12.0.7 widget compatibility test verifies the retained Minimap method.",
+          "source_hash": "eb0b0446e6ceddfa2e926901c0a5c117b788512839dc31147d94b26536a5957c"
+        }
+      ],
+      "tests": [
+        "src/loader/tests/wow_api_globals/startup_globals.rs::test_patch_12_0_7_widget_compatibility_surface"
+      ],
+      "assertions": [],
+      "commit": "367f35370",
+      "approval_id": null,
+      "notes": "Patch list marks removal, but method remains as compatibility surface; exact vendor lifecycle semantics are best-effort."
+    }
+  ]
+}

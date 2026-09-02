@@ -39,9 +39,8 @@ fn load_full_game_ui() -> WowLuaEnv {
     env
 }
 
-#[test]
-fn blizzard_calendar_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_calendar_loads_without_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -78,10 +77,10 @@ fn blizzard_calendar_loads_without_errors() {
         "Calendar frames should be defined after load"
     );
 }
+}
 
-#[test]
-fn calendar_show_and_hide_run_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn calendar_show_and_hide_run_without_errors(env: &WowLuaEnv) {
 
     load_addon(&env.loader_env(), &calendar_toc()).expect("Blizzard_Calendar should load");
 
@@ -101,4 +100,5 @@ fn calendar_show_and_hide_run_without_errors() {
         "CalendarFrame Show/Hide emitted Lua errors:\n  {}",
         errors.join("\n  ")
     );
+}
 }

@@ -1,42 +1,30 @@
 //! Integration tests for keybinding dispatch — core world map panel details.
 
-use crate::common;
-#[path = "common/keybindings_panels_detail.rs"]
-mod keybindings_panels_detail;
-#[path = "common/token_ui_fixtures.rs"]
-mod token_ui_fixtures;
-
-use keybindings_panels_detail::{
-    drain_test_errors, frame_is_shown, install_test_error_handler, setup_env,
+use crate::prefork_full_ui_preload::{
+    drain_test_errors, frame_is_shown, install_test_error_handler,
 };
+use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::startup::{fire_one_on_update_tick, process_pending_timers};
 
 // ── M → ToggleWorldMap() ────────────────────────────────────────────────
 
-#[test]
-fn keybind_m_opens_world_map() {
-    test_timeout! {
-        let env = setup_env();
-        env.send_key_press("M", None).expect("M keybind failed");
-        assert!(
-            frame_is_shown(&env, "WorldMapFrame"),
-            "WorldMapFrame should be shown after pressing M"
-        );
-    }
+pub(crate) fn keybind_m_opens_world_map(env: &WowLuaEnv) {
+    env.send_key_press("M", None).expect("M keybind failed");
+    assert!(
+        frame_is_shown(&env, "WorldMapFrame"),
+        "WorldMapFrame should be shown after pressing M"
+    );
 }
 
-#[test]
-fn world_map_floor_dropdown_hidden_without_subzone_or_map_group() {
-    test_timeout! {
-        let env = setup_env();
-        install_test_error_handler(&env);
-        env.state().borrow_mut().world.sub_zone_name.clear();
+pub(crate) fn world_map_floor_dropdown_hidden_without_subzone_or_map_group(env: &WowLuaEnv) {
+    install_test_error_handler(&env);
+    env.state().borrow_mut().world.sub_zone_name.clear();
 
-        env.send_key_press("M", None).expect("M keybind failed");
+    env.send_key_press("M", None).expect("M keybind failed");
 
-        let result: String = env
-            .eval(
-                r#"
+    let result: String = env
+        .eval(
+            r#"
                 if not (WorldMapFrame and WorldMapFrame:IsShown()) then
                     return "world_map_not_open"
                 end
@@ -76,73 +64,66 @@ fn world_map_floor_dropdown_hidden_without_subzone_or_map_group() {
 
                 return "ok"
             "#,
-            )
-            .unwrap();
+        )
+        .unwrap();
 
-        let errors = drain_test_errors(&env);
-        assert!(
-            errors.is_empty(),
-            "Opening world map with no subzone produced {} Lua error(s):\n{}",
-            errors.len(),
-            errors.join("\n"),
-        );
-        assert_eq!(
-            result,
-            "ok",
-            "World map floor dropdown should stay hidden when there is no subzone or map group: {result}"
-        );
-    }
+    let errors = drain_test_errors(&env);
+    assert!(
+        errors.is_empty(),
+        "Opening world map with no subzone produced {} Lua error(s):\n{}",
+        errors.len(),
+        errors.join("\n"),
+    );
+    assert_eq!(
+        result, "ok",
+        "World map floor dropdown should stay hidden when there is no subzone or map group: {result}"
+    );
 }
 
-#[test]
-fn keybind_m_toggles_world_map_without_errors() {
-    test_timeout! {
-        let env = setup_env();
-        install_test_error_handler(&env);
+pub(crate) fn keybind_m_toggles_world_map_without_errors(env: &WowLuaEnv) {
+    install_test_error_handler(&env);
 
-        env.send_key_press("M", None).expect("first M keybind failed");
+    env.send_key_press("M", None)
+        .expect("first M keybind failed");
 
-        let open_errors = drain_test_errors(&env);
-        assert!(
-            open_errors.is_empty(),
-            "Opening world map produced {} Lua error(s):\n{}",
-            open_errors.len(),
-            open_errors.join("\n"),
-        );
-        assert!(
-            frame_is_shown(&env, "WorldMapFrame"),
-            "WorldMapFrame should be shown after first M press"
-        );
+    let open_errors = drain_test_errors(&env);
+    assert!(
+        open_errors.is_empty(),
+        "Opening world map produced {} Lua error(s):\n{}",
+        open_errors.len(),
+        open_errors.join("\n"),
+    );
+    assert!(
+        frame_is_shown(&env, "WorldMapFrame"),
+        "WorldMapFrame should be shown after first M press"
+    );
 
-        env.send_key_press("M", None).expect("second M keybind failed");
+    env.send_key_press("M", None)
+        .expect("second M keybind failed");
 
-        let close_errors = drain_test_errors(&env);
-        assert!(
-            close_errors.is_empty(),
-            "Closing world map produced {} Lua error(s):\n{}",
-            close_errors.len(),
-            close_errors.join("\n"),
-        );
-        assert!(
-            !frame_is_shown(&env, "WorldMapFrame"),
-            "WorldMapFrame should be hidden after second M press"
-        );
-    }
+    let close_errors = drain_test_errors(&env);
+    assert!(
+        close_errors.is_empty(),
+        "Closing world map produced {} Lua error(s):\n{}",
+        close_errors.len(),
+        close_errors.join("\n"),
+    );
+    assert!(
+        !frame_is_shown(&env, "WorldMapFrame"),
+        "WorldMapFrame should be hidden after second M press"
+    );
 }
 
-#[test]
-fn world_map_title_text_is_non_empty_after_opening() {
-    test_timeout! {
-        let env = setup_env();
-        install_test_error_handler(&env);
+pub(crate) fn world_map_title_text_is_non_empty_after_opening(env: &WowLuaEnv) {
+    install_test_error_handler(&env);
 
-        env.send_key_press("M", None).expect("M keybind failed");
-        process_pending_timers(&env);
-        fire_one_on_update_tick(&env);
+    env.send_key_press("M", None).expect("M keybind failed");
+    process_pending_timers(&env);
+    fire_one_on_update_tick(&env);
 
-        let result: String = env
-            .eval(
-                r#"
+    let result: String = env
+        .eval(
+            r#"
                 if not (WorldMapFrame and WorldMapFrame:IsShown()) then
                     return "world_map_not_open"
                 end
@@ -170,25 +151,23 @@ fn world_map_title_text_is_non_empty_after_opening() {
 
                 return "stale_name_border_frame_title_text"
             "#,
-            )
-            .unwrap();
+        )
+        .unwrap();
 
-        assert!(
-            result == "ok" || result == "stale_name_border_frame_title_text",
-            "World map opening should produce a non-empty title on the live title widget even if the plan name is stale: {result}"
-        );
-    }
+    assert!(
+        result == "ok" || result == "stale_name_border_frame_title_text",
+        "World map opening should produce a non-empty title on the live title widget even if the plan name is stale: {result}"
+    );
 }
 
-#[test]
-fn world_map_exploration_pin_has_visible_overlay_textures_after_opening() {
-    test_timeout! {
-        let env = setup_env();
-        install_test_error_handler(&env);
+pub(crate) fn world_map_exploration_pin_has_visible_overlay_textures_after_opening(
+    env: &WowLuaEnv,
+) {
+    install_test_error_handler(&env);
 
-        env.send_key_press("M", None).expect("M keybind failed");
+    env.send_key_press("M", None).expect("M keybind failed");
 
-        let result: String = env
+    let result: String = env
             .eval(
                 r#"
                 if not (WorldMapFrame and WorldMapFrame:IsShown()) then
@@ -255,36 +234,31 @@ fn world_map_exploration_pin_has_visible_overlay_textures_after_opening() {
             )
             .unwrap();
 
-        let errors = drain_test_errors(&env);
+    let errors = drain_test_errors(&env);
 
-        assert_eq!(
-            result,
-            "ok",
-            "World map exploration should create a visible exploration overlay pin after opening: {result}"
-        );
-        assert!(
-            errors.is_empty(),
-            "World map exploration test produced {} Lua error(s):\n{}",
-            errors.len(),
-            errors.join("\n"),
-        );
-    }
+    assert_eq!(
+        result, "ok",
+        "World map exploration should create a visible exploration overlay pin after opening: {result}"
+    );
+    assert!(
+        errors.is_empty(),
+        "World map exploration test produced {} Lua error(s):\n{}",
+        errors.len(),
+        errors.join("\n"),
+    );
 }
 
-#[test]
-fn world_map_exploration_pin_converges_visible_after_onupdate_ticks() {
-    test_timeout! {
-        let env = setup_env();
-        install_test_error_handler(&env);
+pub(crate) fn world_map_exploration_pin_converges_visible_after_onupdate_ticks(env: &WowLuaEnv) {
+    install_test_error_handler(&env);
 
-        env.send_key_press("M", None).expect("M keybind failed");
-        for _ in 0..12 {
-            process_pending_timers(&env);
-            env.state().borrow_mut().ensure_layout_rects();
-            fire_one_on_update_tick(&env);
-        }
+    env.send_key_press("M", None).expect("M keybind failed");
+    for _ in 0..12 {
+        process_pending_timers(&env);
+        env.state().borrow_mut().ensure_layout_rects();
+        fire_one_on_update_tick(&env);
+    }
 
-        let result: String = env
+    let result: String = env
             .eval(
                 r#"
                 if not (WorldMapFrame and WorldMapFrame:IsShown()) then
@@ -359,38 +333,33 @@ fn world_map_exploration_pin_converges_visible_after_onupdate_ticks() {
             )
             .unwrap();
 
-        let errors = drain_test_errors(&env);
+    let errors = drain_test_errors(&env);
 
-        assert_eq!(
-            result,
-            "ok",
-            "World map exploration pin should become visible after update ticks: {result}"
-        );
-        assert!(
-            errors.is_empty(),
-            "World map exploration visibility test produced {} Lua error(s):\n{}",
-            errors.len(),
-            errors.join("\n"),
-        );
-    }
+    assert_eq!(
+        result, "ok",
+        "World map exploration pin should become visible after update ticks: {result}"
+    );
+    assert!(
+        errors.is_empty(),
+        "World map exploration visibility test produced {} Lua error(s):\n{}",
+        errors.len(),
+        errors.join("\n"),
+    );
 }
 
-#[test]
-fn world_map_exploration_pin_first_open_settles_without_reopen() {
-    test_timeout! {
-        let env = setup_env();
-        install_test_error_handler(&env);
+pub(crate) fn world_map_exploration_pin_first_open_settles_without_reopen(env: &WowLuaEnv) {
+    install_test_error_handler(&env);
 
-        env.send_key_press("M", None).expect("M keybind failed");
-        for _ in 0..4 {
-            process_pending_timers(&env);
-            env.state().borrow_mut().ensure_layout_rects();
-            fire_one_on_update_tick(&env);
-        }
+    env.send_key_press("M", None).expect("M keybind failed");
+    for _ in 0..4 {
+        process_pending_timers(&env);
+        env.state().borrow_mut().ensure_layout_rects();
+        fire_one_on_update_tick(&env);
+    }
 
-        let result: String = env
-            .eval(
-                r#"
+    let result: String = env
+        .eval(
+            r#"
                 if not (WorldMapFrame and WorldMapFrame:IsShown()) then
                     return "world_map_not_open"
                 end
@@ -422,32 +391,29 @@ fn world_map_exploration_pin_first_open_settles_without_reopen() {
                 end
                 return "ok"
             "#,
-            )
-            .unwrap();
+        )
+        .unwrap();
 
-        let errors = drain_test_errors(&env);
-        assert_eq!(
-            result,
-            "ok",
-            "World map first open should settle explored pin visibility without requiring reopen: {result}"
-        );
-        assert!(
-            errors.is_empty(),
-            "World map first-open settle test produced {} Lua error(s):\n{}",
-            errors.len(),
-            errors.join("\n"),
-        );
-    }
+    let errors = drain_test_errors(&env);
+    assert_eq!(
+        result, "ok",
+        "World map first open should settle explored pin visibility without requiring reopen: {result}"
+    );
+    assert!(
+        errors.is_empty(),
+        "World map first-open settle test produced {} Lua error(s):\n{}",
+        errors.len(),
+        errors.join("\n"),
+    );
 }
 
-#[test]
-fn world_map_exploration_pin_recovers_when_first_overlay_fetch_is_empty() {
-    test_timeout! {
-        let env = setup_env();
-        install_test_error_handler(&env);
+pub(crate) fn world_map_exploration_pin_recovers_when_first_overlay_fetch_is_empty(
+    env: &WowLuaEnv,
+) {
+    install_test_error_handler(&env);
 
-        env.eval::<bool>(
-            r#"
+    env.eval::<bool>(
+        r#"
             local original = C_MapExplorationInfo.GetExploredMapTextures
             local suppressedByMapID = {}
             C_MapExplorationInfo.GetExploredMapTextures = function(mapID)
@@ -459,19 +425,19 @@ fn world_map_exploration_pin_recovers_when_first_overlay_fetch_is_empty() {
             end
             return true
         "#,
-        )
-        .unwrap();
+    )
+    .unwrap();
 
-        env.send_key_press("M", None).expect("M keybind failed");
-        for _ in 0..12 {
-            process_pending_timers(&env);
-            env.state().borrow_mut().ensure_layout_rects();
-            fire_one_on_update_tick(&env);
-        }
+    env.send_key_press("M", None).expect("M keybind failed");
+    for _ in 0..12 {
+        process_pending_timers(&env);
+        env.state().borrow_mut().ensure_layout_rects();
+        fire_one_on_update_tick(&env);
+    }
 
-        let result: String = env
-            .eval(
-                r#"
+    let result: String = env
+        .eval(
+            r#"
                 if not (WorldMapFrame and WorldMapFrame:IsShown()) then
                     return "world_map_not_open"
                 end
@@ -505,50 +471,44 @@ fn world_map_exploration_pin_recovers_when_first_overlay_fetch_is_empty() {
                 end
                 return "ok"
             "#,
-            )
-            .unwrap();
+        )
+        .unwrap();
 
-        let errors = drain_test_errors(&env);
-        assert_eq!(
-            result,
-            "ok",
-            "World map should recover from an empty first explored-texture fetch without requiring reopen: {result}"
-        );
-        assert!(
-            errors.is_empty(),
-            "World map empty-first-fetch recovery test produced {} Lua error(s):\n{}",
-            errors.len(),
-            errors.join("\n"),
-        );
-    }
+    let errors = drain_test_errors(&env);
+    assert_eq!(
+        result, "ok",
+        "World map should recover from an empty first explored-texture fetch without requiring reopen: {result}"
+    );
+    assert!(
+        errors.is_empty(),
+        "World map empty-first-fetch recovery test produced {} Lua error(s):\n{}",
+        errors.len(),
+        errors.join("\n"),
+    );
 }
 
-#[test]
-fn world_map_registers_fog_of_war_pin_template_as_fog_of_war_frame() {
-    test_timeout! {
-        let env = setup_env();
-        install_test_error_handler(&env);
+pub(crate) fn world_map_registers_fog_of_war_pin_template_as_fog_of_war_frame(env: &WowLuaEnv) {
+    install_test_error_handler(&env);
 
-        env.send_key_press("M", None).expect("M keybind failed");
+    env.send_key_press("M", None).expect("M keybind failed");
 
-        let template_type: String = env
-            .eval(
-                r#"
+    let template_type: String = env
+        .eval(
+            r#"
                 local info = C_XMLUtil.GetTemplateInfo("FogOfWarPinTemplate")
                 assert(info, "missing FogOfWarPinTemplate")
                 return info.type
             "#,
-            )
-            .unwrap();
+        )
+        .unwrap();
 
-        let errors = drain_test_errors(&env);
+    let errors = drain_test_errors(&env);
 
-        assert_eq!(template_type, "FogOfWarFrame");
-        assert!(
-            errors.is_empty(),
-            "World map template test produced {} Lua error(s):\n{}",
-            errors.len(),
-            errors.join("\n"),
-        );
-    }
+    assert_eq!(template_type, "FogOfWarFrame");
+    assert!(
+        errors.is_empty(),
+        "World map template test produced {} Lua error(s):\n{}",
+        errors.len(),
+        errors.join("\n"),
+    );
 }

@@ -183,11 +183,239 @@ pub const COOLDOWN_VIEWER_CATEGORY: SeqEnumDef = (
     &["Essential", "Utility", "TrackedBuff", "TrackedBar"],
 );
 
+#[cfg(feature = "retail-12-1-0")]
+pub const COOLDOWN_VIEWER_SOUND: SeqEnumDef = (
+    "CooldownViewerSound",
+    &[
+        "TextToSpeech",
+        "AnimalsCat",
+        "AnimalsChicken",
+        "AnimalsCow",
+        "AnimalsGnoll",
+        "AnimalsGoat",
+        "AnimalsLion",
+        "AnimalsPanther",
+        "AnimalsRattlesnake",
+        "AnimalsSheep",
+        "AnimalsWolf",
+        "DevicesBoatHorn",
+        "DevicesAirHorn",
+        "DevicesBikeHorn",
+        "DevicesCashRegister",
+        "DevicesJackpotBell",
+        "DevicesJackpotCoins",
+        "DevicesJackpotFail",
+        "DevicesRotaryPhoneDial",
+        "DevicesRotaryPhoneRing",
+        "DevicesStovePipe",
+        "DevicesTrashcanLid",
+        "ImpactsAnvilStrike",
+        "ImpactsBubbleSmash",
+        "ImpactsLowThud",
+        "ImpactsMetalClanks",
+        "ImpactsMetalRattle",
+        "ImpactsMetalScrape",
+        "ImpactsMetalWarble",
+        "ImpactsPopClick",
+        "ImpactsStrangeClang",
+        "ImpactsSwordScrape",
+        "InstrumentsBellRing",
+        "InstrumentsBellTrill",
+        "InstrumentsBrass",
+        "InstrumentsChimeAscending",
+        "InstrumentsGuitarChug",
+        "InstrumentsGuitarPinch",
+        "InstrumentsPitchPipeDistressed",
+        "InstrumentsPitchPipeNote",
+        "InstrumentsSynthBig",
+        "InstrumentsSynthBuzz",
+        "InstrumentsSynthHigh",
+        "InstrumentsWarhorn",
+        "War2AbstractWhoosh",
+        "War2Choir",
+        "War2Construction",
+        "War2MagicChimes",
+        "War2PigSqueal",
+        "War2Saws",
+        "War2Seal",
+        "War2Slow",
+        "War2Smith",
+        "War2SynthStinger",
+        "War2TrumpetRally",
+        "War2ZippyMagic",
+        "War3Bell",
+        "War3CrunchyBell",
+        "War3DrumSplash",
+        "War3Error",
+        "War3Fanfare",
+        "War3GateOpen",
+        "War3Gold",
+        "War3MagicShimmer",
+        "War3Ringout",
+        "War3Rooster",
+        "War3ShimmerBell",
+        "War3WolfHowl",
+        "ShortBellStrike",
+        "ShortBellTree",
+        "ShortBigPot",
+        "ShortBlades",
+        "ShortCoffeeMug",
+        "ShortCowBell",
+        "ShortFingerSnap",
+        "ShortGuitar",
+        "ShortKalimba",
+        "ShortMetalBladeDrop",
+        "ShortMetalBladeOnRod",
+        "ShortMetalImpact",
+        "ShortMiniWoodXylophone",
+        "ShortPaperCup",
+        "ShortSheetMetal",
+        "ShortStovePipe",
+        "ShortStovePipeBlade",
+        "ShortSwordShing",
+        "ShortSynthBleep",
+        "ShortSynthBlurp",
+        "ShortSynthError",
+        "ShortSynthHigh",
+        "ShortTriangle",
+        "ShortWaterDrop",
+        "ShortWineBottle",
+        "ShortWoodXylophone",
+    ],
+);
+
+#[cfg(feature = "retail-12-1-0")]
+pub const COOLDOWN_VIEWER_SOUND_META: EnumDef = (
+    "CooldownViewerSoundMeta",
+    &[("MinValue", 0), ("MaxValue", 93), ("NumValues", 94)],
+);
+
 pub const TTS_VOICE_TYPE: SeqEnumDef = ("TtsVoiceType", &["Standard", "Alternate"]);
+
+#[cfg(feature = "retail-12-1-0")]
+pub const CUSTOM_AURA_BUTTON_DISPEL_TYPE_TEXTURE_STYLE: SeqEnumDef = (
+    "CustomAuraButtonDispelTypeTextureStyle",
+    &[
+        "Border",
+        "BorderWithIcon",
+        "Icon",
+        "PreserveAsset",
+        "CustomAsset",
+    ],
+);
+
+#[cfg(feature = "retail-12-1-0")]
+pub const CUSTOM_AURA_BUTTON_DISPEL_TYPE_TEXTURE_STYLE_META: EnumDef = (
+    "CustomAuraButtonDispelTypeTextureStyleMeta",
+    &[("MinValue", 0), ("MaxValue", 4), ("NumValues", 5)],
+);
+
+#[cfg(feature = "retail-12-1-0")]
+pub const RECENT_ALLIES_FRIEND_TAG: SeqEnumDef = (
+    "RecentAlliesFriendTag",
+    &[
+        "Professions",
+        "PvP",
+        "Raiding",
+        "Dungeons",
+        "Delves",
+        "Questing",
+    ],
+);
+
+#[cfg(feature = "retail-12-1-0")]
+pub const RECENT_ALLIES_FRIEND_TAG_META: EnumDef = (
+    "RecentAlliesFriendTagMeta",
+    &[("MinValue", 0), ("MaxValue", 5), ("NumValues", 6)],
+);
 
 // ============================================================================
 // Guild / Social Enums
 // ============================================================================
+
+#[cfg(feature = "retail-12-1-0")]
+pub const BATTLE_NET_FRIEND_LEVEL: EnumDef = (
+    "BattleNetFriendLevel",
+    &[("BattleTag", 1), ("RealID", 2), ("Title", 3)],
+);
+
+#[cfg(feature = "retail-12-1-0")]
+pub const BATTLE_NET_FRIEND_LEVEL_META: EnumDef = (
+    "BattleNetFriendLevelMeta",
+    &[("MinValue", 1), ("MaxValue", 3), ("NumValues", 3)],
+);
+
+#[cfg(feature = "retail-12-1-0")]
+pub const BATTLE_NET_FRIEND_TAG: EnumDef = (
+    "BattleNetFriendTag",
+    &[
+        ("Professions", 0),
+        ("PvP", 1),
+        ("Raiding", 2),
+        ("Dungeons", 3),
+        ("Delves", 4),
+        ("Questing", 5),
+        ("Roleplaying", 6),
+        ("DamagerRole", 7),
+        ("HealerRole", 8),
+        ("TankRole", 9),
+    ],
+);
+
+#[cfg(feature = "retail-12-1-0")]
+pub const BATTLE_NET_FRIEND_TAG_META: EnumDef = (
+    "BattleNetFriendTagMeta",
+    &[("MinValue", 0), ("MaxValue", 9), ("NumValues", 10)],
+);
+
+#[cfg(feature = "retail-12-1-0")]
+pub const SOCIAL_UI_BLOCK_TYPE: EnumDef = (
+    "SocialUIBlockType",
+    &[("None", 0), ("Ignore", 1), ("BattleNetInviteBlock", 2)],
+);
+
+#[cfg(feature = "retail-12-1-0")]
+pub const SOCIAL_UI_BLOCK_TYPE_META: EnumDef = (
+    "SocialUIBlockTypeMeta",
+    &[("MinValue", 0), ("MaxValue", 2), ("NumValues", 3)],
+);
+
+#[cfg(feature = "retail-12-1-0")]
+pub const SOCIAL_UI_PRESENCE_TYPE: EnumDef = (
+    "SocialUIPresenceType",
+    &[
+        ("Unknown", 0),
+        ("Online", 1),
+        ("Offline", 2),
+        ("Away", 3),
+        ("Busy", 4),
+        ("AppearOffline", 5),
+    ],
+);
+
+#[cfg(feature = "retail-12-1-0")]
+pub const SOCIAL_UI_PRESENCE_TYPE_META: EnumDef = (
+    "SocialUIPresenceTypeMeta",
+    &[("MinValue", 0), ("MaxValue", 5), ("NumValues", 6)],
+);
+
+#[cfg(feature = "retail-12-1-0")]
+pub const SOCIAL_SYSTEM_TYPE: SeqEnumDef = (
+    "SocialSystemType",
+    &[
+        "Friends",
+        "QuickJoin",
+        "RaidList",
+        "RecruitAFriend",
+        "RecentAllies",
+    ],
+);
+
+#[cfg(feature = "retail-12-1-0")]
+pub const SOCIAL_SYSTEM_TYPE_META: EnumDef = (
+    "SocialSystemTypeMeta",
+    &[("MinValue", 0), ("MaxValue", 4), ("NumValues", 5)],
+);
 
 pub const GUILD_ERROR_TYPE: SeqEnumDef = (
     "GuildErrorType",
@@ -275,6 +503,15 @@ pub const ROLODEX_TYPE: SeqEnumDef = (
     ],
 );
 
+#[cfg(feature = "retail-12-1-0")]
+pub const ROLODEX_TYPE_LEGACY_FRIEND: EnumDef = ("RolodexType", &[("LegacyFriend", 23)]);
+
+#[cfg(feature = "retail-12-1-0")]
+pub const ROLODEX_TYPE_META: EnumDef = (
+    "RolodexTypeMeta",
+    &[("MinValue", 0), ("MaxValue", 23), ("NumValues", 22)],
+);
+
 pub const INVALID_PLOT_SCREENSHOT_REASON: SeqEnumDef = (
     "InvalidPlotScreenshotReason",
     &[
@@ -306,14 +543,30 @@ pub const WARBAND_SCENE_ANIMATION_EVENT: EnumDef = (
 // Housing Enums
 // ============================================================================
 
+#[cfg(feature = "retail-12-1-0")]
 pub const HOUSING_RESULT: SeqEnumDef = (
     "HousingResult",
     &[
         "Success",
+        "AccountBanned",
         "ActionLockedByCombat",
+        "BlueprintCodeInvalid",
+        "BlueprintDyeFailed",
+        "BlueprintGenericExportError",
+        "BlueprintGenericImportError",
+        "BlueprintLocationInvalid",
+        "BlueprintNameInvalid",
+        "BlueprintNotFound",
+        "BlueprintRequirementsUnmet",
+        "BlueprintRoomPlacementRequired",
+        "BlueprintTypeInvalid",
+        "BlueprintTypeLocationInvalid",
+        "BlueprintStorageLimit",
+        "BlueprintVersionInvalid",
         "BoundsFailureChildren",
         "BoundsFailurePlot",
         "BoundsFailureRoom",
+        "BoundToStartingArea",
         "CannotAfford",
         "CharterComplete",
         "CollisionInvalid",
@@ -329,7 +582,6 @@ pub const HOUSING_RESULT: SeqEnumDef = (
         "FixtureHookOccupied",
         "FixtureHouseTypeMismatch",
         "FixtureNotFound",
-        "FixtureNotOwned",
         "FixtureSizeMismatch",
         "FixtureTypeMismatch",
         "GenericFailure",
@@ -349,17 +601,23 @@ pub const HOUSING_RESULT: SeqEnumDef = (
         "IncorrectFaction",
         "InvalidDecorItem",
         "InvalidDistance",
+        "InvalidExteriorDocument",
         "InvalidGuild",
         "InvalidHouse",
         "InvalidInstance",
         "InvalidInteraction",
+        "InvalidInteriorDocument",
+        "InvalidLightOverlap",
         "InvalidMap",
         "InvalidNeighborhoodName",
         "InvalidRoomLayout",
+        "InsufficientRoomBudget",
         "LockedByOtherPlayer",
         "LockOperationFailed",
-        "MaxDecorReached",
+        "MaxPlacedDecorReached",
+        "MaxPetDecorReached",
         "MaxPreviewDecorReached",
+        "MaxStorageDecorReached",
         "MissingCoreFixture",
         "MissingDye",
         "MissingExpansionAccess",
@@ -385,6 +643,7 @@ pub const HOUSING_RESULT: SeqEnumDef = (
         "PlotReservationCooldown",
         "PlotReserved",
         "RoomNotFound",
+        "RoomPlacementOutOfBounds",
         "RoomUpdateFailed",
         "RpcFailure",
         "ServiceNotAvailable",
@@ -403,19 +662,136 @@ pub const HOUSING_RESULT: SeqEnumDef = (
     ],
 );
 
+#[cfg(feature = "retail-12-1-0")]
+pub const HOUSING_RESULT_META: EnumDef = (
+    "HousingResultMeta",
+    &[("MinValue", 0), ("MaxValue", 111), ("NumValues", 112)],
+);
+
+#[cfg(feature = "retail-12-1-0")]
+pub const HOUSING_PET_BEHAVIOR_TYPE: SeqEnumDef =
+    ("HousingPetBehaviorType", &["Stationary", "Wander"]);
+
+#[cfg(feature = "retail-12-1-0")]
+pub const HOUSING_PET_BEHAVIOR_TYPE_META: EnumDef = (
+    "HousingPetBehaviorTypeMeta",
+    &[("MinValue", 0), ("MaxValue", 1), ("NumValues", 2)],
+);
+
+#[cfg(feature = "retail-12-1-0")]
+pub const HOUSE_EDITOR_PLAYER_TYPE: SeqEnumDef =
+    ("HouseEditorPlayerType", &["None", "Owner", "Visitor"]);
+
+#[cfg(feature = "retail-12-1-0")]
+pub const HOUSE_EDITOR_PLAYER_TYPE_META: EnumDef = (
+    "HouseEditorPlayerTypeMeta",
+    &[("MinValue", 0), ("MaxValue", 2), ("NumValues", 3)],
+);
+
+#[cfg(feature = "retail-12-1-0")]
 pub const HOUSE_SETTING_FLAGS: EnumDef = (
     "HouseSettingFlags",
     &[
+        ("None", 0),
         ("HouseAccessAnyone", 1),
         ("HouseAccessNeighbors", 2),
         ("HouseAccessGuild", 4),
         ("HouseAccessFriends", 8),
         ("HouseAccessParty", 16),
-        ("PlotAccessNeighbors", 32),
-        ("PlotAccessGuild", 64),
-        ("PlotAccessFriends", 128),
-        ("PlotAccessParty", 256),
+        ("PlotAccessAnyone", 32),
+        ("PlotAccessNeighbors", 64),
+        ("PlotAccessGuild", 128),
+        ("PlotAccessFriends", 256),
+        ("PlotAccessParty", 512),
+        ("BlueprintExportAnyone", 1024),
+        ("BlueprintExportNeighbors", 2048),
+        ("BlueprintExportGuild", 4096),
+        ("BlueprintExportFriends", 8192),
+        ("BlueprintExportParty", 16384),
     ],
+);
+
+#[cfg(feature = "retail-12-1-0")]
+pub const HOUSE_SETTING_FLAGS_META: EnumDef = (
+    "HouseSettingFlagsMeta",
+    &[("MinValue", 0), ("MaxValue", 16384), ("NumValues", 16)],
+);
+
+#[cfg(feature = "retail-12-1-0")]
+pub const HOUSING_BUDGET_TYPE: EnumDef = (
+    "HousingBudgetType",
+    &[("RoomPlacement", 0), ("DecorPlacement", 1), ("PetDecor", 2)],
+);
+
+#[cfg(feature = "retail-12-1-0")]
+pub const HOUSING_BUDGET_TYPE_META: EnumDef = (
+    "HousingBudgetTypeMeta",
+    &[("MinValue", 0), ("MaxValue", 2), ("NumValues", 3)],
+);
+
+#[cfg(feature = "retail-12-1-0")]
+pub const HOUSING_HOUSE_SCOPE: EnumDef = (
+    "HousingHouseScope",
+    &[("None", 0), ("Interior", 1), ("Exterior", 2)],
+);
+
+#[cfg(feature = "retail-12-1-0")]
+pub const HOUSING_HOUSE_SCOPE_META: EnumDef = (
+    "HousingHouseScopeMeta",
+    &[("MinValue", 0), ("MaxValue", 2), ("NumValues", 3)],
+);
+
+#[cfg(feature = "retail-12-1-0")]
+pub const HOUSING_BLUEPRINT_TYPE: SeqEnumDef = (
+    "HousingBlueprintType",
+    &["None", "House", "Room", "Interior", "Exterior"],
+);
+
+#[cfg(feature = "retail-12-1-0")]
+pub const HOUSING_BLUEPRINT_TYPE_META: EnumDef = (
+    "HousingBlueprintTypeMeta",
+    &[("MinValue", 0), ("MaxValue", 4), ("NumValues", 5)],
+);
+
+#[cfg(feature = "retail-12-1-0")]
+pub const HOUSING_BLUEPRINT_CONTENT_TYPE: SeqEnumDef = (
+    "HousingBlueprintContentType",
+    &[
+        "None",
+        "HouseType",
+        "Room",
+        "Decor",
+        "Dye",
+        "Fixture",
+        "Other",
+    ],
+);
+
+#[cfg(feature = "retail-12-1-0")]
+pub const HOUSING_BLUEPRINT_CONTENT_TYPE_META: EnumDef = (
+    "HousingBlueprintContentTypeMeta",
+    &[("MinValue", 0), ("MaxValue", 6), ("NumValues", 7)],
+);
+
+#[cfg(feature = "retail-12-1-0")]
+pub const HOUSING_BLUEPRINT_UNMET_REQUIREMENT_FLAGS: EnumDef = (
+    "HousingBlueprintUnmetRequirementFlags",
+    &[
+        ("InsufficientBudget", 1),
+        ("MissingRoom", 2),
+        ("MissingFixture", 4),
+        ("MissingDecor", 8),
+        ("MissingDye", 16),
+        ("MismatchedExteriorFaction", 32),
+        ("HouseTypeLocked", 64),
+        ("HouseSizeLocked", 128),
+    ],
+);
+
+#[cfg(feature = "retail-12-1-0")]
+pub const HOUSING_BLUEPRINT_UNMET_REQUIREMENT_FLAGS_META: EnumDef = (
+    "HousingBlueprintUnmetRequirementFlagsMeta",
+    &[("MinValue", 1), ("MaxValue", 128), ("NumValues", 8)],
 );
 
 pub const HOUSE_OWNER_ERROR: EnumDef = (
@@ -458,6 +834,18 @@ pub const NEIGHBORHOOD_OWNER_TYPE: SeqEnumDef =
 // ============================================================================
 // Delves Enums
 // ============================================================================
+
+#[cfg(feature = "retail-12-1-0")]
+pub const TIERED_ENTRANCE_TYPE: EnumDef = (
+    "TieredEntranceType",
+    &[
+        ("Invalid", 0),
+        ("Delve", 1),
+        ("Sites", 2),
+        ("WorldTier", 3),
+        ("Lairs", 4),
+    ],
+);
 
 pub const TIERED_ENTRANCE_REWARD_TYPE: EnumDef =
     ("TieredEntranceRewardType", &[("Item", 0), ("Currency", 1)]);

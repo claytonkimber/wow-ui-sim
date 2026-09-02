@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, find_toc_file, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
-use wow_ui_sim::startup::fire_startup_events_for_screen;
 use wow_ui_sim::toc::TocFile;
 
 fn blizzard_ui_dir() -> PathBuf {
@@ -41,34 +40,11 @@ const MIXIN_METHODS: &[&str] = &[
     "UpdatePosition",
 ];
 
-fn load_full_game_ui_with_hybrid_minimap_lod() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-
-    wow_ui_sim::xml::register_intrinsic_templates();
-
-    let ui = blizzard_ui_dir();
-    let addons = discover_blizzard_addons_for_screen(&ui, ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    env.apply_post_load_workarounds();
-    fire_startup_events_for_screen(&env, ScreenKind::Game);
-
+fn load_hybrid_minimap_with_dependency(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &map_canvas_toc())
         .expect("Blizzard_MapCanvas should load via explicit Rust loader call");
     load_addon(&env.loader_env(), &hybrid_minimap_toc())
         .expect("Blizzard_HybridMinimap should load via explicit Rust loader call");
-
-    env
 }
 
 #[test]
@@ -188,9 +164,9 @@ fn blizzard_hybrid_minimap_excluded_from_game_screen_auto_discovery() {
     );
 }
 
-#[test]
-fn blizzard_hybrid_minimap_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui_with_hybrid_minimap_lod();
+prefork_full_ui_case! {
+fn blizzard_hybrid_minimap_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
+    load_hybrid_minimap_with_dependency(env);
 
     let load_errors: Vec<String> = env
         .state()
@@ -210,10 +186,11 @@ fn blizzard_hybrid_minimap_loads_without_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_hybrid_minimap_is_addon_loaded_via_explicit_load() {
-    let env = load_full_game_ui_with_hybrid_minimap_lod();
+prefork_full_ui_case! {
+fn blizzard_hybrid_minimap_is_addon_loaded_via_explicit_load(env: &WowLuaEnv) {
+    load_hybrid_minimap_with_dependency(env);
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_HybridMinimap')")
@@ -234,10 +211,11 @@ fn blizzard_hybrid_minimap_is_addon_loaded_via_explicit_load() {
          consumes"
     );
 }
+}
 
-#[test]
-fn blizzard_hybrid_minimap_publishes_mixin_with_thirteen_methods() {
-    let env = load_full_game_ui_with_hybrid_minimap_lod();
+prefork_full_ui_case! {
+fn blizzard_hybrid_minimap_publishes_mixin_with_thirteen_methods(env: &WowLuaEnv) {
+    load_hybrid_minimap_with_dependency(env);
 
     let mixin_kind: String = env
         .eval("return type(HybridMinimapMixin)")
@@ -267,10 +245,11 @@ fn blizzard_hybrid_minimap_publishes_mixin_with_thirteen_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_hybrid_minimap_named_frame_publishes_with_minimap_parent() {
-    let env = load_full_game_ui_with_hybrid_minimap_lod();
+prefork_full_ui_case! {
+fn blizzard_hybrid_minimap_named_frame_publishes_with_minimap_parent(env: &WowLuaEnv) {
+    load_hybrid_minimap_with_dependency(env);
 
     let kind: String = env
         .eval("return type(HybridMinimap)")
@@ -299,10 +278,11 @@ fn blizzard_hybrid_minimap_named_frame_publishes_with_minimap_parent() {
          hidden until :Enable() is called and :CheckMap() finds a valid C_Minimap.GetUiMapID()"
     );
 }
+}
 
-#[test]
-fn blizzard_hybrid_minimap_frame_carries_mapcanvas_child() {
-    let env = load_full_game_ui_with_hybrid_minimap_lod();
+prefork_full_ui_case! {
+fn blizzard_hybrid_minimap_frame_carries_mapcanvas_child(env: &WowLuaEnv) {
+    load_hybrid_minimap_with_dependency(env);
 
     let kind: String = env
         .eval("return type(HybridMinimap.MapCanvas)")
@@ -314,10 +294,11 @@ fn blizzard_hybrid_minimap_frame_carries_mapcanvas_child() {
          minimap reuses to display rectangular map art clipped to the circular minimap mask"
     );
 }
+}
 
-#[test]
-fn blizzard_hybrid_minimap_frame_carries_circle_mask_overlay_texture() {
-    let env = load_full_game_ui_with_hybrid_minimap_lod();
+prefork_full_ui_case! {
+fn blizzard_hybrid_minimap_frame_carries_circle_mask_overlay_texture(env: &WowLuaEnv) {
+    load_hybrid_minimap_with_dependency(env);
 
     let kind: String = env
         .eval("return type(HybridMinimap.CircleMask)")
@@ -330,10 +311,11 @@ fn blizzard_hybrid_minimap_frame_carries_circle_mask_overlay_texture() {
          map content renders as a circle. OnLoad calls mapCanvas:SetMaskTexture(self.CircleMask)"
     );
 }
+}
 
-#[test]
-fn blizzard_hybrid_minimap_frame_starts_at_background_strata() {
-    let env = load_full_game_ui_with_hybrid_minimap_lod();
+prefork_full_ui_case! {
+fn blizzard_hybrid_minimap_frame_starts_at_background_strata(env: &WowLuaEnv) {
+    load_hybrid_minimap_with_dependency(env);
 
     let strata: String = env
         .eval("return HybridMinimap:GetFrameStrata()")
@@ -345,6 +327,7 @@ fn blizzard_hybrid_minimap_frame_starts_at_background_strata() {
          renders behind every other minimap overlay (POI pins, the rotation arrow, the outer \
          ring). `fixedFrameStrata` blocks any later SetFrameStrata override"
     );
+}
 }
 
 #[test]

@@ -13,7 +13,6 @@ use keybinding_panel_fixtures::{
     BLIZZARD_ADDONS, BLIZZARD_TOKEN_UI_ADDON, blizzard_ui_dir, setup_env,
 };
 use wow_ui_sim::iced_app::{RegistryQuadBatchParams, build_quad_batch_for_registry};
-use wow_ui_sim::loader::load_addon;
 use wow_ui_sim::lua_api::WowLuaEnv;
 
 fn setup_env_with_bootstrap_loaded_token_ui() -> WowLuaEnv {
@@ -26,18 +25,12 @@ fn setup_env_with_bootstrap_loaded_token_ui() -> WowLuaEnv {
     }
 
     let ui = blizzard_ui_dir();
-    for (name, toc) in BLIZZARD_ADDONS
+    for addon_name in BLIZZARD_ADDONS
         .iter()
         .copied()
         .chain(std::iter::once(BLIZZARD_TOKEN_UI_ADDON))
     {
-        let toc_path = ui.join(name).join(toc);
-        if !toc_path.exists() {
-            continue;
-        }
-        if let Err(e) = load_addon(&env.loader_env(), &toc_path) {
-            eprintln!("[load {name}] FAILED: {e}");
-        }
+        common::load_required_blizzard_addon(&env, &ui, addon_name);
     }
 
     env.apply_post_load_workarounds();

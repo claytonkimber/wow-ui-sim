@@ -88,9 +88,8 @@ fn blizzard_customization_ui_is_absent_from_game_auto_discovery() {
     );
 }
 
-#[test]
-fn blizzard_customization_ui_loads_via_load_addon_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_customization_ui_loads_via_load_addon_without_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -109,10 +108,10 @@ fn blizzard_customization_ui_loads_via_load_addon_without_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_customization_ui_util_helper_is_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_customization_ui_util_helper_is_defined(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &customization_ui_toc())
         .expect("Blizzard_CustomizationUI should load via Rust loader");
 
@@ -131,10 +130,10 @@ fn blizzard_customization_ui_util_helper_is_defined() {
          from `GetCVarBool('debugTargetInfo')`"
     );
 }
+}
 
-#[test]
-fn blizzard_customization_ui_template_base_mixins_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_customization_ui_template_base_mixins_are_defined(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &customization_ui_toc())
         .expect("Blizzard_CustomizationUI should load via Rust loader");
 
@@ -168,10 +167,10 @@ fn blizzard_customization_ui_template_base_mixins_are_defined() {
          CustomizationNoHeaderTooltipMixin (line 172)"
     );
 }
+}
 
-#[test]
-fn blizzard_customization_ui_option_template_mixins_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_customization_ui_option_template_mixins_are_defined(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &customization_ui_toc())
         .expect("Blizzard_CustomizationUI should load via Rust loader");
 
@@ -212,10 +211,10 @@ fn blizzard_customization_ui_option_template_mixins_are_defined() {
          CustomizationDropdownElementMixin (line 774)"
     );
 }
+}
 
-#[test]
-fn blizzard_customization_ui_audio_interface_mixins_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_customization_ui_audio_interface_mixins_are_defined(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &customization_ui_toc())
         .expect("Blizzard_CustomizationUI should load via Rust loader");
 
@@ -256,10 +255,10 @@ fn blizzard_customization_ui_audio_interface_mixins_are_defined() {
          animation)"
     );
 }
+}
 
-#[test]
-fn blizzard_customization_ui_main_frame_mixins_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_customization_ui_main_frame_mixins_are_defined(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &customization_ui_toc())
         .expect("Blizzard_CustomizationUI should load via Rust loader");
 
@@ -289,10 +288,10 @@ fn blizzard_customization_ui_main_frame_mixins_are_defined() {
          that builds the option/element pools)"
     );
 }
+}
 
-#[test]
-fn blizzard_customization_ui_xml_templates_are_registered() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_customization_ui_xml_templates_are_registered(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &customization_ui_toc())
         .expect("Blizzard_CustomizationUI should load via Rust loader");
 
@@ -331,4 +330,5 @@ fn blizzard_customization_ui_xml_templates_are_registered() {
              Blizzard_CharacterCreate / Blizzard_BarbershopUI to inherit them"
         );
     }
+}
 }

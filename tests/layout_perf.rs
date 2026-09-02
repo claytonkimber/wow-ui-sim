@@ -23,7 +23,7 @@ const TOOLTIP_RENDER_BUDGET: Duration = Duration::from_millis(25);
 
 #[test]
 fn full_root_layout_pass_stays_under_budget() {
-    test_timeout! {
+    perf_test_timeout! {
         let loaded_ui = load_timed_game_ui();
         let env = &loaded_ui.env;
         assert!(
@@ -49,7 +49,7 @@ fn full_root_layout_pass_stays_under_budget() {
 
 #[test]
 fn incremental_anchor_change_layout_pass_stays_under_budget() {
-    test_timeout! {
+    perf_test_timeout! {
         let loaded_ui = load_timed_game_ui();
         let env = &loaded_ui.env;
         assert!(
@@ -75,7 +75,7 @@ fn incremental_anchor_change_layout_pass_stays_under_budget() {
 
 #[test]
 fn strata_bucket_rebuild_stays_under_budget() {
-    test_timeout! {
+    perf_test_timeout! {
         let loaded_ui = load_timed_game_ui();
         let env = &loaded_ui.env;
         assert!(
@@ -101,7 +101,7 @@ fn strata_bucket_rebuild_stays_under_budget() {
 
 #[test]
 fn full_quad_batch_build_stays_under_budget() {
-    test_timeout! {
+    perf_test_timeout! {
         let loaded_ui = load_timed_game_ui();
         let env = &loaded_ui.env;
         assert!(
@@ -127,7 +127,7 @@ fn full_quad_batch_build_stays_under_budget() {
 
 #[test]
 fn dirty_tree_quad_rebuild_stays_under_budget() {
-    test_timeout! {
+    perf_test_timeout! {
         let loaded_ui = load_timed_game_ui();
         let env = &loaded_ui.env;
         assert!(
@@ -153,7 +153,7 @@ fn dirty_tree_quad_rebuild_stays_under_budget() {
 
 #[test]
 fn tooltip_collect_and_quad_emission_stays_under_budget() {
-    test_timeout! {
+    perf_test_timeout! {
         let loaded_ui = load_timed_game_ui();
         let env = &loaded_ui.env;
         assert!(

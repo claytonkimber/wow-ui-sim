@@ -9,7 +9,7 @@ use perf_cases::{PerfCase, run_game_ui_cases};
 
 #[test]
 fn shared_perf_cases_reuse_one_loaded_game_env() {
-    test_timeout! {
+    perf_test_timeout! {
         let results = run_game_ui_cases(vec![
             PerfCase::new("seed shared state", |env| {
                 let has_ui_parent: bool = env.eval("return UIParent ~= nil").unwrap();

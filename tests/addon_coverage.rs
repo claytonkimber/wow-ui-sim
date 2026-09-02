@@ -7,8 +7,9 @@ use crate::common;
 #[path = "addon_coverage/panel_open.rs"]
 mod panel_open;
 
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 use std::path::PathBuf;
+use wow_ui_sim::blizzard_ui_sync::manifest_entries;
 use wow_ui_sim::loader::{
     discover_all_blizzard_addons, discover_blizzard_addon_closure_for_screen, load_addon,
 };
@@ -224,18 +225,32 @@ fn full_per_addon_report_lists_highest_error_counts_first() {
     assert_eq!(lines[3], "Blizzard_C: 1 error(s); sample: third");
 }
 
-fn count_blizzard_directories() -> usize {
+fn cached_blizzard_addon_roots() -> BTreeSet<String> {
     std::fs::read_dir(blizzard_ui_dir())
         .expect("BlizzardUI directory should be readable")
-        .flatten()
-        .filter(|entry| {
-            entry.path().is_dir()
-                && entry
-                    .file_name()
-                    .to_str()
-                    .is_some_and(|name| name.starts_with("Blizzard_"))
+        .map(|entry| entry.expect("BlizzardUI directory entry should be readable"))
+        .filter(|entry| entry.path().is_dir())
+        .map(|entry| {
+            entry
+                .file_name()
+                .into_string()
+                .expect("Blizzard addon directory name should be UTF-8")
         })
-        .count()
+        .filter(|name| name.starts_with("Blizzard_"))
+        .collect()
+}
+
+fn active_manifest_blizzard_addon_roots() -> BTreeSet<String> {
+    manifest_entries()
+        .map(|entry| {
+            entry
+                .split('/')
+                .next()
+                .expect("manifest entry should have an addon root")
+        })
+        .filter(|name| name.starts_with("Blizzard_"))
+        .map(str::to_string)
+        .collect()
 }
 
 fn clear_lua_error_tracking(env: &WowLuaEnv) {
@@ -297,19 +312,22 @@ fn all_blizzard_addon_load_errors_are_tracked_per_addon_name() {
             env.state().borrow_mut().addon_base_paths = vec![blizzard_ui_dir()];
             reset_template_state();
 
+            let cached_addon_roots = cached_blizzard_addon_roots();
+            let manifest_addon_roots = active_manifest_blizzard_addon_roots();
+            let cache_only: Vec<_> = cached_addon_roots
+                .difference(&manifest_addon_roots)
+                .cloned()
+                .collect();
+            let manifest_only: Vec<_> = manifest_addon_roots
+                .difference(&cached_addon_roots)
+                .cloned()
+                .collect();
             assert_eq!(
-                count_blizzard_directories(),
-                311,
-                "expected the current Blizzard UI cache to contain 311 Blizzard_* directories"
+                cached_addon_roots, manifest_addon_roots,
+                "active Blizzard UI cache roots must match committed manifest roots\ncache only: {cache_only:?}\nmanifest only: {manifest_only:?}"
             );
 
             let addons = discover_all_blizzard_addons(&blizzard_ui_dir());
-            assert_eq!(
-                addons.len(),
-                309,
-                "expected the current Blizzard UI cache to expose 309 loadable Blizzard addons"
-            );
-
             let known_addons: HashSet<_> = addons.iter().map(|(name, _)| name.clone()).collect();
             let mut load_failures = Vec::new();
 
@@ -347,7 +365,8 @@ fn all_blizzard_addon_load_errors_are_tracked_per_addon_name() {
             );
             assert!(
                 invalid_addons.is_empty(),
-                "full Blizzard load attributed Lua errors to names outside the 309 loadable Blizzard addons: {:?}\n{}",
+                "full Blizzard load attributed Lua errors to names outside the {} loadable Blizzard addons: {:?}\n{}",
+                known_addons.len(),
                 invalid_addons,
                 format_per_addon_report(&grouped_errors),
             );

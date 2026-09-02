@@ -964,13 +964,14 @@ MSAAQuality: '0'
 nameplateAuraScale: '1.000000'
 nameplateCastBarDisplay: "\x02["
 nameplateDebuffPadding: '0'
-nameplateEnemyNpcAuraDisplay: "\x02G"
+nameplateEnemyNpcAuraDisplay: "\x02C"
 nameplateEnemyPlayerAuraDisplay: "\x02C"
 nameplateFriendlyPlayerAuraDisplay: "\x02C"
 nameplateGameObjectMaxDistance: '30.000000'
 nameplateInfoDisplay: "\x02D"
 NamePlateHorizontalScale: '1'
 NamePlateVerticalScale: '1'
+nameplateLargerScale: '1.200000'
 nameplateMaxAlpha: '1.000000'
 nameplateMaxAlphaDistance: '40.000000'
 nameplateMaxDistance: '60.000000'
@@ -984,9 +985,11 @@ nameplateOccludedAlphaMult: '0.400000'
 nameplateOtherAtBase: '0'
 nameplateOverlapH: '0.800000'
 nameplateOverlapV: '1.100000'
+nameplatePlayerLargerScale: '1.800000'
 nameplatePlayerMaxDistance: '60.000000'
 nameplateSelectedAlpha: '1.000000'
 nameplateSelectedScale: '1.200000'
+nameplateSelfAlpha: '0.750000'
 nameplateShowAll: '0'
 nameplateShowCastBars: '1'
 nameplateShowClassColor: '1'

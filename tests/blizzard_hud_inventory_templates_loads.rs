@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, find_toc_file, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
-use wow_ui_sim::startup::fire_startup_events_for_screen;
 use wow_ui_sim::toc::TocFile;
 
 fn blizzard_ui_dir() -> PathBuf {
@@ -42,32 +41,9 @@ const ALL_VIRTUAL_TEMPLATES: &[&str] = &[
     "HUDInventoryBarTemplate",
 ];
 
-fn load_full_game_ui_with_hud_explicit() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-
-    wow_ui_sim::xml::register_intrinsic_templates();
-
-    let ui = blizzard_ui_dir();
-    let addons = discover_blizzard_addons_for_screen(&ui, ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    env.apply_post_load_workarounds();
-    fire_startup_events_for_screen(&env, ScreenKind::Game);
-
+fn load_hud_inventory_templates(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &hud_toc())
         .expect("Blizzard_HUDInventoryTemplates should load via explicit Rust loader call");
-
-    env
 }
 
 fn assert_mixin_methods(env: &WowLuaEnv, mixin: &str, methods: &[&str], rationale: &str) {
@@ -205,9 +181,9 @@ fn blizzard_hud_inventory_templates_excluded_from_all_screen_auto_discovery() {
     }
 }
 
-#[test]
-fn blizzard_hud_inventory_templates_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui_with_hud_explicit();
+prefork_full_ui_case! {
+fn blizzard_hud_inventory_templates_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
+    load_hud_inventory_templates(env);
 
     let load_errors: Vec<String> = env
         .state()
@@ -230,10 +206,11 @@ fn blizzard_hud_inventory_templates_loads_without_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_hud_inventory_templates_is_addon_loaded_via_explicit_load() {
-    let env = load_full_game_ui_with_hud_explicit();
+prefork_full_ui_case! {
+fn blizzard_hud_inventory_templates_is_addon_loaded_via_explicit_load(env: &WowLuaEnv) {
+    load_hud_inventory_templates(env);
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_HUDInventoryTemplates')")
@@ -245,10 +222,11 @@ fn blizzard_hud_inventory_templates_is_addon_loaded_via_explicit_load() {
          even though the auto-discovery sweep skipped it"
     );
 }
+}
 
-#[test]
-fn blizzard_hud_inventory_templates_dependencies_load_via_game_screen_pass() {
-    let env = load_full_game_ui_with_hud_explicit();
+prefork_full_ui_case! {
+fn blizzard_hud_inventory_templates_dependencies_load_via_game_screen_pass(env: &WowLuaEnv) {
+    load_hud_inventory_templates(env);
 
     let panels: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_UIPanels_Game')")
@@ -269,10 +247,11 @@ fn blizzard_hud_inventory_templates_dependencies_load_via_game_screen_pass() {
          runs"
     );
 }
+}
 
-#[test]
-fn blizzard_hud_inventory_templates_publishes_all_four_mixins() {
-    let env = load_full_game_ui_with_hud_explicit();
+prefork_full_ui_case! {
+fn blizzard_hud_inventory_templates_publishes_all_four_mixins(env: &WowLuaEnv) {
+    load_hud_inventory_templates(env);
 
     for mixin in ALL_MIXINS {
         let kind: String = env
@@ -286,10 +265,11 @@ fn blizzard_hud_inventory_templates_publishes_all_four_mixins() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_hud_inventory_templates_button_mixin_exposes_lifecycle_and_action_methods() {
-    let env = load_full_game_ui_with_hud_explicit();
+prefork_full_ui_case! {
+fn blizzard_hud_inventory_templates_button_mixin_exposes_lifecycle_and_action_methods(env: &WowLuaEnv) {
+    load_hud_inventory_templates(env);
 
     assert_mixin_methods(
         &env,
@@ -317,10 +297,11 @@ fn blizzard_hud_inventory_templates_button_mixin_exposes_lifecycle_and_action_me
          per-bag/buttonID configuration",
     );
 }
+}
 
-#[test]
-fn blizzard_hud_inventory_templates_bar_mixin_exposes_lifecycle_and_layout_methods() {
-    let env = load_full_game_ui_with_hud_explicit();
+prefork_full_ui_case! {
+fn blizzard_hud_inventory_templates_bar_mixin_exposes_lifecycle_and_layout_methods(env: &WowLuaEnv) {
+    load_hud_inventory_templates(env);
 
     assert_mixin_methods(
         &env,
@@ -346,10 +327,11 @@ fn blizzard_hud_inventory_templates_bar_mixin_exposes_lifecycle_and_layout_metho
          DoQuickKeybindModeChange) and a no-op LayoutItemButtons that derived mixins override",
     );
 }
+}
 
-#[test]
-fn blizzard_hud_inventory_templates_layout_frame_mixin_overrides_setup_and_layout() {
-    let env = load_full_game_ui_with_hud_explicit();
+prefork_full_ui_case! {
+fn blizzard_hud_inventory_templates_layout_frame_mixin_overrides_setup_and_layout(env: &WowLuaEnv) {
+    load_hud_inventory_templates(env);
 
     assert_mixin_methods(
         &env,
@@ -361,10 +343,11 @@ fn blizzard_hud_inventory_templates_layout_frame_mixin_overrides_setup_and_layou
          registers Item:CreateFromBagAndSlot continuables, then MarkDirty",
     );
 }
+}
 
-#[test]
-fn blizzard_hud_inventory_templates_bar_mixin_inherits_both_parent_mixins() {
-    let env = load_full_game_ui_with_hud_explicit();
+prefork_full_ui_case! {
+fn blizzard_hud_inventory_templates_bar_mixin_inherits_both_parent_mixins(env: &WowLuaEnv) {
+    load_hud_inventory_templates(env);
 
     let setup_kind: String = env
         .eval("return type(HUDInventoryBarMixin.SetupItems)")
@@ -397,10 +380,11 @@ fn blizzard_hud_inventory_templates_bar_mixin_inherits_both_parent_mixins() {
          GAME_PAD_ACTIVE_CHANGED"
     );
 }
+}
 
-#[test]
-fn blizzard_hud_inventory_templates_publishes_util_namespace() {
-    let env = load_full_game_ui_with_hud_explicit();
+prefork_full_ui_case! {
+fn blizzard_hud_inventory_templates_publishes_util_namespace(env: &WowLuaEnv) {
+    load_hud_inventory_templates(env);
 
     let kind: String = env
         .eval("return type(HUDInventoryUtil)")
@@ -425,10 +409,11 @@ fn blizzard_hud_inventory_templates_publishes_util_namespace() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_hud_inventory_templates_virtual_templates_stay_nil_at_global_scope() {
-    let env = load_full_game_ui_with_hud_explicit();
+prefork_full_ui_case! {
+fn blizzard_hud_inventory_templates_virtual_templates_stay_nil_at_global_scope(env: &WowLuaEnv) {
+    load_hud_inventory_templates(env);
 
     for template in ALL_VIRTUAL_TEMPLATES {
         let kind: String = env
@@ -443,10 +428,11 @@ fn blizzard_hud_inventory_templates_virtual_templates_stay_nil_at_global_scope()
         );
     }
 }
+}
 
-#[test]
-fn blizzard_hud_inventory_templates_no_named_non_virtual_frames_publish() {
-    let env = load_full_game_ui_with_hud_explicit();
+prefork_full_ui_case! {
+fn blizzard_hud_inventory_templates_no_named_non_virtual_frames_publish(env: &WowLuaEnv) {
+    load_hud_inventory_templates(env);
 
     let bar: String = env
         .eval("return type(_G['HUDInventoryBar'])")
@@ -458,4 +444,5 @@ fn blizzard_hud_inventory_templates_no_named_non_virtual_frames_publish() {
          is created by the Plunderstorm HUD layout addon (which inherits HUDInventoryBarTemplate); \
          this template module only registers the reusable widget shapes"
     );
+}
 }

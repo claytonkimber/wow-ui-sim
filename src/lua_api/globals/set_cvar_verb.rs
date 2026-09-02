@@ -11,6 +11,7 @@
 //! Lua-only `__cvars` table — so `SimState.cvars` defaults like the
 //! display sliders were invisible to addon code. Now they're not.
 
+use crate::lua_api::globals::state_backed_queries::dispatch_event_now;
 use crate::lua_api::methods::{borrow_state, borrow_state_mut, create_string};
 use crate::lua_bridge::{FromStack, stack_val};
 use rilua::vm::closure::RustFn;
@@ -78,9 +79,57 @@ fn set_cvar(state: &mut LuaState) -> LuaResult<u32> {
         return Ok(1);
     };
     let value = value_to_string(state, 2);
+
+    if is_ui_scale_cvar(&name) {
+        if let Some(scale) = requested_ui_parent_scale(state, &name, &value)? {
+            apply_ui_parent_scale(state, scale)?;
+        }
+        dispatch_event_now(state, "DISPLAY_SIZE_CHANGED", &[])?;
+        dispatch_event_now(state, "UI_SCALE_CHANGED", &[])?;
+    }
+
     let accepted = borrow_state_mut(state)?.cvars.set(&name, &value);
+    if accepted {
+        let name_arg = create_string(state, &name);
+        let value_arg = create_string(state, &value);
+        dispatch_event_now(state, "CVAR_UPDATE", &[name_arg, value_arg])?;
+    }
     state.push(Val::Bool(accepted));
     Ok(1)
+}
+
+fn is_ui_scale_cvar(name: &str) -> bool {
+    matches!(name.to_ascii_lowercase().as_str(), "uiscale" | "useuiscale")
+}
+
+fn requested_ui_parent_scale(state: &LuaState, name: &str, value: &str) -> LuaResult<Option<f32>> {
+    let normalized_name = name.to_ascii_lowercase();
+    let scale = match normalized_name.as_str() {
+        "uiscale" if borrow_state(state)?.cvars.get_bool("useUiScale") => value.parse().ok(),
+        "useuiscale" if value == "1" => borrow_state(state)?
+            .cvars
+            .get("uiScale")
+            .and_then(|value| value.parse().ok()),
+        _ => None,
+    };
+    Ok(scale.filter(|scale| *scale > 0.0))
+}
+
+fn apply_ui_parent_scale(state: &LuaState, scale: f32) -> LuaResult<()> {
+    let mut sim = borrow_state_mut(state)?;
+    let Some(id) = sim.widgets.get_id_by_name("UIParent") else {
+        return Ok(());
+    };
+    let current_scale = sim.widgets.get(id).map(|frame| frame.scale).unwrap_or(1.0);
+    if current_scale == scale {
+        return Ok(());
+    }
+    if let Some(frame) = sim.widgets.get_mut_visual(id) {
+        frame.scale = scale;
+    }
+    sim.widgets.propagate_effective_scale(id, 1.0);
+    sim.widgets.mark_rect_dirty(id);
+    Ok(())
 }
 
 /// `RegisterCVar(name, value)` — create a readable runtime CVar default

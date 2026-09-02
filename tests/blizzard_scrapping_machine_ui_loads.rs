@@ -259,9 +259,8 @@ fn xml_embeds_lua_via_script_directive_at_top_of_ui_root() {
     );
 }
 
-#[test]
-fn loads_without_lua_errors_when_explicitly_loaded() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn loads_without_lua_errors_when_explicitly_loaded(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -280,10 +279,10 @@ fn loads_without_lua_errors_when_explicitly_loaded() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn is_addon_loaded_transitions_false_to_true_across_explicit_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn is_addon_loaded_transitions_false_to_true_across_explicit_load(env: &WowLuaEnv) {
 
     let loaded_before: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_ScrappingMachineUI')")
@@ -302,10 +301,10 @@ fn is_addon_loaded_transitions_false_to_true_across_explicit_load() {
         .expect("IsAddOnLoaded probe (post-load) succeeds");
     assert!(loaded_after);
 }
+}
 
-#[test]
-fn publishes_scrapping_machine_mixin_with_ten_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn publishes_scrapping_machine_mixin_with_ten_methods(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &scrapping_toc()).expect("ScrappingMachineUI loads");
 
     let kind: String = env
@@ -345,10 +344,10 @@ fn publishes_scrapping_machine_mixin_with_ten_methods() {
         );
     }
 }
+}
 
-#[test]
-fn publishes_item_slot_mixin_with_ten_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn publishes_item_slot_mixin_with_ten_methods(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &scrapping_toc()).expect("ScrappingMachineUI loads");
 
     let kind: String = env
@@ -386,10 +385,10 @@ fn publishes_item_slot_mixin_with_ten_methods() {
         );
     }
 }
+}
 
-#[test]
-fn registers_scrapping_machine_frame_in_uipanelwindows_at_module_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn registers_scrapping_machine_frame_in_uipanelwindows_at_module_load(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &scrapping_toc()).expect("ScrappingMachineUI loads");
 
     let area: String = env
@@ -423,10 +422,10 @@ fn registers_scrapping_machine_frame_in_uipanelwindows_at_module_load() {
          a failed open never leaves dangling NPC state on the server"
     );
 }
+}
 
-#[test]
-fn publishes_named_non_virtual_frame_at_global_scope() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn publishes_named_non_virtual_frame_at_global_scope(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &scrapping_toc()).expect("ScrappingMachineUI loads");
 
     let frame_kind: String = env
@@ -451,10 +450,10 @@ fn publishes_named_non_virtual_frame_at_global_scope() {
          a scrapping NPC"
     );
 }
+}
 
-#[test]
-fn does_not_leak_virtual_template_or_module_locals_to_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn does_not_leak_virtual_template_or_module_locals_to_globals(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &scrapping_toc()).expect("ScrappingMachineUI loads");
 
     let template_kind: String = env
@@ -480,10 +479,10 @@ fn does_not_leak_virtual_template_or_module_locals_to_globals() {
          for arbitrary season IDs"
     );
 }
+}
 
-#[test]
-fn frame_pool_seeds_nine_scrap_button_slots_after_onload_grid() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn frame_pool_seeds_nine_scrap_button_slots_after_onload_grid(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &scrapping_toc()).expect("ScrappingMachineUI loads");
 
     let active_count: f64 = env
@@ -506,4 +505,5 @@ fn frame_pool_seeds_nine_scrap_button_slots_after_onload_grid() {
          grid is the BfA-era hardcoded scrapping capacity, the same number of pending \
          items C_ScrappingMachineUI.ValidateScrappingList expects to walk"
     );
+}
 }

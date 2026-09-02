@@ -216,9 +216,8 @@ fn absent_from_every_glue_screen_discovery() {
     }
 }
 
-#[test]
-fn explicit_load_addon_emits_no_addon_specific_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn explicit_load_addon_emits_no_addon_specific_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -254,10 +253,10 @@ fn explicit_load_addon_emits_no_addon_specific_errors() {
         matched
     );
 }
+}
 
-#[test]
-fn is_addon_loaded_reports_true_after_explicit_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn is_addon_loaded_reports_true_after_explicit_load(env: &WowLuaEnv) {
 
     let before: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_SubscriptionInterstitialUI')")
@@ -278,10 +277,10 @@ fn is_addon_loaded_reports_true_after_explicit_load() {
         "After explicit load_addon, IsAddOnLoaded must report true"
     );
 }
+}
 
-#[test]
-fn frame_mixin_publishes_with_seven_lifecycle_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn frame_mixin_publishes_with_seven_lifecycle_methods(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &subscription_interstitial_toc())
         .expect("SubscriptionInterstitialUI must load via Rust loader");
 
@@ -313,10 +312,10 @@ fn frame_mixin_publishes_with_seven_lifecycle_methods() {
         );
     }
 }
+}
 
-#[test]
-fn subscribe_button_base_mixin_publishes_with_five_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn subscribe_button_base_mixin_publishes_with_five_methods(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &subscription_interstitial_toc())
         .expect("SubscriptionInterstitialUI must load via Rust loader");
 
@@ -348,10 +347,10 @@ fn subscribe_button_base_mixin_publishes_with_five_methods() {
         );
     }
 }
+}
 
-#[test]
-fn subscribe_and_upgrade_button_mixins_publish_with_their_specializations() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn subscribe_and_upgrade_button_mixins_publish_with_their_specializations(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &subscription_interstitial_toc())
         .expect("SubscriptionInterstitialUI must load via Rust loader");
 
@@ -386,10 +385,10 @@ fn subscribe_and_upgrade_button_mixins_publish_with_their_specializations() {
         }
     }
 }
+}
 
-#[test]
-fn ui_panel_window_entry_seeds_for_subscription_interstitial_frame() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn ui_panel_window_entry_seeds_for_subscription_interstitial_frame(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &subscription_interstitial_toc())
         .expect("SubscriptionInterstitialUI must load via Rust loader");
 
@@ -409,10 +408,10 @@ fn ui_panel_window_entry_seeds_for_subscription_interstitial_frame() {
          center-area panel that can show while dead"
     );
 }
+}
 
-#[test]
-fn subscription_interstitial_frame_materializes_as_named_frame() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn subscription_interstitial_frame_materializes_as_named_frame(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &subscription_interstitial_toc())
         .expect("SubscriptionInterstitialUI must load via Rust loader");
 
@@ -429,10 +428,10 @@ fn subscription_interstitial_frame_materializes_as_named_frame() {
          CloseButton + Inset + ShadowOverlay + Title fontstring children"
     );
 }
+}
 
-#[test]
-fn subscription_interstitial_button_templates_materialize_via_create_frame() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn subscription_interstitial_button_templates_materialize_via_create_frame(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &subscription_interstitial_toc())
         .expect("SubscriptionInterstitialUI must load via Rust loader");
 
@@ -467,4 +466,5 @@ fn subscription_interstitial_button_templates_materialize_via_create_frame() {
          would crash. Verify both concrete inheritors exist as children \
          of SubscriptionInterstitialFrame instead"
     );
+}
 }

@@ -242,9 +242,8 @@ fn blizzard_override_action_bar_appears_in_game_screen_eager_discovery_only() {
     }
 }
 
-#[test]
-fn blizzard_override_action_bar_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_override_action_bar_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -265,10 +264,10 @@ fn blizzard_override_action_bar_loads_without_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_override_action_bar_is_addon_loaded_after_eager_sweep() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_override_action_bar_is_addon_loaded_after_eager_sweep(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_OverrideActionBar')")
@@ -279,10 +278,10 @@ fn blizzard_override_action_bar_is_addon_loaded_after_eager_sweep() {
          eager Game-screen sweep — no LoadOnDemand puts the addon in the eager set"
     );
 }
+}
 
-#[test]
-fn blizzard_override_action_bar_publishes_two_mixin_tables() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_override_action_bar_publishes_two_mixin_tables(env: &WowLuaEnv) {
 
     for mixin in PUBLIC_MIXINS {
         let kind: String = env
@@ -305,10 +304,10 @@ fn blizzard_override_action_bar_publishes_two_mixin_tables() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_override_action_bar_creates_named_frame() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_override_action_bar_creates_named_frame(env: &WowLuaEnv) {
 
     for frame_name in NAMED_FRAMES {
         let kind: String = env
@@ -327,10 +326,10 @@ fn blizzard_override_action_bar_creates_named_frame() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_override_action_bar_does_not_leak_virtual_template_to_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_override_action_bar_does_not_leak_virtual_template_to_globals(env: &WowLuaEnv) {
 
     for template in VIRTUAL_TEMPLATES_NOT_IN_GLOBALS {
         let kind: String = env
@@ -345,4 +344,5 @@ fn blizzard_override_action_bar_does_not_leak_virtual_template_to_globals() {
              break every existing button instance"
         );
     }
+}
 }

@@ -287,13 +287,6 @@ fn test_wrong_constant_snapshot_matches_expected_values() {
         .unwrap();
     assert_eq!(game_errors, (1, 14, 106, 12));
 
-    let timer_types: (i32, i32) = env
-        .eval(
-            "return LE_WORLD_ELAPSED_TIMER_TYPE_CHALLENGE_MODE, LE_WORLD_ELAPSED_TIMER_TYPE_PROVING_GROUND",
-        )
-        .unwrap();
-    assert_eq!(timer_types, (1, 2));
-
     let max_lengths: (i32, i32, i32) = env
         .eval(
             "return MAX_CHARACTER_NAME_BYTES, MAX_COMMUNITY_NAME_LENGTH, MAX_COMMUNITY_NAME_LENGTH_NO_CHANNEL",

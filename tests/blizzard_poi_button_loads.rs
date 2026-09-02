@@ -295,9 +295,8 @@ fn blizzard_poi_button_appears_in_full_addon_inventory() {
     );
 }
 
-#[test]
-fn blizzard_poi_button_is_addon_loaded_after_game_screen_boot() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_poi_button_is_addon_loaded_after_game_screen_boot(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_POIButton')")
@@ -309,10 +308,10 @@ fn blizzard_poi_button_is_addon_loaded_after_game_screen_boot() {
          standard Game-screen pool (no explicit load_addon call needed)"
     );
 }
+}
 
-#[test]
-fn blizzard_poi_button_publishes_two_static_libraries() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_poi_button_publishes_two_static_libraries(env: &WowLuaEnv) {
 
     for library in PUBLIC_LIBRARIES {
         let kind: String = env
@@ -334,10 +333,10 @@ fn blizzard_poi_button_publishes_two_static_libraries() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_poi_button_publishes_three_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_poi_button_publishes_three_mixins(env: &WowLuaEnv) {
 
     for mixin in PUBLIC_MIXINS {
         let kind: String = env
@@ -375,10 +374,10 @@ fn blizzard_poi_button_publishes_three_mixins() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_poi_button_util_exposes_style_and_type_enums() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_poi_button_util_exposes_style_and_type_enums(env: &WowLuaEnv) {
 
     let custom: i64 = env
         .eval("return POIButtonUtil.Type.Custom")
@@ -422,10 +421,10 @@ fn blizzard_poi_button_util_exposes_style_and_type_enums() {
          BonusObjective) to Type.Quest"
     );
 }
+}
 
-#[test]
-fn blizzard_poi_button_highlight_manager_starts_empty() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_poi_button_highlight_manager_starts_empty(env: &WowLuaEnv) {
 
     let has_highlight: bool = env
         .eval("return POIButtonHighlightManager:HasHighlight()")
@@ -445,10 +444,10 @@ fn blizzard_poi_button_highlight_manager_starts_empty() {
         "POIButtonHighlightManager:GetQuestID() must return nil on a fresh load"
     );
 }
+}
 
-#[test]
-fn blizzard_poi_button_does_not_leak_virtual_templates_to_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_poi_button_does_not_leak_virtual_templates_to_globals(env: &WowLuaEnv) {
 
     for template in VIRTUAL_TEMPLATES_NOT_IN_GLOBALS {
         let kind: String = env
@@ -469,10 +468,10 @@ fn blizzard_poi_button_does_not_leak_virtual_templates_to_globals() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_poi_button_does_not_publish_named_non_virtual_frames() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_poi_button_does_not_publish_named_non_virtual_frames(env: &WowLuaEnv) {
 
     for name in [
         "POIButton",
@@ -495,10 +494,10 @@ fn blizzard_poi_button_does_not_publish_named_non_virtual_frames() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_poi_button_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_poi_button_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -520,4 +519,5 @@ fn blizzard_poi_button_loads_without_addon_specific_lua_errors() {
         "Blizzard_POIButton emitted addon-specific Lua errors during load:\n  {}",
         load_errors.join("\n  ")
     );
+}
 }

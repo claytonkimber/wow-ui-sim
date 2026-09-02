@@ -17,7 +17,7 @@ A frame is **hittable** when all four conditions are met:
 3. `frame.mouse_enabled == true` (set via `EnableMouse(true)` in Lua or `enableMouse="true"` in XML)
 4. Not in `HIT_TEST_EXCLUDED` — a hardcoded list of full-screen non-interactive overlays: `UIParent`, `WorldFrame`, `Minimap`, `ChatFrame1`, `EventToastManagerFrame`, `EditModeManagerFrame`
 
-The hittable list is sorted by `(frame_strata, frame_level, id)` — lowest first. Iterating in **reverse** yields the topmost frame.
+The hittable list is sorted by `(frame_strata, frame_level, raise_order, id)` — lowest first. `raise_order` only breaks ties between siblings at the same raw frame level; explicit `Raise()`/`Lower()` cannot cross raw levels. Iterating in **reverse** yields the topmost frame. The render bucket's active top-level show-order grouping is separate from this hit-test list, which is collected by `src/iced_app/frame_collect.rs`.
 
 ## Spatial Grid
 

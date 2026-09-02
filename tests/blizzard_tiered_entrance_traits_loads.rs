@@ -248,9 +248,8 @@ fn objective_tracker_declares_tiered_entrance_traits_as_required_dep() {
     );
 }
 
-#[test]
-fn container_mixin_publishes_with_seven_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn container_mixin_publishes_with_seven_methods(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(TieredEntranceTraitsContainerMixin)")
@@ -284,10 +283,10 @@ fn container_mixin_publishes_with_seven_methods() {
         );
     }
 }
+}
 
-#[test]
-fn list_mixin_publishes_with_six_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn list_mixin_publishes_with_six_methods(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(TieredEntranceTraitsListMixin)")
@@ -323,10 +322,10 @@ fn list_mixin_publishes_with_six_methods() {
         );
     }
 }
+}
 
-#[test]
-fn spell_mixin_publishes_with_one_method() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn spell_mixin_publishes_with_one_method(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(TieredEntranceTraitSpellMixin)")
@@ -356,10 +355,10 @@ fn spell_mixin_publishes_with_one_method() {
         );
     }
 }
+}
 
-#[test]
-fn explicit_load_addon_emits_no_addon_specific_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn explicit_load_addon_emits_no_addon_specific_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -395,10 +394,10 @@ fn explicit_load_addon_emits_no_addon_specific_errors() {
         matched
     );
 }
+}
 
-#[test]
-fn is_addon_loaded_reports_true_after_eager_sweep() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn is_addon_loaded_reports_true_after_eager_sweep(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_TieredEntranceTraits')")
@@ -409,4 +408,5 @@ fn is_addon_loaded_reports_true_after_eager_sweep() {
          — TieredEntranceTraits is non-LoD, RequiredDeps satisfied \
          (UIFrameManager + SharedTalentUI both present)"
     );
+}
 }

@@ -5,8 +5,8 @@
 //!
 //! ```text
 //! ## Title: Blizzard_ActionStatus
-//! ## DefaultState: enabled
-//! ## OptionalDep: Blizzard_FrameXML, Blizzard_GlueXML
+//! ## Dep: Blizzard_FrameXML [AllowLoad game]
+//! ## Dep: Blizzard_GlueXML [AllowLoad glue]
 //! ## AllowLoad: Both
 //! ```
 
@@ -15,19 +15,23 @@ use crate::common::blizzard_addon_harness::{
 };
 use crate::common::panel_fixtures::{blizzard_ui_dir, recorded_lua_errors};
 use std::path::PathBuf;
+use wow_ui_sim::loader::find_toc_file;
 use wow_ui_sim::screen::ScreenKind;
 use wow_ui_sim::toc::TocFile;
 
 const ROOT: &str = "Blizzard_ActionStatus";
-const ROOT_TOC_FILE: &str = "Blizzard_ActionStatus.toc";
-const RAW_OPTIONAL_DEP_LINE: &str = "## OptionalDep: Blizzard_FrameXML, Blizzard_GlueXML";
+const ROOT_TOC_FILE: &str = "Blizzard_ActionStatus_Mainline.toc";
+const REQUIRED_DEPS: [&str; 2] = ["Blizzard_FrameXML", "Blizzard_GlueXML"];
+const RAW_GAME_DEP_LINE: &str = "## Dep: Blizzard_FrameXML [AllowLoad game]";
+const RAW_GLUE_DEP_LINE: &str = "## Dep: Blizzard_GlueXML [AllowLoad glue]";
+const EXPECTED_BODY: [&str; 2] = ["Mainline/ActionStatus.lua", "Mainline/ActionStatus.xml"];
 
 #[test]
-fn action_status_loads_with_no_required_deps_and_no_lua_errors() {
+fn action_status_loads_with_current_required_deps_and_no_lua_errors() {
     with_blizzard_addon_smoke_shape(&[ROOT], &[], |env, loaded| {
         assert_loaded(loaded, "game");
 
-        assert_toc_declares_no_required_deps_and_only_raw_optional_deps();
+        assert_toc_declares_current_required_deps();
 
         assert_no_lua_errors(env, "game");
     });
@@ -50,28 +54,49 @@ fn action_status_allowload_both_loads_in_game_and_glue_screens() {
     });
 }
 
-fn assert_toc_declares_no_required_deps_and_only_raw_optional_deps() {
+fn assert_toc_declares_current_required_deps() {
     let toc = load_root_toc();
 
-    assert!(
-        toc.dependencies().is_empty(),
-        "`{ROOT}` must declare no required dependencies. The TOC only lists the singular \
-         optional dependency line `{RAW_OPTIONAL_DEP_LINE}`."
+    assert_eq!(
+        toc.dependencies(),
+        REQUIRED_DEPS,
+        "`{ROOT}` must declare the current game/glue scoped dependencies"
+    );
+    assert_eq!(
+        toc.metadata.get("AllowLoad"),
+        Some(&"Both".to_string()),
+        "`{ROOT}` must allow both game and glue screens"
+    );
+    assert_eq!(
+        toc.metadata.get("AllowLoadGameType"),
+        Some(&"mainline".to_string()),
+        "`{ROOT}` must be limited to the current mainline game type"
+    );
+    let body: Vec<String> = toc
+        .files
+        .iter()
+        .map(|path| path.to_string_lossy().into_owned())
+        .collect();
+    assert_eq!(
+        body,
+        EXPECTED_BODY,
+        "`{ROOT}` must retain its current Mainline Lua/XML body order"
     );
 
     let toc_path = root_toc_path();
     let raw_toc = std::fs::read_to_string(&toc_path).unwrap_or_else(|err| {
         panic!(
-            "TOC at `{}` MUST be readable for raw OptionalDep verification: {err}",
+            "TOC at `{}` MUST be readable for raw dependency verification: {err}",
             toc_path.display()
         )
     });
 
-    assert!(
-        raw_toc.contains(RAW_OPTIONAL_DEP_LINE),
-        "`{ROOT}` must keep its only listed dependencies optional via the raw singular TOC line \
-         `{RAW_OPTIONAL_DEP_LINE}`. Raw TOC:\n{raw_toc}"
-    );
+    for line in [RAW_GAME_DEP_LINE, RAW_GLUE_DEP_LINE] {
+        assert!(
+            raw_toc.contains(line),
+            "`{ROOT}` must keep the scoped dependency line `{line}`. Raw TOC:\n{raw_toc}"
+        );
+    }
 }
 
 fn assert_toc_allows_game_and_glue_screens() {
@@ -97,7 +122,19 @@ fn load_root_toc() -> TocFile {
 }
 
 fn root_toc_path() -> PathBuf {
-    blizzard_ui_dir().join(ROOT).join(ROOT_TOC_FILE)
+    let addon_dir = blizzard_ui_dir().join(ROOT);
+    let toc_path = find_toc_file(&addon_dir).unwrap_or_else(|| {
+        panic!(
+            "`{ROOT}` must have a compatible TOC under {}",
+            addon_dir.display()
+        )
+    });
+    assert_eq!(
+        toc_path.file_name().and_then(|name| name.to_str()),
+        Some(ROOT_TOC_FILE),
+        "loader discovery must select the current retail ActionStatus TOC"
+    );
+    toc_path
 }
 
 fn assert_loaded(loaded: &[String], screen: &str) {

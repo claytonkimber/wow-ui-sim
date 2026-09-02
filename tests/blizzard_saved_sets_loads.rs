@@ -224,9 +224,8 @@ fn root_directory_holds_single_lua_next_to_toc() {
     );
 }
 
-#[test]
-fn loads_without_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn loads_without_lua_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -246,10 +245,10 @@ fn loads_without_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn is_addon_loaded_after_eager_sweep() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn is_addon_loaded_after_eager_sweep(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_SavedSets')")
@@ -260,10 +259,10 @@ fn is_addon_loaded_after_eager_sweep() {
          Game-screen sweep — LoadOnDemand: 0 puts the addon in the eager set"
     );
 }
+}
 
-#[test]
-fn saved_sets_util_publishes_with_full_method_surface() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn saved_sets_util_publishes_with_full_method_surface(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(_G.SavedSetsUtil)")
@@ -300,10 +299,10 @@ fn saved_sets_util_publishes_with_full_method_surface() {
         "SavedSetsUtil.RegisteredSavedSets must publish as a table"
     );
 }
+}
 
-#[test]
-fn registered_saved_sets_holds_two_self_referential_string_values() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn registered_saved_sets_holds_two_self_referential_string_values(env: &WowLuaEnv) {
 
     let shop_key: String = env
         .eval("return SavedSetsUtil.RegisteredSavedSets.SeenShopCatalogProductIDs")
@@ -342,10 +341,10 @@ fn registered_saved_sets_holds_two_self_referential_string_values() {
          new-item-glow flow"
     );
 }
+}
 
-#[test]
-fn short_form_helpers_publish_globally_and_target_shop_catalog() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn short_form_helpers_publish_globally_and_target_shop_catalog(env: &WowLuaEnv) {
 
     for helper in SHORT_FORM_HELPERS {
         let kind: String = env
@@ -362,10 +361,10 @@ fn short_form_helpers_publish_globally_and_target_shop_catalog() {
         );
     }
 }
+}
 
-#[test]
-fn global_blizzard_saved_sets_publishes_as_table_after_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn global_blizzard_saved_sets_publishes_as_table_after_load(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(_G.GlobalBlizzardSavedSets)")
@@ -380,10 +379,10 @@ fn global_blizzard_saved_sets_publishes_as_table_after_load() {
          the addon body executes"
     );
 }
+}
 
-#[test]
-fn is_loaded_flips_true_after_variables_loaded_event() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn is_loaded_flips_true_after_variables_loaded_event(env: &WowLuaEnv) {
 
     let is_loaded: bool = env
         .eval("return SavedSetsUtil.IsLoaded()")
@@ -399,10 +398,10 @@ fn is_loaded_flips_true_after_variables_loaded_event() {
          until persistence catches up"
     );
 }
+}
 
-#[test]
-fn module_locals_stay_off_global_scope() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn module_locals_stay_off_global_scope(env: &WowLuaEnv) {
 
     for name in MODULE_LOCAL_NAMES {
         let kind: String = env
@@ -421,10 +420,10 @@ fn module_locals_stay_off_global_scope() {
         );
     }
 }
+}
 
-#[test]
-fn check_optimistic_pre_load_semantics_match_blizzard_contract() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn check_optimistic_pre_load_semantics_match_blizzard_contract(env: &WowLuaEnv) {
 
     let unseen_id: bool = env
         .eval("return SavedSetsUtil.HasAny(SavedSetsUtil.RegisteredSavedSets.SeenShopCatalogProductIDs)")
@@ -449,10 +448,10 @@ fn check_optimistic_pre_load_semantics_match_blizzard_contract() {
          was seen' is vacuously true for an empty table"
     );
 }
+}
 
-#[test]
-fn set_then_check_round_trip_persists_within_session() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn set_then_check_round_trip_persists_within_session(env: &WowLuaEnv) {
 
     env.exec(
         "SavedSetsUtil.Set(SavedSetsUtil.RegisteredSavedSets.SeenShopCatalogProductIDs, 12345)",
@@ -494,4 +493,5 @@ fn set_then_check_round_trip_persists_within_session() {
         "SavedSetsUtil.Check(key, {{100, 999}}) must return false because 999 was \
          never written — table-form Check returns false on the first missing id"
     );
+}
 }

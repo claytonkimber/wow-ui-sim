@@ -342,9 +342,8 @@ fn blizzard_professions_appears_in_full_addon_inventory() {
     );
 }
 
-#[test]
-fn blizzard_professions_loads_explicitly_after_dependencies() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_professions_loads_explicitly_after_dependencies(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -384,10 +383,10 @@ fn blizzard_professions_loads_explicitly_after_dependencies() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_professions_publishes_ten_top_level_mixin_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_professions_publishes_ten_top_level_mixin_globals(env: &WowLuaEnv) {
 
     let ui = blizzard_ui_dir();
     let templates_toc = ui
@@ -423,10 +422,10 @@ fn blizzard_professions_publishes_ten_top_level_mixin_globals() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_professions_named_non_virtual_top_level_frames_are_in_global_env() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_professions_named_non_virtual_top_level_frames_are_in_global_env(env: &WowLuaEnv) {
 
     let ui = blizzard_ui_dir();
     let templates_toc = ui
@@ -459,10 +458,10 @@ fn blizzard_professions_named_non_virtual_top_level_frames_are_in_global_env() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_professions_registers_two_ui_panels_with_uiparent() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_professions_registers_two_ui_panels_with_uiparent(env: &WowLuaEnv) {
 
     let ui = blizzard_ui_dir();
     let templates_toc = ui
@@ -494,4 +493,5 @@ fn blizzard_professions_registers_two_ui_panels_with_uiparent() {
          both frames into the global UI-panel manager so /script ToggleProfessionsBook \
          + UIParent push/pop logic can reach them"
     );
+}
 }

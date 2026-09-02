@@ -276,7 +276,10 @@ fn dedup_scripts_block(
 /// Check if a line opens a `<Scripts>` block (not self-closing).
 fn is_scripts_open(line: &str) -> bool {
     let trimmed = line.trim();
-    trimmed.starts_with("<Scripts") && trimmed.ends_with('>') && !trimmed.ends_with("/>")
+    trimmed.starts_with("<Scripts")
+        && trimmed.ends_with('>')
+        && !trimmed.ends_with("/>")
+        && !trimmed.contains("</Scripts>")
 }
 
 /// Detect a handler element starting at `start`, returning `(tag_name, end_line)`.
@@ -417,6 +420,33 @@ mod tests {
 </FontString>"#;
         let result = strip_duplicate_self_closing(xml, "Size");
         assert!(result.contains(r#"<Size x="10" y="20"/>"#));
+    }
+
+    #[test]
+    fn test_parse_xml_keeps_siblings_after_inline_scripts_block() {
+        let xml = r#"<Ui>
+    <Button name="BaseTemplate">
+        <Frames><Frame>
+            <Scripts><OnLoad method="OnLoad"/></Scripts>
+        </Frame></Frames>
+    </Button>
+    <Button name="MiddleTemplate"/>
+    <Button name="DerivedTemplate"/>
+</Ui>"#;
+
+        let ui = parse_xml(xml).unwrap();
+        let names = ui
+            .elements
+            .into_iter()
+            .filter_map(|element| match element {
+                crate::xml::XmlElement::Button(frame) => frame.name,
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            names,
+            vec!["BaseTemplate", "MiddleTemplate", "DerivedTemplate"]
+        );
     }
 
     #[test]
@@ -661,7 +691,7 @@ mod tests {
         assert!(result.contains(r#"<Script file="LibStub.lua"/>"#));
     }
 
-    #[cfg(feature = "client-retail")]
+    #[cfg(feature = "profile-retail")]
     #[test]
     fn test_parse_objective_tracker_widget_container_xml_keeps_self_closing_frame() {
         let path = crate::client_profile::blizzard_ui_addons_dir_under(std::path::Path::new(env!(
@@ -690,7 +720,7 @@ mod tests {
         );
     }
 
-    #[cfg(feature = "client-retail")]
+    #[cfg(feature = "profile-retail")]
     #[test]
     fn test_parse_low_health_frame_xml_keeps_animations() {
         let path = crate::client_profile::blizzard_ui_addons_dir_under(std::path::Path::new(env!(

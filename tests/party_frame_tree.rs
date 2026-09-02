@@ -216,7 +216,7 @@ fn party_frame_member_frames_render_at_master_offsets() {
 }
 
 #[test]
-fn player_and_party_portraits_use_circular_class_texture_fallback() {
+fn player_and_party_portraits_use_current_class_texture_identity() {
     test_timeout! {
         let env = load_settled_game_ui();
         env.exec("A_Admin.SetPartySize(4)").unwrap();
@@ -252,19 +252,19 @@ fn player_and_party_portraits_use_circular_class_texture_fallback() {
 
         assert_eq!(
             player_atlas, "",
-            "player portrait fallback should clear the class atlas once it switches to the circular class texture, got atlas {player_atlas} texture {player_texture}"
+            "player portrait should expose its authored texture identity without an atlas"
         );
         assert_eq!(
-            player_texture, "Interface\\TargetingFrame\\UI-Classes-Circles",
-            "player portrait fallback should use the circular class texture, got atlas {player_atlas} texture {player_texture}"
+            player_texture, "237669",
+            "player portrait should expose the current class-circle texture fileDataID"
         );
         assert_eq!(
             party_atlas, "",
-            "party1 portrait fallback should clear the class atlas once it switches to the circular class texture, got atlas {party_atlas} texture {party_texture}"
+            "party1 portrait should expose its authored texture identity without an atlas"
         );
         assert_eq!(
-            party_texture, "Interface\\TargetingFrame\\UI-Classes-Circles",
-            "party1 portrait fallback should use the circular class texture, got atlas {party_atlas} texture {party_texture}"
+            party_texture, "237669",
+            "party1 portrait should expose the current class-circle texture fileDataID"
         );
     }
 }
@@ -500,6 +500,32 @@ fn party_frame_member_frame1_uses_semantic_child_names() {
         )
         .unwrap();
 
+        let draw_layers: (String, i32, String, i32, String, i32) = env
+            .eval(
+                r#"
+                local member = assert(PartyFrame and PartyFrame.MemberFrame1)
+                local portraitLayer, portraitSublevel = member.Portrait:GetDrawLayer()
+                local flashLayer, flashSublevel = member.Flash:GetDrawLayer()
+                local nameLayer, nameSublevel = member.Name:GetDrawLayer()
+                return portraitLayer, portraitSublevel,
+                       flashLayer, flashSublevel,
+                       nameLayer, nameSublevel
+                "#,
+            )
+            .expect("query MemberFrame1 region draw layers");
+        assert_eq!(
+            draw_layers,
+            (
+                "BACKGROUND".to_string(),
+                0,
+                "ARTWORK".to_string(),
+                0,
+                "ARTWORK".to_string(),
+                0,
+            ),
+            "MemberFrame1 regions must retain their current retail XML draw layers",
+        );
+
         let state = env.state();
         let sim = state.borrow();
         let addon_names: Vec<String> = sim.addons.iter().map(|a| a.folder_name.clone()).collect();
@@ -517,48 +543,48 @@ fn party_frame_member_frame1_uses_semantic_child_names() {
 
         assert!(
             dump.contains(&format!(
-                ".Selection [Frame] ({PARTY_FRAME_SELECTION_SIZE}) [stored=1x1] hidden LOW:3"
+                ".Selection [Frame] ({PARTY_FRAME_SELECTION_SIZE}) [stored=1x1] hidden LOW:1000"
             )),
-            "PartyFrame.Selection must stay in the LOW:3 band like master, got:\n{dump}",
+            "PartyFrame.Selection must use the current retail frame level 1000, got:\n{dump}",
         );
         assert!(
             dump.contains(&format!(
-                ".MouseOverHighlight [Frame] ({PARTY_FRAME_SELECTION_SIZE}) hidden LOW:4"
+                ".MouseOverHighlight [Frame] ({PARTY_FRAME_SELECTION_SIZE}) hidden LOW:1001"
             )),
-            "PartyFrame.Selection.MouseOverHighlight must stay in the LOW:4 band like master, got:\n{dump}",
+            "PartyFrame.Selection.MouseOverHighlight must inherit level 1001, got:\n{dump}",
         );
         assert!(
-            dump.contains(".TopLeftCorner [Texture] (16x16) visible LOW:5"),
-            "PartyFrame.Selection.MouseOverHighlight corners must stay in LOW:5 like master, got:\n{dump}",
+            dump.contains(".TopLeftCorner [Texture] (16x16) hidden LOW:1002"),
+            "PartyFrame.Selection.MouseOverHighlight corners must inherit level 1002, got:\n{dump}",
         );
         assert!(
             dump.contains(".MemberFrame1 [Button] (120x53) visible LOW:2"),
             "MemberFrame1 must be present in the dump, got:\n{dump}",
         );
         assert!(
-            dump.contains(".Portrait [Texture] (37x37) visible LOW:3"),
-            "MemberFrame1 portrait must keep the Blizzard parentKey name, got:\n{dump}",
+            dump.contains(".Portrait [Texture] (37x37) visible"),
+            "MemberFrame1 portrait must keep its Blizzard parentKey, type, size, and visibility, got:\n{dump}",
         );
         assert!(
-            dump.contains(".Flash [Texture] (114x47) hidden LOW:3"),
-            "MemberFrame1 flash texture must keep the Blizzard parentKey name, got:\n{dump}",
+            dump.contains(".Flash [Texture] (114x47) hidden"),
+            "MemberFrame1 flash must keep its Blizzard parentKey, type, size, and visibility, got:\n{dump}",
         );
         assert!(
-            dump.contains(".Name [FontString] (57x12) visible LOW:3"),
-            "MemberFrame1 name fontstring must keep the Blizzard parentKey name, got:\n{dump}",
+            dump.contains(".Name [FontString] (57x12) visible"),
+            "MemberFrame1 name must keep its Blizzard parentKey, type, size, and visibility, got:\n{dump}",
         );
         assert!(
             dump.contains(".PowerBarAlt [Frame] (0x0) hidden LOW:3"),
             "MemberFrame1.PowerBarAlt must be present, got:\n{dump}",
         );
         for expected in [
-            ".background [Texture] (0x0) visible LOW:4",
-            ".fill [Texture] (0x0) visible LOW:4",
-            ".frame [Texture] (0x0) visible LOW:4",
-            ".spark [Texture] (0x0) visible LOW:4",
-            ".BG [Texture] (16x64) visible LOW:5",
-            ".BGL [Texture] (32x64) visible LOW:5",
-            ".BGR [Texture] (32x64) visible LOW:5",
+            ".background [Texture] (0x0) hidden LOW:4",
+            ".fill [Texture] (0x0) hidden LOW:4",
+            ".frame [Texture] (0x0) hidden LOW:4",
+            ".spark [Texture] (0x0) hidden LOW:4",
+            ".BG [Texture] (16x64) hidden LOW:5",
+            ".BGL [Texture] (32x64) hidden LOW:5",
+            ".BGR [Texture] (32x64) hidden LOW:5",
         ] {
             assert!(
                 dump.contains(expected),

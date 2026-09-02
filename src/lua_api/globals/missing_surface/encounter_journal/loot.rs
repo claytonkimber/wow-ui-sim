@@ -2,9 +2,9 @@ use crate::encounter_journal_data as data;
 use crate::items;
 use crate::lua_api::globals::strings::string_data::game_enums::ITEM_QUALITY_COLORS_DATA;
 use crate::lua_api::methods::{
-    borrow_state, borrow_state_mut, create_string, create_table, table_set,
+    borrow_state, borrow_state_mut, create_string, create_table, table_set, val_to_string,
 };
-use crate::lua_bridge::FromStack;
+use crate::lua_bridge::{FromStack, stack_val};
 use rilua::vm::state::LuaState;
 use rilua::{LuaResult, Val};
 
@@ -105,12 +105,22 @@ pub(super) fn ej_get_loot_filter(state: &mut LuaState) -> LuaResult<u32> {
 }
 
 pub(super) fn ej_set_loot_filter(state: &mut LuaState) -> LuaResult<u32> {
-    let class_filter = u32::from_stack(state, 1).unwrap_or(0);
-    let spec_filter = u32::from_stack(state, 2).unwrap_or(0);
+    let class_filter = loot_filter_arg_or_zero(state, 1);
+    let spec_filter = loot_filter_arg_or_zero(state, 2);
     let mut sim = borrow_state_mut(state)?;
     sim.encounter_journal.class_filter = class_filter;
     sim.encounter_journal.spec_filter = spec_filter;
     Ok(0)
+}
+
+fn loot_filter_arg_or_zero(state: &LuaState, index: i32) -> u32 {
+    u32::from_stack(state, index)
+        .ok()
+        .or_else(|| {
+            val_to_string(state, stack_val(state, index))
+                .and_then(|value| value.parse::<u32>().ok())
+        })
+        .unwrap_or(0)
 }
 
 pub(super) fn ej_reset_loot_filter(state: &mut LuaState) -> LuaResult<u32> {

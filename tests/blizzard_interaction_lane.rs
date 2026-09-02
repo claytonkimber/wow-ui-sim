@@ -435,9 +435,8 @@ fn tutorial_addons_use_inverse_game_type_restriction_semantics_for_standard() {
     );
 }
 
-#[test]
-fn lane_addons_load_cleanly_during_full_game_load_with_no_lane_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn lane_addons_load_cleanly_during_full_game_load_with_no_lane_specific_lua_errors(env: &WowLuaEnv) {
 
     let mut all_lane: Vec<&str> = Vec::new();
     all_lane.extend(POPUP_CLUSTER.iter().copied());
@@ -462,10 +461,10 @@ fn lane_addons_load_cleanly_during_full_game_load_with_no_lane_specific_lua_erro
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn static_popup_core_publishes_dialog_registry_and_show_hide_functions_after_full_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn static_popup_core_publishes_dialog_registry_and_show_hide_functions_after_full_load(env: &WowLuaEnv) {
 
     let registry_kind: String = env
         .eval("return type(StaticPopupDialogs)")
@@ -519,10 +518,10 @@ fn static_popup_core_publishes_dialog_registry_and_show_hide_functions_after_ful
          modal-detection paths to determine whether a popup is currently displayed"
     );
 }
+}
 
-#[test]
-fn tutorial_manager_publishes_state_machine_and_queue_globals_after_full_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn tutorial_manager_publishes_state_machine_and_queue_globals_after_full_load(env: &WowLuaEnv) {
 
     let queue_kind: String = env
         .eval("return type(TutorialQueue)")
@@ -558,10 +557,10 @@ fn tutorial_manager_publishes_state_machine_and_queue_globals_after_full_load() 
          mixin=\"TutorialMainFrameMixin\">`"
     );
 }
+}
 
-#[test]
-fn tutorial_state_machine_publishes_canonical_state_transitions_after_full_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn tutorial_state_machine_publishes_canonical_state_transitions_after_full_load(env: &WowLuaEnv) {
 
     let states_table: String = env
         .eval(
@@ -619,10 +618,10 @@ fn tutorial_state_machine_publishes_canonical_state_transitions_after_full_load(
          its initial state"
     );
 }
+}
 
-#[test]
-fn smoke_tutorials_can_be_loaded_on_demand_after_eager_sweep() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn smoke_tutorials_can_be_loaded_on_demand_after_eager_sweep(env: &WowLuaEnv) {
 
     for smoke in SMOKE_GAME {
         let dir = blizzard_ui_dir().join(smoke);
@@ -648,6 +647,7 @@ fn smoke_tutorials_can_be_loaded_on_demand_after_eager_sweep() {
             "After explicit load_addon, IsAddOnLoaded('{smoke}') must flip to true"
         );
     }
+}
 }
 
 #[test]
@@ -683,9 +683,8 @@ fn login_warning_dialogs_carries_glue_only_directives_for_regional_warning_frame
     );
 }
 
-#[test]
-fn lane_addons_emit_no_lane_specific_errors_during_full_load_for_static_popup_definitions() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn lane_addons_emit_no_lane_specific_errors_during_full_load_for_static_popup_definitions(env: &WowLuaEnv) {
 
     let popup_definitions_count: i64 = env
         .eval(
@@ -704,6 +703,7 @@ fn lane_addons_emit_no_lane_specific_errors_during_full_load_for_static_popup_de
          confirmation flows (refund, equipment-set, voice-chat-redock, etc.). A count of \
          ≤30 indicates GameDialogDefs.lua failed mid-execution. Got: {popup_definitions_count}"
     );
+}
 }
 
 #[test]

@@ -8,7 +8,8 @@ use wow_ui_sim::startup::fire_startup_events_for_screen;
 use wow_ui_sim::toc::TocFile;
 
 fn blizzard_ui_dir() -> PathBuf {
-    wow_ui_sim::paths::default_blizzard_ui_addons_path().expect("Blizzard UI cache should be available")
+    wow_ui_sim::paths::default_blizzard_ui_addons_path()
+        .expect("Blizzard UI cache should be available")
 }
 
 fn script_errors_frame_dir() -> PathBuf {
@@ -58,6 +59,68 @@ const FRAME_CHILD_KEYS: &[&str] = &[
     "NextError",
     "Close",
 ];
+
+#[test]
+fn escape_decimal_non_printables_preserves_printable_text_and_valid_utf8() {
+    let env = WowLuaEnv::new().expect("Lua environment initializes");
+    let escaped: String = env
+        .eval(
+            r#"
+            return C_StringUtil.EscapeDecimalNonPrintables(
+                "ASCII punctuation: !@#$%^&*() café 日本語"
+            )
+            "#,
+        )
+        .expect("EscapeDecimalNonPrintables accepts valid UTF-8");
+
+    assert_eq!(escaped, "ASCII punctuation: !@#$%^&*() café 日本語");
+}
+
+#[test]
+fn escape_decimal_non_printables_escapes_ascii_controls_except_tab_newline_and_return() {
+    let env = WowLuaEnv::new().expect("Lua environment initializes");
+    let matches_expected: bool = env
+        .eval(
+            r#"
+            local slash = string.char(92)
+            local input = {}
+            local expected = {}
+            for byte = 0, 31 do
+                table.insert(input, string.char(byte))
+                if byte == 9 or byte == 10 or byte == 13 then
+                    table.insert(expected, string.char(byte))
+                else
+                    table.insert(expected, slash .. string.format("%03d", byte))
+                end
+            end
+            table.insert(input, string.char(32, 126, 127))
+            table.insert(expected, " ~" .. slash .. "127")
+            return C_StringUtil.EscapeDecimalNonPrintables(table.concat(input))
+                == table.concat(expected)
+            "#,
+        )
+        .expect("EscapeDecimalNonPrintables accepts ASCII bytes");
+
+    assert!(matches_expected);
+}
+
+#[test]
+fn escape_decimal_non_printables_escapes_each_invalid_utf8_byte() {
+    let env = WowLuaEnv::new().expect("Lua environment initializes");
+    let matches_expected: bool = env
+        .eval(
+            r#"
+            local slash = string.char(92)
+            local input = "é" .. string.char(195, 40, 255, 226, 130) .. "日本語"
+            local expected = "é" .. slash .. "195(" .. slash .. "255"
+                .. slash .. "226" .. slash .. "130" .. "日本語"
+            return C_StringUtil.EscapeDecimalNonPrintables(input) == expected
+            "#,
+        )
+        .expect("EscapeDecimalNonPrintables accepts invalid UTF-8 bytes");
+
+    assert!(matches_expected);
+}
 
 fn load_full_game_ui() -> WowLuaEnv {
     let env = WowLuaEnv::new().expect("Failed to create Lua environment");
@@ -264,9 +327,8 @@ fn xml_wraps_frame_in_scoped_modifier_with_secure_env_addition() {
     );
 }
 
-#[test]
-fn loads_without_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn loads_without_lua_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -286,10 +348,10 @@ fn loads_without_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn is_addon_loaded_after_eager_sweep() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn is_addon_loaded_after_eager_sweep(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_ScriptErrorsFrame')")
@@ -300,10 +362,10 @@ fn is_addon_loaded_after_eager_sweep() {
          after the eager Game-screen sweep"
     );
 }
+}
 
-#[test]
-fn script_errors_frame_mixin_publishes_with_eleven_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn script_errors_frame_mixin_publishes_with_eleven_methods(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(_G.ScriptErrorsFrameMixin)")
@@ -338,8 +400,8 @@ fn script_errors_frame_mixin_publishes_with_eleven_methods() {
              render path — keys errors by `message\\nstack` in the `seen` table, \
              increments `count` on duplicates, calls PrintToDebugWindow on \
              first-occurrence, auto-Shows when not hidden by \
-             ShouldHideErrorFrame('scriptErrors'), tracks messageCount and calls \
-             OnExcessiveErrors at >=1000 messages); GetEditBox (returns \
+             ShouldHideErrorFrame('scriptErrors'), invokes the messageCounter \
+             closure and calls OnExcessiveErrors at >=1000 messages); GetEditBox (returns \
              ScrollFrame.Text); Update (renders ERROR_FORMAT or WARNING_FORMAT, \
              triggers ScrollingEdit re-layout, resets vertical scroll); \
              UpdateButtons (enable/disable PreviousError/NextError, set IndexLabel \
@@ -348,10 +410,10 @@ fn script_errors_frame_mixin_publishes_with_eleven_methods() {
         );
     }
 }
+}
 
-#[test]
-fn set_hide_error_frame_predicate_publishes_globally() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn set_hide_error_frame_predicate_publishes_globally(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(_G.SetHideErrorFramePredicate)")
@@ -368,10 +430,10 @@ fn set_hide_error_frame_predicate_publishes_globally() {
          experience"
     );
 }
+}
 
-#[test]
-fn module_locals_stay_off_global_scope() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn module_locals_stay_off_global_scope(env: &WowLuaEnv) {
 
     for name in MODULE_LOCAL_NAMES {
         let kind: String = env
@@ -390,10 +452,10 @@ fn module_locals_stay_off_global_scope() {
         );
     }
 }
+}
 
-#[test]
-fn script_errors_frame_publishes_as_named_global_hidden_by_default() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn script_errors_frame_publishes_as_named_global_hidden_by_default(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(_G.ScriptErrorsFrame)")
@@ -425,10 +487,10 @@ fn script_errors_frame_publishes_as_named_global_hidden_by_default() {
          UI element so it cannot be obscured by a misbehaving addon's frame stack"
     );
 }
+}
 
-#[test]
-fn script_errors_frame_publishes_seven_named_child_keys() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn script_errors_frame_publishes_seven_named_child_keys(env: &WowLuaEnv) {
 
     for child_key in FRAME_CHILD_KEYS {
         let child_kind: String = env
@@ -449,10 +511,10 @@ fn script_errors_frame_publishes_seven_named_child_keys() {
         );
     }
 }
+}
 
-#[test]
-fn registers_lua_warning_event_after_onload() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn registers_lua_warning_event_after_onload(env: &WowLuaEnv) {
 
     let registered: bool = env
         .eval("return ScriptErrorsFrame:IsEventRegistered('LUA_WARNING')")
@@ -468,16 +530,15 @@ fn registers_lua_warning_event_after_onload() {
          routes hard errors via AddLuaErrorHandler"
     );
 }
+}
 
-#[test]
-fn display_message_internal_dedups_identical_message_stack_pairs() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn display_message_internal_dedups_identical_message_stack_pairs(env: &WowLuaEnv) {
 
     env.exec(
         r#"
         ScriptErrorsFrame.errorData = {}
         ScriptErrorsFrame.seen = {}
-        ScriptErrorsFrame.messageCount = 0
         ScriptErrorsFrame.index = 0
         ScriptErrorsFrame:DisplayMessageInternal("synthetic-error", 0, "synthetic-stack", "synthetic-locals")
         ScriptErrorsFrame:DisplayMessageInternal("synthetic-error", 0, "synthetic-stack", "synthetic-locals")
@@ -507,16 +568,5 @@ fn display_message_internal_dedups_identical_message_stack_pairs() {
          path increments the count field instead of appending a new errorData \
          entry"
     );
-
-    let total_messages: f64 = env
-        .eval("return ScriptErrorsFrame.messageCount")
-        .expect("messageCount probe succeeds");
-    assert_eq!(
-        total_messages, 3.0,
-        "messageCount must equal 3 — even though dedup collapsed the 3 raises \
-         into one errorData entry, the running messageCount counter increments \
-         on every DisplayMessageInternal call. This is the counter that triggers \
-         OnExcessiveErrors at >=1000 to protect the player from an infinite \
-         error loop"
-    );
+}
 }

@@ -87,9 +87,8 @@ fn blizzard_console_appears_in_both_screens_discovery() {
     );
 }
 
-#[test]
-fn blizzard_console_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_console_loads_without_errors(env: &WowLuaEnv) {
 
     let console_errors: Vec<String> = env
         .state()
@@ -107,10 +106,10 @@ fn blizzard_console_loads_without_errors() {
         console_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_console_developer_console_frame_is_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_console_developer_console_frame_is_defined(env: &WowLuaEnv) {
 
     let frame_present: bool = env
         .eval(
@@ -125,10 +124,10 @@ fn blizzard_console_developer_console_frame_is_defined() {
          after Blizzard_Console.xml loads"
     );
 }
+}
 
-#[test]
-fn blizzard_console_developer_console_mixin_methods_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_console_developer_console_mixin_methods_are_defined(env: &WowLuaEnv) {
 
     let methods_present: bool = env
         .eval(
@@ -169,10 +168,10 @@ fn blizzard_console_developer_console_mixin_methods_are_defined() {
          and command-history-index helpers (Reset/Get/Set/HasSetCommandHistoryIndex)"
     );
 }
+}
 
-#[test]
-fn blizzard_console_autocomplete_mixin_methods_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_console_autocomplete_mixin_methods_are_defined(env: &WowLuaEnv) {
 
     let methods_present: bool = env
         .eval(
@@ -211,10 +210,10 @@ fn blizzard_console_autocomplete_mixin_methods_are_defined() {
          (StartSearch / CancelSearch / FinishWork / StepAutoCompleteSearchCoroutine)"
     );
 }
+}
 
-#[test]
-fn blizzard_console_global_helpers_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_console_global_helpers_are_defined(env: &WowLuaEnv) {
 
     let globals_present: bool = env
         .eval(
@@ -233,10 +232,10 @@ fn blizzard_console_global_helpers_are_defined() {
          DeveloperConsole_RepeatLastCommand (re-runs the last command via ConsoleExec)"
     );
 }
+}
 
-#[test]
-fn blizzard_console_get_last_command_reads_saved_var_history_tail() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_console_get_last_command_reads_saved_var_history_tail(env: &WowLuaEnv) {
 
     let history_lookup_works: bool = env
         .eval(
@@ -256,4 +255,5 @@ fn blizzard_console_get_last_command_reads_saved_var_history_tail() {
          Blizzard_Console_SavedVars.commandHistory ('last_cmd' for a 3-entry list), nil for an \
          empty list, and nil when the saved-var sub-table is missing entirely"
     );
+}
 }

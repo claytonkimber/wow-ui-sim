@@ -13,6 +13,7 @@ local function expect(condition, message)
 end
 
 local texturePath = "Interface\\Icons\\Ability_ThunderClap"
+local textureID = 132326
 local popup = CreateFrame("Frame", "TestPopupListDisplayCallbackFrame",
                          UIParent, "AutoCompletePopupListTemplate")
 expect(popup ~= nil, "AutoCompletePopupListTemplate must instantiate")
@@ -45,9 +46,10 @@ if popup ~= nil then
            "row " .. tostring(rowCount) .. " Icon must be shown")
     expect(row.IconFrame:IsShown(),
            "row " .. tostring(rowCount) .. " IconFrame must be shown")
-    expect(row.Icon:GetTexture() == texturePath,
-           "row " .. tostring(rowCount) .. " Icon texture must be " ..
-           texturePath .. ", got " .. tostring(row.Icon:GetTexture()))
+    expect(row.Icon:GetTexture() == textureID,
+           "row " .. tostring(rowCount) .. " Icon texture path " ..
+           texturePath .. " must resolve to FDID " .. tostring(textureID) ..
+           ", got " .. tostring(row.Icon:GetTexture()))
     expect(row.Name:GetMaxLines() == 1,
            "row " .. tostring(rowCount) .. " Name max lines must be 1")
   end)

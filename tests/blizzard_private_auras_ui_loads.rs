@@ -43,7 +43,7 @@ const VIRTUAL_TEMPLATES_NOT_IN_GLOBAL_ENV: &[&str] = &[
     "CompactUnitFrameDispelOverlayTemplate",
 ];
 
-const SCOPED_NAMED_FRAMES_LEAKED_TO_GLOBAL_ENV: &[&str] =
+const SCOPED_NAMED_FRAMES_HIDDEN_FROM_GLOBAL_ENV: &[&str] =
     &["RaidBossEmoteFramePrivate", "PrivateAurasTooltip"];
 
 fn load_full_game_ui() -> WowLuaEnv {
@@ -292,9 +292,8 @@ fn blizzard_private_auras_ui_appears_in_full_addon_inventory() {
     );
 }
 
-#[test]
-fn blizzard_private_auras_ui_is_addon_loaded_after_game_screen_boot() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_private_auras_ui_is_addon_loaded_after_game_screen_boot(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_PrivateAurasUI')")
@@ -305,10 +304,10 @@ fn blizzard_private_auras_ui_is_addon_loaded_after_game_screen_boot() {
          eager Game-screen sweep"
     );
 }
+}
 
-#[test]
-fn blizzard_private_auras_ui_publishes_five_mixins_into_secure_env() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_private_auras_ui_publishes_five_mixins_into_secure_env(env: &WowLuaEnv) {
 
     for name in PUBLIC_MIXIN_GLOBALS {
         let in_secure_env: String = env
@@ -342,10 +341,10 @@ fn blizzard_private_auras_ui_publishes_five_mixins_into_secure_env() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_private_auras_ui_virtual_templates_are_not_in_global_env() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_private_auras_ui_virtual_templates_are_not_in_global_env(env: &WowLuaEnv) {
 
     for template in VIRTUAL_TEMPLATES_NOT_IN_GLOBAL_ENV {
         let kind: String = env
@@ -366,30 +365,24 @@ fn blizzard_private_auras_ui_virtual_templates_are_not_in_global_env() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_private_auras_ui_scoped_named_frames_currently_leak_to_global_env() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_private_auras_ui_scoped_named_frames_stay_out_of_global_env(env: &WowLuaEnv) {
 
-    for frame in SCOPED_NAMED_FRAMES_LEAKED_TO_GLOBAL_ENV {
+    for frame in SCOPED_NAMED_FRAMES_HIDDEN_FROM_GLOBAL_ENV {
         let kind: String = env
-            .eval(&format!("return type(_G.{frame})"))
-            .unwrap_or_else(|err| panic!("type(_G.{frame}) probe failed: {err}"));
+            .eval(&format!("return type(rawget(_G, '{frame}'))"))
+            .unwrap_or_else(|err| panic!("rawget(_G, '{frame}') probe failed: {err}"));
         assert_eq!(
-            kind, "table",
-            "_G.{frame} CURRENTLY publishes as a table — pinning observed simulator gap. \
-             The XML wraps RaidBossEmoteFramePrivate and PrivateAurasTooltip in \
-             `<ScopedModifier forbidden=\"true\" hideFromGlobalEnv=\"true\">`. The \
-             simulator's ScopedModifierXml struct at src/xml/types.rs:23-31 only parses \
-             the `forbidden` attribute, NOT `hideFromGlobalEnv`. process_scoped_modifier \
-             at src/loader/xml_file.rs:103-121 propagates `forbidden` (sets \
-             loading_forbidden) but has no path that suppresses _G registration. As a \
-             result both named frames leak into _G even though the XML asks them not \
-             to. In real WoW these would be reachable only through the ScopedModifier's \
-             private namespace; this test pins the gap so a future fix that wires up \
-             hideFromGlobalEnv flips the assertion"
+            kind, "nil",
+            "rawget(_G, '{frame}') must be nil — the XML wraps \
+             RaidBossEmoteFramePrivate and PrivateAurasTooltip in \
+             `<ScopedModifier forbidden=\"true\" hideFromGlobalEnv=\"true\">`, so named \
+             frames inside the scope are created without publishing global bindings"
         );
     }
+}
 }
 
 #[test]
@@ -436,9 +429,8 @@ fn blizzard_private_auras_ui_xml_uses_scoped_modifier_wrapper() {
     );
 }
 
-#[test]
-fn blizzard_private_auras_ui_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_private_auras_ui_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -460,4 +452,5 @@ fn blizzard_private_auras_ui_loads_without_addon_specific_lua_errors() {
         "Blizzard_PrivateAurasUI emitted addon-specific Lua errors during load:\n  {}",
         load_errors.join("\n  ")
     );
+}
 }

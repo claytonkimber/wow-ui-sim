@@ -182,9 +182,8 @@ fn blizzard_generic_shopping_cart_excluded_from_game_auto_discovery_due_to_lod()
     );
 }
 
-#[test]
-fn blizzard_generic_shopping_cart_loads_explicitly_via_load_addon_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_generic_shopping_cart_loads_explicitly_via_load_addon_without_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -208,10 +207,10 @@ fn blizzard_generic_shopping_cart_loads_explicitly_via_load_addon_without_errors
         cart_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_generic_shopping_cart_is_addon_loaded_returns_true_after_explicit_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_generic_shopping_cart_is_addon_loaded_returns_true_after_explicit_load(env: &WowLuaEnv) {
 
     let before: bool = env
         .eval("return C_AddOns and C_AddOns.IsAddOnLoaded('Blizzard_GenericShoppingCart') or false")
@@ -235,10 +234,10 @@ fn blizzard_generic_shopping_cart_is_addon_loaded_returns_true_after_explicit_lo
          addon-info table that backs IsAddOnLoaded)"
     );
 }
+}
 
-#[test]
-fn blizzard_generic_shopping_cart_publishes_service_base_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_generic_shopping_cart_publishes_service_base_mixins(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &shopping_cart_toc())
         .expect("Blizzard_GenericShoppingCart should load");
 
@@ -262,10 +261,10 @@ fn blizzard_generic_shopping_cart_publishes_service_base_mixins() {
          + GetEventData stub overridden in derived button mixins)"
     );
 }
+}
 
-#[test]
-fn blizzard_generic_shopping_cart_publishes_data_manager_mixin_with_cart_lifecycle() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_generic_shopping_cart_publishes_data_manager_mixin_with_cart_lifecycle(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &shopping_cart_toc())
         .expect("Blizzard_GenericShoppingCart should load");
 
@@ -303,10 +302,10 @@ fn blizzard_generic_shopping_cart_publishes_data_manager_mixin_with_cart_lifecyc
          the cart)"
     );
 }
+}
 
-#[test]
-fn blizzard_generic_shopping_cart_publishes_data_services_constants_table() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_generic_shopping_cart_publishes_data_services_constants_table(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &shopping_cart_toc())
         .expect("Blizzard_GenericShoppingCart should load");
 
@@ -336,10 +335,10 @@ fn blizzard_generic_shopping_cart_publishes_data_services_constants_table() {
          resolves to `eventNamespace .. \".\" .. self.serviceName` correctly"
     );
 }
+}
 
-#[test]
-fn blizzard_generic_shopping_cart_publishes_visuals_frame_mixin_with_full_lifecycle() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_generic_shopping_cart_publishes_visuals_frame_mixin_with_full_lifecycle(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &shopping_cart_toc())
         .expect("Blizzard_GenericShoppingCart should load");
 
@@ -373,10 +372,10 @@ fn blizzard_generic_shopping_cart_publishes_visuals_frame_mixin_with_full_lifecy
          UpdateCurrencyTotal pulls GetMoney() and reanchors PlayerTotalCurrencyDisplay"
     );
 }
+}
 
-#[test]
-fn blizzard_generic_shopping_cart_publishes_button_and_currency_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_generic_shopping_cart_publishes_button_and_currency_mixins(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &shopping_cart_toc())
         .expect("Blizzard_GenericShoppingCart should load");
 
@@ -413,10 +412,10 @@ fn blizzard_generic_shopping_cart_publishes_button_and_currency_mixins() {
          once both halves agree the mouse has left)"
     );
 }
+}
 
-#[test]
-fn blizzard_generic_shopping_cart_publishes_visual_services_and_currency_mixin() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_generic_shopping_cart_publishes_visual_services_and_currency_mixin(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &shopping_cart_toc())
         .expect("Blizzard_GenericShoppingCart should load");
 
@@ -460,10 +459,10 @@ fn blizzard_generic_shopping_cart_publishes_visual_services_and_currency_mixin()
          GameTooltip_Hide)"
     );
 }
+}
 
-#[test]
-fn blizzard_generic_shopping_cart_virtual_templates_do_not_leak_as_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_generic_shopping_cart_virtual_templates_do_not_leak_as_globals(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &shopping_cart_toc())
         .expect("Blizzard_GenericShoppingCart should load");
 
@@ -493,10 +492,10 @@ fn blizzard_generic_shopping_cart_virtual_templates_do_not_leak_as_globals() {
          CreateFrame(\"Frame\", nil, parent, \"ShoppingCartVisualsFrameTemplate\"))"
     );
 }
+}
 
-#[test]
-fn blizzard_generic_shopping_cart_data_manager_init_seeds_cart_and_callbacks() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_generic_shopping_cart_data_manager_init_seeds_cart_and_callbacks(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &shopping_cart_toc())
         .expect("Blizzard_GenericShoppingCart should load");
 
@@ -525,10 +524,10 @@ fn blizzard_generic_shopping_cart_data_manager_init_seeds_cart_and_callbacks() {
          freshly-initialized manager"
     );
 }
+}
 
-#[test]
-fn blizzard_generic_shopping_cart_data_manager_add_remove_clear_round_trips() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_generic_shopping_cart_data_manager_add_remove_clear_round_trips(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &shopping_cart_toc())
         .expect("Blizzard_GenericShoppingCart should load");
 
@@ -567,4 +566,5 @@ fn blizzard_generic_shopping_cart_data_manager_add_remove_clear_round_trips() {
          re-initialized to {{}} (not just emptied via table.remove which would leave the \
          cartID monotonic counter visible)"
     );
+}
 }

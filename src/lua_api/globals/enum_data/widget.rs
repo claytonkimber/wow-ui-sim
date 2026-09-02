@@ -82,6 +82,30 @@ pub const VALUE_ADDED_SERVICE_TYPE: EnumDef = (
     ],
 );
 
+#[cfg(feature = "retail-12-1-0")]
+pub const FORBIDDEN_ASPECT: EnumDef = (
+    "ForbiddenAspect",
+    &[
+        ("SetToDefaults", 1),
+        ("ScriptBindings", 2),
+        ("UntrustedScriptExecution", 4),
+        ("UntrustedLayoutScriptExecution", 8),
+        ("EventRegistrations", 16),
+        ("AlwaysPropagateInput", 32),
+        ("ScriptedInput", 64),
+        ("QueryFocus", 128),
+        ("ChangeAnimationTarget", 256),
+        ("RemoveSecretAspects", 512),
+        ("ChangeParent", 1024),
+    ],
+);
+
+#[cfg(feature = "retail-12-1-0")]
+pub const FORBIDDEN_ASPECT_META: EnumDef = (
+    "ForbiddenAspectMeta",
+    &[("MinValue", 1), ("MaxValue", 1024), ("NumValues", 11)],
+);
+
 pub const CREATION_CLASS_DISABLED_REASON: EnumDef = (
     "CreationClassDisabledReason",
     &[
@@ -641,6 +665,29 @@ pub const WIDGET_ICON_SOURCE_TYPE: SeqEnumDef = ("WidgetIconSourceType", &["Defa
 pub const WIDGET_TEXT_HORIZONTAL_ALIGNMENT: EnumDef = (
     "WidgetTextHorizontalAlignmentType",
     &[("Left", 0), ("Center", 1), ("Right", 2)],
+);
+
+#[cfg(feature = "retail-12-1-0")]
+pub const VISUAL_ALERT_TYPE: EnumDef = (
+    "VisualAlertType",
+    &[
+        ("MarchingAnts", 1),
+        ("MarchingAntsCyan", 2),
+        ("MarchingAntsRed", 3),
+        ("MarchingAntsGreen", 4),
+        ("MarchingAntsBlue", 5),
+        ("Flash", 6),
+        ("FlashCyan", 7),
+        ("FlashRed", 8),
+        ("FlashGreen", 9),
+        ("FlashBlue", 10),
+    ],
+);
+
+#[cfg(feature = "retail-12-1-0")]
+pub const VISUAL_ALERT_TYPE_META: EnumDef = (
+    "VisualAlertTypeMeta",
+    &[("MinValue", 1), ("MaxValue", 10), ("NumValues", 10)],
 );
 
 pub const BAG_INDEX: EnumDef = (

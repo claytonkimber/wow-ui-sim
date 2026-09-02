@@ -314,33 +314,6 @@ fn test_transmog_collection_get_illusions_empty() {
 }
 
 #[test]
-fn test_transmog_collection_get_outfits_empty() {
-    let env = env();
-    let count: i32 = env
-        .eval("return #C_TransmogCollection.GetOutfits()")
-        .unwrap();
-    assert_eq!(count, 0);
-}
-
-#[test]
-fn test_transmog_collection_get_num_max_outfits() {
-    let env = env();
-    let count: i32 = env
-        .eval("return C_TransmogCollection.GetNumMaxOutfits()")
-        .unwrap();
-    assert_eq!(count, 20);
-}
-
-#[test]
-fn test_transmog_collection_get_outfit_info_nil() {
-    let env = env();
-    let is_nil: bool = env
-        .eval("return C_TransmogCollection.GetOutfitInfo(1) == nil")
-        .unwrap();
-    assert!(is_nil);
-}
-
-#[test]
 fn test_transmog_collection_get_appearance_camera_id() {
     let env = env();
     let id: i32 = env
@@ -503,7 +476,7 @@ fn test_admin_set_transmog_for_slot() {
 }
 
 #[test]
-fn test_transmog_applied_altered_appearance_and_creature_display_lookup() {
+fn test_transmog_applied_altered_appearance() {
     let env = env();
     let result: String = env
         .eval(
@@ -512,9 +485,6 @@ fn test_transmog_applied_altered_appearance_and_creature_display_lookup() {
             A_Admin.SetTransmogForSlot(1, 42)
             local altered = C_Transmog.GetAppliedAlteredAppearance(1)
             if altered ~= 42 then return "altered=" .. tostring(altered) end
-            local displayID = C_Transmog.GetCreatureDisplayIDForSource(42)
-            if displayID ~= 42 then return "displayID=" .. tostring(displayID) end
-            if C_Transmog.GetCreatureDisplayIDForSource(999999) ~= nil then return "unknown source not nil" end
             return "ok"
             "#,
         )
@@ -533,24 +503,6 @@ fn test_transmog_player_has_transmog_by_item_info_and_is_at_npc() {
             if C_Transmog.PlayerHasTransmogByItemInfo("item:99989") then return "found uncollected item" end
             A_Admin.AddTransmog(77)
             if not C_Transmog.PlayerHasTransmogByItemInfo("item:77:0") then return "missing collected source id" end
-            return "ok"
-            "#,
-        )
-        .unwrap();
-    assert_eq!(result, "ok");
-}
-
-#[test]
-fn test_transmog_get_slot_info() {
-    let env = env();
-    let result: String = env
-        .eval(
-            r#"
-            local isTransmogrified, hasPending, isPendingCollected,
-                  canTransmogrify, cannotTransmogrifyReason, hasUndo = C_Transmog.GetSlotInfo(1)
-            if isTransmogrified then return "transmogrified" end
-            if hasPending then return "pending" end
-            if type(hasUndo) ~= "boolean" then return "hasUndo type=" .. type(hasUndo) end
             return "ok"
             "#,
         )

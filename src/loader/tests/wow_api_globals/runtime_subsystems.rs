@@ -195,6 +195,86 @@ fn test_animation_runtime_exposes_core_configuration_methods() {
 }
 
 #[test]
+fn test_animation_script_handler_matrix_matches_retail_probe() {
+    let env = WowLuaEnv::new().unwrap();
+    let result: String = env
+        .eval(
+            r#"
+            local handlers = {
+                "OnLoad", "OnUpdate", "OnEvent", "OnPlay", "OnPause", "OnStop",
+                "OnFinished", "OnLoop", "OnShow", "OnHide", "OnEnter", "OnLeave",
+            }
+            local animationHandlers = {
+                OnLoad = true, OnUpdate = true, OnEvent = false, OnPlay = true,
+                OnPause = true, OnStop = true, OnFinished = true, OnLoop = false,
+                OnShow = false, OnHide = false, OnEnter = false, OnLeave = false,
+            }
+            local groupHandlers = {
+                OnLoad = true, OnUpdate = true, OnEvent = false, OnPlay = true,
+                OnPause = true, OnStop = true, OnFinished = true, OnLoop = true,
+                OnShow = false, OnHide = false, OnEnter = false, OnLeave = false,
+            }
+            local frameHandlers = {
+                OnLoad = true, OnUpdate = true, OnEvent = true, OnPlay = false,
+                OnPause = false, OnStop = false, OnFinished = false, OnLoop = false,
+                OnShow = true, OnHide = true, OnEnter = true, OnLeave = true,
+            }
+
+            local function checkObject(object, objectName, expected)
+                for _, handler in ipairs(handlers) do
+                    local supported = expected[handler]
+                    local hasOk, hasValue = pcall(object.HasScript, object, handler)
+                    local setOk = pcall(object.SetScript, object, handler, function() end)
+                    if setOk then
+                        pcall(object.SetScript, object, handler, nil)
+                    end
+
+                    if supported then
+                        if not hasOk or hasValue ~= true then
+                            return objectName .. ":" .. handler .. ":HasScript"
+                        end
+                        if not setOk then
+                            return objectName .. ":" .. handler .. ":SetScript"
+                        end
+                    else
+                        if not hasOk or hasValue ~= false then
+                            return objectName .. ":" .. handler .. ":HasScript"
+                        end
+                        if setOk then
+                            return objectName .. ":" .. handler .. ":SetScript unexpectedly accepted"
+                        end
+                    end
+                end
+                return nil
+            end
+
+            local frame = CreateFrame("Frame")
+            local group = frame:CreateAnimationGroup()
+            local failure = checkObject(frame, "Frame", frameHandlers)
+                or checkObject(group, "AnimationGroup", groupHandlers)
+            if failure then return failure end
+
+            local animationTypes = {
+                "Alpha", "Translation", "Scale", "Rotation", "LineTranslation",
+                "LineScale", "Path", "FlipBook", "VertexColor",
+            }
+            for _, animationType in ipairs(animationTypes) do
+                local createOk, animation = pcall(group.CreateAnimation, group, animationType)
+                if not createOk or animation == nil then
+                    return "create:" .. animationType
+                end
+                failure = checkObject(animation, animationType, animationHandlers)
+                if failure then return failure end
+            end
+            return "ok"
+            "#,
+        )
+        .unwrap();
+
+    assert_eq!(result, "ok");
+}
+
+#[test]
 fn hiding_parent_stops_active_child_animation_group() {
     let env = WowLuaEnv::new().unwrap();
     let (playing, paused, done): (bool, bool, bool) = env

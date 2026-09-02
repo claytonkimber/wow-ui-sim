@@ -102,9 +102,8 @@ fn blizzard_deprecated_appears_in_game_discovery_only() {
     );
 }
 
-#[test]
-fn blizzard_deprecated_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -120,10 +119,10 @@ fn blizzard_deprecated_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_installs_battlefield_score_shim() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_installs_battlefield_score_shim(env: &WowLuaEnv) {
 
     let installed: bool = env
         .eval(
@@ -140,10 +139,10 @@ fn blizzard_deprecated_installs_battlefield_score_shim() {
          '1' (src/cvars.yaml:899) so the fallback file body executes"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_installs_unit_is_spell_target_shim() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_installs_unit_is_spell_target_shim(env: &WowLuaEnv) {
 
     let installed: bool = env
         .eval("return type(UnitIsSpellTarget) == 'function'")
@@ -157,10 +156,10 @@ fn blizzard_deprecated_installs_unit_is_spell_target_shim() {
          silent false"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_installs_spellbook_loss_of_control_shim() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_installs_spellbook_loss_of_control_shim(env: &WowLuaEnv) {
 
     let installed: bool = env
         .eval(
@@ -176,10 +175,10 @@ fn blizzard_deprecated_installs_spellbook_loss_of_control_shim() {
          to the legacy two-return positional shape"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_unit_is_spell_target_returns_false_for_non_player_target() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_unit_is_spell_target_returns_false_for_non_player_target(env: &WowLuaEnv) {
 
     let result: bool = env
         .eval("return UnitIsSpellTarget('player', 'target')")
@@ -191,10 +190,10 @@ fn blizzard_deprecated_unit_is_spell_target_returns_false_for_non_player_target(
          targets get a silent false (Deprecated_12_0_1.lua line 67-72)"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_load_deprecation_fallbacks_cvar_is_default_on() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_load_deprecation_fallbacks_cvar_is_default_on(env: &WowLuaEnv) {
 
     let cvar_on: bool = env
         .eval("return GetCVarBool('loadDeprecationFallbacks')")
@@ -208,6 +207,7 @@ fn blizzard_deprecated_load_deprecation_fallbacks_cvar_is_default_on() {
          C_SpellBook.GetSpellBookItemLossOfControlCooldown) are skipped and any addon still \
          calling them blows up with `attempt to call a nil value`"
     );
+}
 }
 
 #[test]

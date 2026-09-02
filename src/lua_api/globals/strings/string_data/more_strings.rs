@@ -2,6 +2,208 @@
 
 use super::{IntDef, StringDef};
 
+pub const RETAIL_12_1_GLOBAL_STRINGS: &[StringDef] = &[
+    (
+        "SOCIAL_UI_BATTLE_NET_FRIEND_TAG_LABEL_PROFESSIONS",
+        "Professions",
+    ),
+    ("SOCIAL_UI_BATTLE_NET_FRIEND_TAG_LABEL_PVP", "PvP"),
+    ("SOCIAL_UI_BATTLE_NET_FRIEND_TAG_LABEL_RAIDING", "Raiding"),
+    ("SOCIAL_UI_BATTLE_NET_FRIEND_TAG_LABEL_DUNGEONS", "Dungeons"),
+    ("SOCIAL_UI_BATTLE_NET_FRIEND_TAG_LABEL_DELVE", "Delves"),
+    ("SOCIAL_UI_BATTLE_NET_FRIEND_TAG_LABEL_QUESTING", "Questing"),
+    (
+        "SOCIAL_UI_BATTLE_NET_FRIEND_TAG_LABEL_ROLEPLAYING",
+        "Roleplaying",
+    ),
+    ("SOCIAL_UI_BATTLE_NET_FRIEND_TAG_LABEL_DPS", "Damage"),
+    ("SOCIAL_UI_BATTLE_NET_FRIEND_TAG_LABEL_HEALER", "Healer"),
+    ("SOCIAL_UI_BATTLE_NET_FRIEND_TAG_LABEL_TANK", "Tank"),
+    ("SOCIAL_UI_PRESENCE_TYPE_LABEL_UNKNOWN", "Unknown"),
+    ("SOCIAL_UI_PRESENCE_TYPE_LABEL_ONLINE", "Online"),
+    ("SOCIAL_UI_PRESENCE_TYPE_LABEL_OFFLINE", "Offline"),
+    ("SOCIAL_UI_PRESENCE_TYPE_LABEL_AWAY", "Away"),
+    ("SOCIAL_UI_PRESENCE_TYPE_LABEL_BUSY", "Busy"),
+    (
+        "SOCIAL_UI_PRESENCE_TYPE_LABEL_APPEAR_OFFLINE",
+        "Appear Offline",
+    ),
+    (
+        "SLASH_CAA_HELP_SAY_COMBAT_START_SOUND",
+        "Sound (%d-%d) to say when combat starts.",
+    ),
+    (
+        "SLASH_CAA_HELP_SAY_COMBAT_END_SOUND",
+        "Sound (%d-%d) to say when combat ends.",
+    ),
+    (
+        "SLASH_CAA_HELP_SAY_TARGET_CASTS_INTERRUPT_SOUND",
+        "Sound (%d-%d) to say when interrupting a target cast.",
+    ),
+    (
+        "SLASH_CAA_HELP_SAY_TARGET_CASTS_INTERRUPT_SUCCESS_SOUND",
+        "Sound (%d-%d) to say after interrupting a target cast.",
+    ),
+    (
+        "SLASH_CAA_HELP_WHEN_TARGET_DIES_SOUND",
+        "Sound (%d-%d) to say when a target dies.",
+    ),
+    (
+        "SLASH_CAA_HELP_SAY_IF_TARGETED_SOUND",
+        "Sound (%d-%d) to say when targeted.",
+    ),
+    (
+        "SLASH_CAA_HELP_DEBUFF_SELF_ALERT_SOUND",
+        "Sound (%d-%d) to say for a self debuff alert.",
+    ),
+    ("SLASH_CAA_WHEN_TARGET_DIES", "whentargetdies"),
+    ("SLASH_CAA_PLAY_SOUND", "playsound"),
+    (
+        "BLIZZARD_STORE_VAS_ERROR_BOOST_THROTTLE",
+        "Maximum number of character boosts reached for the day. Please try again tomorrow.",
+    ),
+    (
+        "HOUSING_FIXTURE_ATTACHED_DECOR_CONFIRMATION",
+        "This change will affect Decor currently attached to your house.\n\nWould you prefer to put the attached Decor into storage or leave it detached?",
+    ),
+    (
+        "HOUSING_FIXTURE_ATTACHED_DECOR_CONFIRMATION_DETACH",
+        "Detach",
+    ),
+    ("HOUSING_FIXTURE_ATTACHED_DECOR_CONFIRMATION_STORE", "Store"),
+    ("HOUSING_SETTINGS_LABEL", "Housing"),
+    (
+        "DECOR_LIGHT_RADIUS_INDICATOR_ENABLED",
+        "Light Radius Indicators",
+    ),
+    (
+        "OPTION_TOOLTIP_DECOR_LIGHT_RADIUS_INDICATOR_ENABLED",
+        "Enables Light Radius Indicators to show when placing Decor",
+    ),
+    ("DECOR_LIGHT_RADIUS_INDICATOR_TYPE_ALWAYS", "Always"),
+    (
+        "OPTION_TOOLTIP_DECOR_LIGHT_RADIUS_INDICATOR_TYPE_ALWAYS",
+        "The Indicator is always visible while moving a light.",
+    ),
+    ("DECOR_LIGHT_RADIUS_INDICATOR_TYPE_OVERLAP", "Overlap"),
+    (
+        "OPTION_TOOLTIP_DECOR_LIGHT_RADIUS_INDICATOR_TYPE_OVERLAP",
+        "When two lights are overlapping the indicator will appear.",
+    ),
+    ("DECOR_LIGHT_RADIUS_INDICATOR_TYPE_NEVER", "Never"),
+    (
+        "OPTION_TOOLTIP_DECOR_LIGHT_RADIUS_INDICATOR_TYPE_NEVER",
+        "No indicator will show.",
+    ),
+    (
+        "SELECTED_DECOR_LIGHT_RADIUS_INDICATOR_TYPE",
+        "Selected Decor",
+    ),
+    (
+        "OPTION_TOOLTIP_SELECTED_DECOR_LIGHT_RADIUS_INDICATOR_TYPE",
+        "Controls how the Light Radius Indicator is displayed on selected Decor while decorating.",
+    ),
+    ("OTHER_DECOR_LIGHT_RADIUS_INDICATOR_TYPE", "Other Decor"),
+    (
+        "OPTION_TOOLTIP_OTHER_DECOR_LIGHT_RADIUS_INDICATOR_TYPE",
+        "Controls how the Light Radius Indicator is displayed on non-selected Decor while decorating.",
+    ),
+    (
+        "HUD_EDIT_MODE_PERSONAL_RESOURCE_DISPLAY_DISABLED_TOOLTIP",
+        "Displays health, power, and class resources. The Personal Resource Display is currently disabled. Enable it in: Combat>Personal Resource Display",
+    ),
+    (
+        "HUD_EDIT_MODE_SETTING_DAMAGE_METER_VISIBILITY_IN_GROUP",
+        "In Group",
+    ),
+    (
+        "HUD_EDIT_MODE_SETTING_ENCOUNTER_EVENTS_TOOLTIPS_NONE",
+        "None",
+    ),
+    (
+        "HUD_EDIT_MODE_SETTING_PERSONAL_RESOURCE_DISPLAY_BAR_WIDTH",
+        "Bar Width",
+    ),
+    (
+        "HUD_EDIT_MODE_SETTING_PERSONAL_RESOURCE_DISPLAY_HEALTH_BAR_HEIGHT",
+        "Health Bar Height",
+    ),
+    (
+        "HUD_EDIT_MODE_SETTING_PERSONAL_RESOURCE_DISPLAY_HIDE_ALT_POWER_BAR",
+        "Hide Alternate Power Bar",
+    ),
+    (
+        "HUD_EDIT_MODE_SETTING_PERSONAL_RESOURCE_DISPLAY_HIDE_CLASS_INFO",
+        "Hide Class Resources",
+    ),
+    (
+        "HUD_EDIT_MODE_SETTING_PERSONAL_RESOURCE_DISPLAY_HIDE_CLASS_INFO_ON_PLAYER_FRAME",
+        "Hide Class Resources On Player Frame",
+    ),
+    (
+        "HUD_EDIT_MODE_SETTING_PERSONAL_RESOURCE_DISPLAY_HIDE_HEALTH_BAR",
+        "Hide Health Bar",
+    ),
+    (
+        "HUD_EDIT_MODE_SETTING_PERSONAL_RESOURCE_DISPLAY_HIDE_POWER_BAR",
+        "Hide Power Bar",
+    ),
+    (
+        "HUD_EDIT_MODE_SETTING_PERSONAL_RESOURCE_DISPLAY_OPACITY",
+        "Opacity",
+    ),
+    (
+        "HUD_EDIT_MODE_SETTING_PERSONAL_RESOURCE_DISPLAY_PADDING",
+        "Padding",
+    ),
+    (
+        "HUD_EDIT_MODE_SETTING_PERSONAL_RESOURCE_DISPLAY_POWER_BAR_HEIGHT",
+        "Power Bar Height",
+    ),
+    (
+        "HUD_EDIT_MODE_SETTING_PERSONAL_RESOURCE_DISPLAY_SHOW_BAR_TEXT",
+        "Show Bar Text",
+    ),
+    (
+        "HUD_EDIT_MODE_SETTING_PERSONAL_RESOURCE_DISPLAY_SIZE",
+        "Size",
+    ),
+    (
+        "HUD_EDIT_MODE_SETTING_PERSONAL_RESOURCE_DISPLAY_VISIBLE_SETTING",
+        "Visibility",
+    ),
+    (
+        "HUD_EDIT_MODE_SETTING_PERSONAL_RESOURCE_DISPLAY_VISIBLE_SETTING_ALWAYS",
+        "Always",
+    ),
+    (
+        "HUD_EDIT_MODE_SETTING_PERSONAL_RESOURCE_DISPLAY_VISIBLE_SETTING_HIDDEN",
+        "Hidden",
+    ),
+    (
+        "HUD_EDIT_MODE_SETTING_PERSONAL_RESOURCE_DISPLAY_VISIBLE_SETTING_IN_COMBAT",
+        "In Combat",
+    ),
+    ("HUD_EDIT_MODE_SETTING_STATUS_TACKING_BAR_SIZE", "Size"),
+    (
+        "HUD_EDIT_MODE_SETTING_UNIT_FRAME_BIGDEFENSIVE_AURA_ICON_SIZE",
+        "Big Defensive Size",
+    ),
+    ("HUD_EDIT_MODE_TOTEM_ACTION_BAR_LABEL", "Totem Bar"),
+    ("MIDNIGHT_LANDING_PAGE_TITLE", "Omnium Folio"),
+    (
+        "MIDNIGHT_LANDING_PAGE_TOOLTIP",
+        "Contains important information on Midnight features and powers.",
+    ),
+    (
+        "PLAYER_DIFFICULTY_MYTHIC_FLEXIBLE",
+        "Mythic (Flexible Raiding)",
+    ),
+    ("QUEST_HUB_TOOLTIP_TRAVEL_HEADER", "Travel"),
+    ("WORLD_TIER_HEROIC", "Heroic"),
+    ("WORLD_TIER_MYTHIC", "Mythic"),
+];
+
 // ============================================================================
 // HUD Edit Mode Strings
 // ============================================================================
@@ -579,3 +781,6 @@ pub const LFG_CATEGORY_CONSTANTS: &[IntDef] = &[
     ("LE_LFG_CATEGORY_WORLDPVP", 6),
     ("LE_LFG_CATEGORY_BATTLEFIELD", 7),
 ];
+
+#[cfg(feature = "retail-12-1-0")]
+pub const RETAIL_12_1_LFG_CATEGORY_CONSTANTS: &[IntDef] = &[("LE_LFG_CATEGORY_LAIR", 8)];

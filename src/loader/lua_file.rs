@@ -231,7 +231,7 @@ fn load_cached_or_compile(
         let bytecode = crate::loader::bytecode::dump_function(lua, &func)?;
         match bytecode_cache::put(hash, &bytecode) {
             PutResult::Stored => timing.cache_store_successes += 1,
-            PutResult::Unchanged => {}
+            PutResult::Unchanged | PutResult::Skipped => {}
             PutResult::Failed => timing.cache_store_failures += 1,
         }
     }

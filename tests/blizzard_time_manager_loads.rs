@@ -280,9 +280,8 @@ fn no_mainline_addon_declares_time_manager_as_dependency() {
     );
 }
 
-#[test]
-fn time_manager_load_ui_global_published_at_boot() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn time_manager_load_ui_global_published_at_boot(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(TimeManager_LoadUI)")
@@ -295,10 +294,10 @@ fn time_manager_load_ui_global_published_at_boot() {
          point used by minimap clock OnClick + slash commands"
     );
 }
+}
 
-#[test]
-fn explicit_load_publishes_time_manager_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn explicit_load_publishes_time_manager_globals(env: &WowLuaEnv) {
 
     load_addon(&env.loader_env(), &time_manager_toc())
         .expect("Blizzard_TimeManager must load via Rust loader");
@@ -316,10 +315,10 @@ fn explicit_load_publishes_time_manager_globals() {
         );
     }
 }
+}
 
-#[test]
-fn explicit_load_publishes_stopwatch_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn explicit_load_publishes_stopwatch_globals(env: &WowLuaEnv) {
 
     load_addon(&env.loader_env(), &time_manager_toc())
         .expect("Blizzard_TimeManager must load via Rust loader");
@@ -338,10 +337,10 @@ fn explicit_load_publishes_stopwatch_globals() {
         );
     }
 }
+}
 
-#[test]
-fn explicit_load_creates_three_named_toplevel_frames() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn explicit_load_creates_three_named_toplevel_frames(env: &WowLuaEnv) {
 
     load_addon(&env.loader_env(), &time_manager_toc())
         .expect("Blizzard_TimeManager must load via Rust loader");
@@ -360,10 +359,10 @@ fn explicit_load_creates_three_named_toplevel_frames() {
         );
     }
 }
+}
 
-#[test]
-fn explicit_load_emits_no_addon_specific_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn explicit_load_emits_no_addon_specific_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -399,10 +398,10 @@ fn explicit_load_emits_no_addon_specific_errors() {
         matched
     );
 }
+}
 
-#[test]
-fn is_addon_loaded_true_after_player_login_auto_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn is_addon_loaded_true_after_player_login_auto_load(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_TimeManager')")
@@ -418,4 +417,5 @@ fn is_addon_loaded_true_after_player_login_auto_load() {
          IsAddOnLoaded probes the state, the addon HAS been loaded \
          via the runtime auto-load path"
     );
+}
 }

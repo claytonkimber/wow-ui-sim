@@ -1,8 +1,7 @@
 #![cfg(feature = "client-retail")]
 use std::path::PathBuf;
 
-use wow_ui_sim::loader::discover_blizzard_addons_for_screen;
-use wow_ui_sim::loader::load_addon;
+use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, find_toc_file, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
 use wow_ui_sim::startup::fire_startup_events_for_screen;
@@ -15,7 +14,8 @@ fn blizzard_ui_dir() -> PathBuf {
 }
 
 fn commentator_toc() -> PathBuf {
-    blizzard_ui_dir().join("Blizzard_Commentator/Blizzard_Commentator.toc")
+    find_toc_file(&blizzard_ui_dir().join("Blizzard_Commentator"))
+        .expect("Blizzard_Commentator TOC should resolve")
 }
 
 fn load_full_game_ui() -> WowLuaEnv {
@@ -71,9 +71,8 @@ fn blizzard_commentator_does_not_auto_discover_on_game_screen() {
     );
 }
 
-#[test]
-fn blizzard_commentator_loads_explicitly_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_commentator_loads_explicitly_without_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -92,10 +91,10 @@ fn blizzard_commentator_loads_explicitly_without_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_commentator_constants_and_globals_are_populated() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_commentator_constants_and_globals_are_populated(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &commentator_toc()).expect("Blizzard_Commentator should load");
 
     let constants_present: bool = env
@@ -122,10 +121,10 @@ fn blizzard_commentator_constants_and_globals_are_populated() {
          CommentatorSave) should all be defined after load"
     );
 }
+}
 
-#[test]
-fn blizzard_commentator_mixins_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_commentator_mixins_are_defined(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &commentator_toc()).expect("Blizzard_Commentator should load");
 
     let mixins_present: bool = env
@@ -158,10 +157,10 @@ fn blizzard_commentator_mixins_are_defined() {
          CommentatorVictoryFanfareFrameMixin, CooldownCircleTrackerMixin, FadeToBlackMixin)"
     );
 }
+}
 
-#[test]
-fn blizzard_commentator_mixin_methods_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_commentator_mixin_methods_are_defined(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &commentator_toc()).expect("Blizzard_Commentator should load");
 
     let methods_present: bool = env
@@ -199,10 +198,10 @@ fn blizzard_commentator_mixin_methods_are_defined() {
          GetNameplateTemplate/JoinInstance/StopObserving)"
     );
 }
+}
 
-#[test]
-fn blizzard_commentator_util_get_opposite_team_index_returns_other_side() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_commentator_util_get_opposite_team_index_returns_other_side(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &commentator_toc()).expect("Blizzard_Commentator should load");
 
     let opposite_returns_expected_pair: bool = env
@@ -217,10 +216,10 @@ fn blizzard_commentator_util_get_opposite_team_index_returns_other_side() {
          (the only two valid team indices in spectator mode)"
     );
 }
+}
 
-#[test]
-fn blizzard_commentator_function_throttle_mixin_fires_after_threshold_elapses() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_commentator_function_throttle_mixin_fires_after_threshold_elapses(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &commentator_toc()).expect("Blizzard_Commentator should load");
 
     let fires_when_threshold_reached: bool = env
@@ -241,10 +240,10 @@ fn blizzard_commentator_function_throttle_mixin_fires_after_threshold_elapses() 
          exactly once when dt accumulates past the threshold (0.2 + 0.4 = 0.6 > 0.5)"
     );
 }
+}
 
-#[test]
-fn blizzard_commentator_toplevel_frames_exist_with_expected_parents() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_commentator_toplevel_frames_exist_with_expected_parents(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &commentator_toc()).expect("Blizzard_Commentator should load");
 
     let frames_wired: bool = env
@@ -265,4 +264,5 @@ fn blizzard_commentator_toplevel_frames_exist_with_expected_parents() {
          pre-match fade in/out), and `CommentatorVictoryFanfareFrame` (parent UIParent, hidden, \
          used for end-of-match team announcement)"
     );
+}
 }

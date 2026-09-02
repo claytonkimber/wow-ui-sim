@@ -170,6 +170,20 @@ fn kick_unit_aliases_uninvite_unit() {
 #[test]
 fn ready_check_fires_event() {
     let env = env();
-    env.exec("ReadyCheck()").unwrap();
-    assert!(fired(&env, "READY_CHECK"));
+    let delivered: bool = env
+        .eval(
+            r#"
+            local frame = CreateFrame("Frame")
+            local event
+            frame:RegisterEvent("READY_CHECK")
+            frame:SetScript("OnEvent", function(_, firedEvent)
+                event = firedEvent
+            end)
+            ReadyCheck()
+            return event == "READY_CHECK"
+            "#,
+        )
+        .unwrap();
+
+    assert!(delivered, "ReadyCheck should synchronously deliver READY_CHECK");
 }

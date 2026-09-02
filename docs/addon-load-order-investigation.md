@@ -12,7 +12,13 @@
 
 ## Problem
 
-`Blizzard_MainMenuBarBagButtons` calls `PaperDollItemSlotButton_OnLoad(self)` during OnLoad, but that function is defined in `Blizzard_UIPanels_Game/Mainline/PaperDollFrame.lua` which loads later.
+`Blizzard_MainMenuBarBagButtons` calls `PaperDollItemSlotButton_OnLoad(self)` during OnLoad, but that function is defined in `Blizzard_UIPanels_Game/Mainline/PaperDollFrame.lua` which historically loaded later.
+
+## Current ItemButton runtime ordering
+
+`WowLuaEnv::new` does not publish `ItemButtonUtil`. Loading `Blizzard_UIParent` instantiates the visible UIParent frame, whose `UIParent_OnShow` calls `C_AddOns.LoadAddOn("Blizzard_AccountStore")`. Runtime `C_AddOns` loads the game foundation lane first, including `Blizzard_FrameXMLUtil`; `ItemUtil.lua` publishes `ItemButtonUtil` before eager discovery reaches `Blizzard_ItemButton`.
+
+Commit `9b1ba9bcd` removed the obsolete test that expected `ItemButtonMixin` to exist while `ItemButtonUtil` remained unavailable. The production load-order snapshot is unchanged and green. This intermediate global state is not a valid load-order contract.
 
 ## Load Order Source
 
@@ -37,6 +43,10 @@ Relevant positions in `ui-toc-list.txt`:
 
 2. `Blizzard_UIPanels_Game` loads later:
    - `PaperDollFrame.lua:1496` defines `PaperDollItemSlotButton_OnLoad`
+
+The ItemButton utility follows a different path: the runtime foundation load
+through `Blizzard_FrameXMLUtil` executes `ItemUtil.lua` before eager discovery
+reaches `Blizzard_ItemButton`, so `ItemButtonUtil` is already published by then.
 
 ## Historical Workaround (removed)
 
@@ -65,7 +75,7 @@ So the original "Addons With LoadFirst (Mainline)" note below is correct that UI
 Same pattern — `Blizzard_MainMenuBarBagButtons` also uses:
 - `PaperDollItemSlotButton_Update` (from `Blizzard_UIPanels_Game`)
 - `PaperDollItemSlotButton_OnShow` (from `Blizzard_UIPanels_Game`)
-- `ItemButtonUtil.*` (from `Blizzard_FrameXMLUtil`, line 138 — this one IS loaded first)
+- `ItemButtonUtil.*` (from `Blizzard_FrameXMLUtil/ItemUtil.lua`) — not a valid intermediate-state assertion; it is published by the runtime foundation lane before eager discovery reaches `Blizzard_ItemButton`
 
 ## Addons With LoadFirst (Mainline)
 
@@ -83,4 +93,4 @@ Plus shared (non-flavor) TOCs: Blizzard_ClassTrial, Blizzard_Flyout, Blizzard_Ma
 
 ## ui-toc-list.txt
 
-Located at `vendor/wow-ui-source/Interface/ui-toc-list.txt`. This is the authoritative load order from the real WoW client. Our loader should consider using this file instead of computing order from TOC dependencies for Blizzard addons.
+Located at `vendor/wow-ui-source/Interface/ui-toc-list.txt`. This is the authoritative static load order from the real WoW client. Runtime `C_AddOns.LoadAddOn` dependency handling is an additional ordering path and is why the removed ItemButton intermediate-state test was obsolete.

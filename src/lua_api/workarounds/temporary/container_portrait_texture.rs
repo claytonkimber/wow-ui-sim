@@ -137,7 +137,7 @@ mod tests {
             super::apply_bootstrap(&mut lua).expect("portrait helpers should apply");
         }
 
-        let result: (String, f64, f64, f64, f64, String) = env
+        let result: (i64, f64, f64, f64, f64, i64) = env
             .eval(
                 r#"
                 local frame = CreateFrame("Frame")
@@ -158,12 +158,12 @@ mod tests {
             )
             .expect("portrait helpers should run");
 
-        assert_eq!(result.0, "Interface\\TargetingFrame\\UI-Classes-Circles");
+        assert_eq!(result.0, 237669);
         assert_eq!(
             (result.1, result.2, result.3, result.4),
             (0.0, 0.25, 0.0, 0.25)
         );
-        assert_eq!(result.5, "Interface\\ICONS\\INV_Misc_QuestionMark");
+        assert_eq!(result.5, 134400);
     }
 
     #[test]

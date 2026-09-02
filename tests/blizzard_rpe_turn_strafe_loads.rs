@@ -208,9 +208,8 @@ fn root_directory_holds_lua_and_xml_next_to_toc() {
     );
 }
 
-#[test]
-fn loads_without_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn loads_without_lua_errors(env: &WowLuaEnv) {
     let load_errors: Vec<String> = env
         .state()
         .borrow()
@@ -235,10 +234,10 @@ fn loads_without_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn is_addon_loaded_after_eager_sweep() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn is_addon_loaded_after_eager_sweep(env: &WowLuaEnv) {
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_RPE_TurnStrafe')")
         .expect("IsAddOnLoaded probe should succeed");
@@ -249,10 +248,10 @@ fn is_addon_loaded_after_eager_sweep() {
          eager discovery set"
     );
 }
+}
 
-#[test]
-fn rpe_turn_strafe_style_mixin_publishes_with_full_method_surface() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn rpe_turn_strafe_style_mixin_publishes_with_full_method_surface(env: &WowLuaEnv) {
     let kind: String = env
         .eval("return type(RPETurnStrafeStyleMixin)")
         .expect("type(RPETurnStrafeStyleMixin) probe should succeed");
@@ -284,10 +283,10 @@ fn rpe_turn_strafe_style_mixin_publishes_with_full_method_surface() {
         );
     }
 }
+}
 
-#[test]
-fn static_popup_dialog_registers_under_rpe_turnstrafe_changed_key() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn static_popup_dialog_registers_under_rpe_turnstrafe_changed_key(env: &WowLuaEnv) {
     let kind: String = env
         .eval("return type(StaticPopupDialogs and StaticPopupDialogs['RPE_TURNSTRAFE_CHANGED'])")
         .expect("StaticPopupDialogs probe should succeed");
@@ -314,10 +313,10 @@ fn static_popup_dialog_registers_under_rpe_turnstrafe_changed_key() {
          Keybinds → Movement section"
     );
 }
+}
 
-#[test]
-fn virtual_templates_stay_off_global_scope() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn virtual_templates_stay_off_global_scope(env: &WowLuaEnv) {
     for template in VIRTUAL_TEMPLATES {
         let kind: String = env
             .eval(&format!("return type(_G['{template}'])"))
@@ -334,6 +333,7 @@ fn virtual_templates_stay_off_global_scope() {
              \"RPETurnStrafeStyleFrameTemplate\") — there is no named non-virtual frame in the XML"
         );
     }
+}
 }
 
 #[test]

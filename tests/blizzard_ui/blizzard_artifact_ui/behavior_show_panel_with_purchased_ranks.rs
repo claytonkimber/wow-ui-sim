@@ -71,7 +71,7 @@ local function expect(condition, message)
     end
 end
 
-local _, _, _, expectedIcon = C_ArtifactUI.GetArtifactInfo()
+local expectedIcon = 1109508
 local originalPerksOnUIOpened = ArtifactFrame.PerksTab.OnUIOpened
 ArtifactFrame.PerksTab.OnUIOpened = function() end
 

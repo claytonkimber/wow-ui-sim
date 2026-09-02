@@ -11,7 +11,6 @@ use crate::lua_bridge::{FromStack, stack_val, table_set_rust_fn_static};
 use rilua::vm::state::LuaState;
 use rilua::{LuaResult, Val};
 
-const MAX_OUTFITS: i32 = 20;
 const DEFAULT_CLASS_FILTER: i32 = 2;
 type StaticLuaFn = fn(&mut LuaState) -> LuaResult<u32>;
 type StaticFunction = (&'static str, StaticLuaFn);
@@ -157,15 +156,12 @@ fn register_transmog_collection_outfits(
     table_ref: rilua::vm::gc::arena::GcRef<rilua::vm::table::Table>,
 ) -> LuaResult<()> {
     table_set_rust_fn_static(state, table_ref, "GetIllusions", get_illusions)?;
-    table_set_rust_fn_static(state, table_ref, "GetOutfits", get_outfits)?;
-    table_set_rust_fn_static(state, table_ref, "GetNumMaxOutfits", get_num_max_outfits)?;
     table_set_rust_fn_static(
         state,
         table_ref,
         "GetAppearanceCameraID",
         get_appearance_camera_id,
     )?;
-    table_set_rust_fn_static(state, table_ref, "GetOutfitInfo", get_outfit_info)?;
     Ok(())
 }
 
@@ -523,26 +519,9 @@ fn get_illusions(state: &mut LuaState) -> LuaResult<u32> {
     Ok(1)
 }
 
-fn get_outfits(state: &mut LuaState) -> LuaResult<u32> {
-    let array = empty_array(state);
-    state.push(array);
-    Ok(1)
-}
-
-fn get_num_max_outfits(state: &mut LuaState) -> LuaResult<u32> {
-    state.push(Val::Num(MAX_OUTFITS as f64));
-    Ok(1)
-}
-
 fn get_appearance_camera_id(state: &mut LuaState) -> LuaResult<u32> {
     let _appearance_id = i32::from_stack(state, 1)?;
     state.push(Val::Num(0.0));
-    Ok(1)
-}
-
-fn get_outfit_info(state: &mut LuaState) -> LuaResult<u32> {
-    let _outfit_id = i32::from_stack(state, 1)?;
-    state.push(Val::Nil);
     Ok(1)
 }
 

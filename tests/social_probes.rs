@@ -173,7 +173,7 @@ fn get_num_classes_returns_thirteen() {
 fn get_num_shapeshift_forms_reports_sim_state_len() {
     let env = env();
     let before: i32 = env.eval("return GetNumShapeshiftForms()").unwrap();
-    assert_eq!(before, 0, "seeded Paladin has no shapeshift forms");
+    assert_eq!(before, 3, "seeded Paladin exposes its three aura forms");
 
     {
         use wow_ui_sim::lua_api::state::ShapeshiftForm;
@@ -195,7 +195,7 @@ fn get_num_shapeshift_forms_reports_sim_state_len() {
     }
 
     let after: i32 = env.eval("return GetNumShapeshiftForms()").unwrap();
-    assert_eq!(after, 2);
+    assert_eq!(after, 5);
 }
 
 #[test]

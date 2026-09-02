@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, find_toc_file, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
-use wow_ui_sim::startup::fire_startup_events_for_screen;
 use wow_ui_sim::toc::TocFile;
 
 fn blizzard_ui_dir() -> PathBuf {
@@ -44,32 +43,9 @@ const EXPECTED_BODY: &[&str] = &[
     "Blizzard_SpellPickUpIndicator.xml",
 ];
 
-fn load_full_game_ui_with_pickup_explicit() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-
-    wow_ui_sim::xml::register_intrinsic_templates();
-
-    let ui = blizzard_ui_dir();
-    let addons = discover_blizzard_addons_for_screen(&ui, ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    env.apply_post_load_workarounds();
-    fire_startup_events_for_screen(&env, ScreenKind::Game);
-
+fn load_spell_pick_up_indicator(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &pickup_toc())
         .expect("Blizzard_SpellPickUpIndicator should load via explicit Rust loader call");
-
-    env
 }
 
 #[test]
@@ -248,9 +224,9 @@ fn excluded_from_every_screen_auto_discovery() {
     }
 }
 
-#[test]
-fn explicit_load_emits_no_addon_specific_lua_errors() {
-    let env = load_full_game_ui_with_pickup_explicit();
+prefork_full_ui_case! {
+fn explicit_load_emits_no_addon_specific_lua_errors(env: &WowLuaEnv) {
+    load_spell_pick_up_indicator(env);
 
     let load_errors: Vec<String> = env
         .state()
@@ -273,10 +249,11 @@ fn explicit_load_emits_no_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn is_addon_loaded_reports_true_after_explicit_load() {
-    let env = load_full_game_ui_with_pickup_explicit();
+prefork_full_ui_case! {
+fn is_addon_loaded_reports_true_after_explicit_load(env: &WowLuaEnv) {
+    load_spell_pick_up_indicator(env);
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_SpellPickUpIndicator')")
@@ -289,10 +266,11 @@ fn is_addon_loaded_reports_true_after_explicit_load() {
          auto-discovery sweep skipped it (plunderstorm gametype filter)"
     );
 }
+}
 
-#[test]
-fn publishes_two_mixin_tables_at_global_scope() {
-    let env = load_full_game_ui_with_pickup_explicit();
+prefork_full_ui_case! {
+fn publishes_two_mixin_tables_at_global_scope(env: &WowLuaEnv) {
+    load_spell_pick_up_indicator(env);
 
     for mixin in PUBLISHED_MIXINS {
         let kind: String = env
@@ -308,10 +286,11 @@ fn publishes_two_mixin_tables_at_global_scope() {
         );
     }
 }
+}
 
-#[test]
-fn indicator_mixin_carries_seven_canonical_methods() {
-    let env = load_full_game_ui_with_pickup_explicit();
+prefork_full_ui_case! {
+fn indicator_mixin_carries_seven_canonical_methods(env: &WowLuaEnv) {
+    load_spell_pick_up_indicator(env);
 
     for method in INDICATOR_METHODS {
         let kind: String = env
@@ -341,10 +320,11 @@ fn indicator_mixin_carries_seven_canonical_methods() {
         );
     }
 }
+}
 
-#[test]
-fn display_mixin_carries_six_canonical_methods() {
-    let env = load_full_game_ui_with_pickup_explicit();
+prefork_full_ui_case! {
+fn display_mixin_carries_six_canonical_methods(env: &WowLuaEnv) {
+    load_spell_pick_up_indicator(env);
 
     for method in DISPLAY_METHODS {
         let kind: String = env
@@ -374,10 +354,11 @@ fn display_mixin_carries_six_canonical_methods() {
         );
     }
 }
+}
 
-#[test]
-fn named_spell_pickup_display_publishes_with_two_indicator_children() {
-    let env = load_full_game_ui_with_pickup_explicit();
+prefork_full_ui_case! {
+fn named_spell_pickup_display_publishes_with_two_indicator_children(env: &WowLuaEnv) {
+    load_spell_pick_up_indicator(env);
 
     let kind: String = env
         .eval("return type(SpellPickupDisplay)")
@@ -409,10 +390,11 @@ fn named_spell_pickup_display_publishes_with_two_indicator_children() {
          Report: {report}"
     );
 }
+}
 
-#[test]
-fn indicator_template_materializes_with_four_layered_children() {
-    let env = load_full_game_ui_with_pickup_explicit();
+prefork_full_ui_case! {
+fn indicator_template_materializes_with_four_layered_children(env: &WowLuaEnv) {
+    load_spell_pick_up_indicator(env);
 
     let probe = "local f = CreateFrame('Frame', 'PickupIndicatorProbe', UIParent, 'SpellPickupIndicatorTemplate') \
                  if not f then return 'frame nil' end \
@@ -445,10 +427,11 @@ fn indicator_template_materializes_with_four_layered_children() {
          Report: {report}"
     );
 }
+}
 
-#[test]
-fn left_indicator_carries_spell_slot_zero_keyvalue() {
-    let env = load_full_game_ui_with_pickup_explicit();
+prefork_full_ui_case! {
+fn left_indicator_carries_spell_slot_zero_keyvalue(env: &WowLuaEnv) {
+    load_spell_pick_up_indicator(env);
 
     let left_slot: f64 = env
         .eval("return SpellPickupDisplay.LeftSpellPickupIndicator.spellSlot")
@@ -485,10 +468,11 @@ fn left_indicator_carries_spell_slot_zero_keyvalue() {
          children so the second row sits 10px below the first"
     );
 }
+}
 
-#[test]
-fn indicator_template_inherits_horizontal_layout_frame() {
-    let env = load_full_game_ui_with_pickup_explicit();
+prefork_full_ui_case! {
+fn indicator_template_inherits_horizontal_layout_frame(env: &WowLuaEnv) {
+    load_spell_pick_up_indicator(env);
 
     let probe = "local f = CreateFrame('Frame', 'PickupIndicatorLayoutProbe', UIParent, 'SpellPickupIndicatorTemplate') \
                  if not f then return false end \
@@ -508,10 +492,11 @@ fn indicator_template_inherits_horizontal_layout_frame() {
          the four ARTWORK children sequenced by their layoutIndex KeyValues"
     );
 }
+}
 
-#[test]
-fn display_frame_inherits_callback_registrant_and_vertical_layout() {
-    let env = load_full_game_ui_with_pickup_explicit();
+prefork_full_ui_case! {
+fn display_frame_inherits_callback_registrant_and_vertical_layout(env: &WowLuaEnv) {
+    load_spell_pick_up_indicator(env);
 
     let probe = "local f = SpellPickupDisplay \
                  if not f then return false end \
@@ -533,4 +518,5 @@ fn display_frame_inherits_callback_registrant_and_vertical_layout() {
          AddDynamicEventMethod for .Hidden) AND the layout API (Layout / \
          GetMinimumSize)"
     );
+}
 }

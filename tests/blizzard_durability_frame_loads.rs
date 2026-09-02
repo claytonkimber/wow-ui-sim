@@ -137,9 +137,8 @@ fn blizzard_durability_frame_loads_after_its_two_declared_dependencies() {
     );
 }
 
-#[test]
-fn blizzard_durability_frame_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_durability_frame_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -155,10 +154,10 @@ fn blizzard_durability_frame_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_durability_frame_inventory_alert_status_slots_has_eleven_entries() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_durability_frame_inventory_alert_status_slots_has_eleven_entries(env: &WowLuaEnv) {
 
     let count: i64 = env
         .eval("return #INVENTORY_ALERT_STATUS_SLOTS")
@@ -171,10 +170,10 @@ fn blizzard_durability_frame_inventory_alert_status_slots_has_eleven_entries() {
          Got: {count}"
     );
 }
+}
 
-#[test]
-fn blizzard_durability_frame_inventory_alert_status_slots_carries_correct_slot_names() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_durability_frame_inventory_alert_status_slots_carries_correct_slot_names(env: &WowLuaEnv) {
 
     let slots: (
         String,
@@ -224,10 +223,10 @@ fn blizzard_durability_frame_inventory_alert_status_slots_carries_correct_slot_n
          drift here breaks every alert visual"
     );
 }
+}
 
-#[test]
-fn blizzard_durability_frame_inventory_alert_status_slots_marks_separate_weapons() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_durability_frame_inventory_alert_status_slots_marks_separate_weapons(env: &WowLuaEnv) {
 
     let separate_flags: (Option<i64>, Option<i64>, Option<i64>, Option<i64>) = env
         .eval(
@@ -246,10 +245,10 @@ fn blizzard_durability_frame_inventory_alert_status_slots_marks_separate_weapons
          on `showDurability`, while the separate slots are managed individually"
     );
 }
+}
 
-#[test]
-fn blizzard_durability_frame_inventory_alert_colors_yellow_then_red() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_durability_frame_inventory_alert_colors_yellow_then_red(env: &WowLuaEnv) {
 
     let colors: (f64, f64, f64, f64, f64, f64) = env
         .eval(
@@ -272,10 +271,10 @@ fn blizzard_durability_frame_inventory_alert_colors_yellow_then_red() {
          GetInventoryAlertStatus. Got: ({r1}, {g1}, {b1}) / ({r2}, {g2}, {b2})"
     );
 }
+}
 
-#[test]
-fn blizzard_durability_frame_mixin_table_exposes_lifecycle_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_durability_frame_mixin_table_exposes_lifecycle_methods(env: &WowLuaEnv) {
 
     let kinds: (String, String, String, String, String, String) = env
         .eval(
@@ -303,10 +302,10 @@ fn blizzard_durability_frame_mixin_table_exposes_lifecycle_methods() {
          layout function reading GetInventoryAlertStatus)"
     );
 }
+}
 
-#[test]
-fn blizzard_durability_frame_named_global_frame_exists_with_uiparent_parent() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_durability_frame_named_global_frame_exists_with_uiparent_parent(env: &WowLuaEnv) {
 
     let (kind, name): (String, String) = env
         .eval(
@@ -326,10 +325,10 @@ fn blizzard_durability_frame_named_global_frame_exists_with_uiparent_parent() {
          Blizzard code addresses the parent frame by global name"
     );
 }
+}
 
-#[test]
-fn blizzard_durability_frame_xml_creates_twelve_named_durability_textures() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_durability_frame_xml_creates_twelve_named_durability_textures(env: &WowLuaEnv) {
 
     let all_present: bool = env
         .eval(
@@ -359,10 +358,10 @@ fn blizzard_durability_frame_xml_creates_twelve_named_durability_textures() {
          (DurabilityFrame.lua:64-71), not by an INVENTORY_ALERT_STATUS_SLOTS entry"
     );
 }
+}
 
-#[test]
-fn blizzard_durability_frame_off_weapon_starts_hidden_per_xml() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_durability_frame_off_weapon_starts_hidden_per_xml(env: &WowLuaEnv) {
 
     let off_weapon_hidden: bool = env
         .eval("return DurabilityOffWeapon:IsShown() == false")
@@ -376,10 +375,10 @@ fn blizzard_durability_frame_off_weapon_starts_hidden_per_xml() {
          hidden because the default char isn't dual-wielding at load time"
     );
 }
+}
 
-#[test]
-fn blizzard_durability_frame_registers_two_inventory_events_in_onload() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_durability_frame_registers_two_inventory_events_in_onload(env: &WowLuaEnv) {
 
     let registered: bool = env
         .eval(
@@ -397,6 +396,7 @@ fn blizzard_durability_frame_registers_two_inventory_events_in_onload() {
          second — both event registrations must end up on the frame regardless of the \
          inherit chain order"
     );
+}
 }
 
 #[test]

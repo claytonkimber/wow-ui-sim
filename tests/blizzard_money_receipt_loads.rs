@@ -191,9 +191,8 @@ fn blizzard_money_receipt_auto_discovers_on_game_only() {
     }
 }
 
-#[test]
-fn blizzard_money_receipt_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_money_receipt_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -215,10 +214,10 @@ fn blizzard_money_receipt_loads_without_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_money_receipt_is_addon_loaded_after_auto_discovery() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_money_receipt_is_addon_loaded_after_auto_discovery(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_MoneyReceipt')")
@@ -231,10 +230,10 @@ fn blizzard_money_receipt_is_addon_loaded_after_auto_discovery() {
          call required"
     );
 }
+}
 
-#[test]
-fn blizzard_money_receipt_does_not_leak_file_local_mixin_or_frame_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_money_receipt_does_not_leak_file_local_mixin_or_frame_globals(env: &WowLuaEnv) {
     for symbol in FILE_PRIVATE_LOCALS_THAT_MUST_NOT_LEAK {
         let kind: String = env
             .eval(&format!("return type(_G.{symbol})"))
@@ -251,10 +250,10 @@ fn blizzard_money_receipt_does_not_leak_file_local_mixin_or_frame_globals() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_money_receipt_surface_globals_are_published_post_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_money_receipt_surface_globals_are_published_post_load(env: &WowLuaEnv) {
 
     for func in &["Mixin", "CreateFrame", "GetMoney", "GetMoneyString"] {
         let kind: String = env
@@ -296,4 +295,5 @@ fn blizzard_money_receipt_surface_globals_are_published_post_load() {
              keying and ReceiptMixin:OnEvent silently no-ops on every interaction"
         );
     }
+}
 }

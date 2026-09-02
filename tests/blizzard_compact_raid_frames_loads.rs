@@ -71,9 +71,8 @@ fn blizzard_compact_raid_frames_appears_in_game_discovery() {
     );
 }
 
-#[test]
-fn blizzard_compact_raid_frames_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_compact_raid_frames_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -94,10 +93,10 @@ fn blizzard_compact_raid_frames_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_compact_raid_frames_toplevel_frames_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_compact_raid_frames_toplevel_frames_are_defined(env: &WowLuaEnv) {
 
     let frames_present: bool = env
         .eval(
@@ -116,10 +115,10 @@ fn blizzard_compact_raid_frames_toplevel_frames_are_defined() {
          toplevel=true)"
     );
 }
+}
 
-#[test]
-fn blizzard_compact_raid_frames_max_raid_groups_constant_is_eight() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_compact_raid_frames_max_raid_groups_constant_is_eight(env: &WowLuaEnv) {
 
     let constant_present: bool = env
         .eval("return MAX_RAID_GROUPS == 8")
@@ -130,10 +129,10 @@ fn blizzard_compact_raid_frames_max_raid_groups_constant_is_eight() {
          (the cap used by RaidUtil_GetUsedGroups and the discrete-mode group iteration)"
     );
 }
+}
 
-#[test]
-fn blizzard_compact_raid_frames_container_mixin_methods_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_compact_raid_frames_container_mixin_methods_are_defined(env: &WowLuaEnv) {
 
     let methods_present: bool = env
         .eval(
@@ -171,10 +170,10 @@ fn blizzard_compact_raid_frames_container_mixin_methods_are_defined() {
          (ReleaseAllReservedFrames)"
     );
 }
+}
 
-#[test]
-fn blizzard_compact_raid_frames_manager_mixins_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_compact_raid_frames_manager_mixins_are_defined(env: &WowLuaEnv) {
 
     let mixins_present: bool = env
         .eval(
@@ -207,10 +206,10 @@ fn blizzard_compact_raid_frames_manager_mixins_are_defined() {
          LeaveInstanceGroupButtonMixin)"
     );
 }
+}
 
-#[test]
-fn blizzard_compact_raid_frames_sort_helpers_order_player_first() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_compact_raid_frames_sort_helpers_order_player_first(env: &WowLuaEnv) {
 
     let sort_helpers_correct: bool = env
         .eval(
@@ -229,10 +228,10 @@ fn blizzard_compact_raid_frames_sort_helpers_order_player_first() {
          defined as globals (used as flowSortFunc by CompactRaidFrameContainer:SetFlowSortFunction)"
     );
 }
+}
 
-#[test]
-fn blizzard_compact_raid_frames_reservation_manager_round_trip() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_compact_raid_frames_reservation_manager_round_trip(env: &WowLuaEnv) {
 
     let round_trip_works: bool = env
         .eval(
@@ -267,4 +266,5 @@ fn blizzard_compact_raid_frames_reservation_manager_round_trip() {
          `false`, and push the frame onto unusedFrames so a future GetFrame for an unknown key \
          can recycle it"
     );
+}
 }

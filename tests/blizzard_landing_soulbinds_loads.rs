@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, find_toc_file, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
-use wow_ui_sim::startup::fire_startup_events_for_screen;
 use wow_ui_sim::toc::TocFile;
 
 fn blizzard_ui_dir() -> PathBuf {
@@ -61,32 +60,9 @@ const VIRTUAL_TEMPLATES: &[&str] = &[
     "LandingPageRenownButtonTemplate",
 ];
 
-fn load_full_game_ui_with_landing_soulbinds_lod() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-
-    wow_ui_sim::xml::register_intrinsic_templates();
-
-    let ui = blizzard_ui_dir();
-    let addons = discover_blizzard_addons_for_screen(&ui, ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    env.apply_post_load_workarounds();
-    fire_startup_events_for_screen(&env, ScreenKind::Game);
-
+fn load_landing_soulbinds(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &landing_soulbinds_toc())
         .expect("Blizzard_LandingSoulbinds should load via explicit Rust loader call");
-
-    env
 }
 
 #[test]
@@ -258,9 +234,9 @@ fn blizzard_landing_soulbinds_excluded_from_every_screen_auto_discovery() {
     }
 }
 
-#[test]
-fn blizzard_landing_soulbinds_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui_with_landing_soulbinds_lod();
+prefork_full_ui_case! {
+fn blizzard_landing_soulbinds_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
+    load_landing_soulbinds(env);
 
     let load_errors: Vec<String> = env
         .state()
@@ -285,10 +261,11 @@ fn blizzard_landing_soulbinds_loads_without_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_landing_soulbinds_is_addon_loaded_via_explicit_load() {
-    let env = load_full_game_ui_with_landing_soulbinds_lod();
+prefork_full_ui_case! {
+fn blizzard_landing_soulbinds_is_addon_loaded_via_explicit_load(env: &WowLuaEnv) {
+    load_landing_soulbinds(env);
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_LandingSoulbinds')")
@@ -300,10 +277,11 @@ fn blizzard_landing_soulbinds_is_addon_loaded_via_explicit_load() {
          loaded-set even though auto-discovery skipped it (LoadOnDemand)"
     );
 }
+}
 
-#[test]
-fn blizzard_landing_soulbinds_panel_mixin_publishes_with_three_methods() {
-    let env = load_full_game_ui_with_landing_soulbinds_lod();
+prefork_full_ui_case! {
+fn blizzard_landing_soulbinds_panel_mixin_publishes_with_three_methods(env: &WowLuaEnv) {
+    load_landing_soulbinds(env);
 
     let kind: String = env
         .eval("return type(LandingPageSoulbindPanelMixin)")
@@ -338,10 +316,11 @@ fn blizzard_landing_soulbinds_panel_mixin_publishes_with_three_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_landing_soulbinds_button_mixin_publishes_with_ten_methods() {
-    let env = load_full_game_ui_with_landing_soulbinds_lod();
+prefork_full_ui_case! {
+fn blizzard_landing_soulbinds_button_mixin_publishes_with_ten_methods(env: &WowLuaEnv) {
+    load_landing_soulbinds(env);
 
     let kind: String = env
         .eval("return type(LandingPageSoulbindButtonMixin)")
@@ -379,10 +358,11 @@ fn blizzard_landing_soulbinds_button_mixin_publishes_with_ten_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_landing_soulbinds_renown_button_mixin_publishes_with_nine_methods() {
-    let env = load_full_game_ui_with_landing_soulbinds_lod();
+prefork_full_ui_case! {
+fn blizzard_landing_soulbinds_renown_button_mixin_publishes_with_nine_methods(env: &WowLuaEnv) {
+    load_landing_soulbinds(env);
 
     let kind: String = env
         .eval("return type(LandingPageRenownButtonMixin)")
@@ -418,10 +398,11 @@ fn blizzard_landing_soulbinds_renown_button_mixin_publishes_with_nine_methods() 
         );
     }
 }
+}
 
-#[test]
-fn blizzard_landing_soulbinds_landing_soulbind_namespace_publishes_create_factory() {
-    let env = load_full_game_ui_with_landing_soulbinds_lod();
+prefork_full_ui_case! {
+fn blizzard_landing_soulbinds_landing_soulbind_namespace_publishes_create_factory(env: &WowLuaEnv) {
+    load_landing_soulbinds(env);
 
     let ns_kind: String = env
         .eval("return type(LandingSoulbind)")
@@ -448,10 +429,11 @@ fn blizzard_landing_soulbinds_landing_soulbind_namespace_publishes_create_factor
          children defined inline in the panel XML"
     );
 }
+}
 
-#[test]
-fn blizzard_landing_soulbinds_templates_remain_nil_at_global_scope() {
-    let env = load_full_game_ui_with_landing_soulbinds_lod();
+prefork_full_ui_case! {
+fn blizzard_landing_soulbinds_templates_remain_nil_at_global_scope(env: &WowLuaEnv) {
+    load_landing_soulbinds(env);
 
     for template in VIRTUAL_TEMPLATES {
         let kind: String = env
@@ -466,4 +448,5 @@ fn blizzard_landing_soulbinds_templates_remain_nil_at_global_scope() {
              is nil), so even instantiation does not mint a global"
         );
     }
+}
 }

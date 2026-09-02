@@ -26,7 +26,6 @@ pub mod archaeology;
 #[cfg(feature = "client-mists")]
 pub mod auction_verbs;
 pub mod auras;
-#[cfg(feature = "client-mists")]
 pub mod bank_storage_verbs;
 pub mod battlefield_lfg_probes;
 pub mod battlefield_verbs;

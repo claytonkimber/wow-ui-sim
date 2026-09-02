@@ -184,9 +184,8 @@ fn present_in_every_screen_eager_discovery() {
     }
 }
 
-#[test]
-fn subtitles_frame_mixin_publishes_with_six_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn subtitles_frame_mixin_publishes_with_six_methods(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(SubtitlesFrameMixin)")
@@ -212,10 +211,10 @@ fn subtitles_frame_mixin_publishes_with_six_methods() {
         );
     }
 }
+}
 
-#[test]
-fn subtitles_frame_materializes_via_eager_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn subtitles_frame_materializes_via_eager_load(env: &WowLuaEnv) {
 
     let probe = "return SubtitlesFrame ~= nil";
     let present: bool = env.eval(probe).expect("SubtitlesFrame probe");
@@ -236,10 +235,10 @@ fn subtitles_frame_materializes_via_eager_load() {
          shown on cinematic-play via OnMovieCinematicPlay"
     );
 }
+}
 
-#[test]
-fn subtitles_frame_exposes_subtitles_array_and_background() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn subtitles_frame_exposes_subtitles_array_and_background(env: &WowLuaEnv) {
 
     let array_size: i64 = env
         .eval("return #SubtitlesFrame.Subtitles")
@@ -282,10 +281,10 @@ fn subtitles_frame_exposes_subtitles_array_and_background() {
          the movieSubtitleBackground CVar > 1 (NONE)"
     );
 }
+}
 
-#[test]
-fn explicit_load_addon_emits_no_addon_specific_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn explicit_load_addon_emits_no_addon_specific_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -319,10 +318,10 @@ fn explicit_load_addon_emits_no_addon_specific_errors() {
         matched
     );
 }
+}
 
-#[test]
-fn is_addon_loaded_reports_true_after_eager_sweep() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn is_addon_loaded_reports_true_after_eager_sweep(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_Subtitles')")
@@ -332,6 +331,7 @@ fn is_addon_loaded_reports_true_after_eager_sweep() {
         "After full Game eager sweep, IsAddOnLoaded must report true \
          — Subtitles is non-LoD so it's pulled in by the eager pass"
     );
+}
 }
 
 #[test]

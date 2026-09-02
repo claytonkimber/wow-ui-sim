@@ -44,9 +44,7 @@ fn get_item_name_by_id_falls_back_to_unknown_for_missing_item() {
 fn item_existence_by_id_matches_seeded_item_database() {
     let env = env();
     let exists: bool = env
-        .eval(&format!(
-            "return C_Item.DoesItemExistByID({KNOWN_ITEM_ID})"
-        ))
+        .eval(&format!("return C_Item.DoesItemExistByID({KNOWN_ITEM_ID})"))
         .unwrap();
     let positive_id_may_exist: bool = env
         .eval("return C_Item.DoesItemExistByID(999999999)")
@@ -121,8 +119,8 @@ fn get_item_quality_by_id_returns_db_quality() {
             "return C_Item.GetItemQualityByID({KNOWN_ITEM_ID})"
         ))
         .unwrap();
-    // Aqirite is quality 2 (Uncommon) per the seeded db.
-    assert_eq!(quality, 2);
+    // Aqirite is quality 3 (Rare) in the seeded item database.
+    assert_eq!(quality, 3);
 }
 
 #[test]
@@ -135,14 +133,13 @@ fn get_item_quality_by_id_returns_zero_for_missing_item() {
 }
 
 #[test]
-fn get_item_icon_by_id_returns_generic_placeholder_for_missing_icon() {
+fn get_item_icon_by_id_returns_seeded_icon() {
     let env = env();
-    // Aqirite has icon_file_data_id = 0 in the seeded db, so the
-    // handler swaps in the generic placeholder (INV_MISC_QUESTIONMARK).
+    // Aqirite uses its seeded icon fileDataID.
     let icon: i32 = env
         .eval(&format!("return C_Item.GetItemIconByID({KNOWN_ITEM_ID})"))
         .unwrap();
-    assert_eq!(icon, 134400);
+    assert_eq!(icon, 134573);
 }
 
 #[test]
@@ -166,5 +163,5 @@ fn c_item_probes_accept_item_hyperlinks() {
         ))
         .unwrap();
     assert_eq!(name, "Aqirite");
-    assert_eq!(quality, 2);
+    assert_eq!(quality, 3);
 }

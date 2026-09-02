@@ -78,9 +78,8 @@ fn blizzard_covenant_sanctum_is_absent_from_game_auto_discovery() {
     );
 }
 
-#[test]
-fn blizzard_covenant_sanctum_loads_via_load_addon_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_covenant_sanctum_loads_via_load_addon_without_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -99,10 +98,10 @@ fn blizzard_covenant_sanctum_loads_via_load_addon_without_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_covenant_sanctum_frame_is_defined_and_parented_to_uiparent() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_covenant_sanctum_frame_is_defined_and_parented_to_uiparent(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &covenant_sanctum_toc())
         .expect("Blizzard_CovenantSanctum should load via Rust loader");
 
@@ -123,10 +122,10 @@ fn blizzard_covenant_sanctum_frame_is_defined_and_parented_to_uiparent() {
          hidden and the UpgradesTab subframe must be reachable"
     );
 }
+}
 
-#[test]
-fn blizzard_covenant_sanctum_main_mixin_methods_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_covenant_sanctum_main_mixin_methods_are_defined(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &covenant_sanctum_toc())
         .expect("Blizzard_CovenantSanctum should load via Rust loader");
 
@@ -153,10 +152,10 @@ fn blizzard_covenant_sanctum_main_mixin_methods_are_defined() {
          expose the cached values used by the upgrades panel)"
     );
 }
+}
 
-#[test]
-fn blizzard_covenant_sanctum_upgrades_tab_mixin_methods_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_covenant_sanctum_upgrades_tab_mixin_methods_are_defined(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &covenant_sanctum_toc())
         .expect("Blizzard_CovenantSanctum should load via Rust loader");
 
@@ -201,10 +200,10 @@ fn blizzard_covenant_sanctum_upgrades_tab_mixin_methods_are_defined() {
          HelpTip)"
     );
 }
+}
 
-#[test]
-fn blizzard_covenant_sanctum_upgrade_node_mixins_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_covenant_sanctum_upgrade_node_mixins_are_defined(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &covenant_sanctum_toc())
         .expect("Blizzard_CovenantSanctum should load via Rust loader");
 
@@ -250,10 +249,10 @@ fn blizzard_covenant_sanctum_upgrade_node_mixins_are_defined() {
          anima reservoir)"
     );
 }
+}
 
-#[test]
-fn blizzard_covenant_sanctum_per_node_helper_mixins_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_covenant_sanctum_per_node_helper_mixins_are_defined(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &covenant_sanctum_toc())
         .expect("Blizzard_CovenantSanctum should load via Rust loader");
 
@@ -288,10 +287,10 @@ fn blizzard_covenant_sanctum_per_node_helper_mixins_are_defined() {
          UpgradeButton)"
     );
 }
+}
 
-#[test]
-fn blizzard_covenant_sanctum_xml_templates_are_registered() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_covenant_sanctum_xml_templates_are_registered(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &covenant_sanctum_toc())
         .expect("Blizzard_CovenantSanctum should load via Rust loader");
 
@@ -309,10 +308,10 @@ fn blizzard_covenant_sanctum_xml_templates_are_registered() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_covenant_sanctum_uipanel_registration_uses_center_area() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_covenant_sanctum_uipanel_registration_uses_center_area(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &covenant_sanctum_toc())
         .expect("Blizzard_CovenantSanctum should load via Rust loader");
 
@@ -334,10 +333,10 @@ fn blizzard_covenant_sanctum_uipanel_registration_uses_center_area() {
          track which sits in 'left' with allowOtherPanels=1)"
     );
 }
+}
 
-#[test]
-fn blizzard_covenant_sanctum_garrison_talent_availability_enum_matches_expected_values() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_covenant_sanctum_garrison_talent_availability_enum_matches_expected_values(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &covenant_sanctum_toc())
         .expect("Blizzard_CovenantSanctum should load via Rust loader");
 
@@ -355,4 +354,5 @@ fn blizzard_covenant_sanctum_garrison_talent_availability_enum_matches_expected_
          with the UnavailableAlreadyHave variant before this addon can determine the next \
          upgrade tier"
     );
+}
 }

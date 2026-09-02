@@ -2,7 +2,7 @@ use super::env::WowLuaAppData;
 use super::env::WowLuaEnv;
 use super::env::next_timer_id;
 use super::env_init::{record_addon_time, update_threshold_counters};
-use super::state::{AddonInfo, AppFrameMetrics, PendingTimer, SimState};
+use super::state::{AddonInfo, AppFrameMetrics, LoadDiagnostics, PendingTimer, SimState};
 use super::timer_processing::{reschedule_timer, timer_should_wait};
 use crate::Result;
 use crate::font::WowFontSystem;
@@ -61,6 +61,11 @@ impl WowLuaEnv {
         &self.state
     }
 
+    /// Drain finalized failures and nil-symbol diagnostics from runtime addon loads.
+    pub fn drain_runtime_addon_diagnostics(&self) -> LoadDiagnostics {
+        std::mem::take(&mut self.state.borrow_mut().runtime_addon_diagnostics)
+    }
+
     /// Set the font system for text measurement from Lua API methods.
     pub fn set_font_system(&self, font_system: Rc<RefCell<WowFontSystem>>) {
         let mut rilua = self.rilua_mut();
@@ -69,6 +74,14 @@ impl WowLuaEnv {
             .app_data_mut::<WowLuaAppData>()
             .expect("WowLuaEnv rilua app_data should always exist");
         app_data.font_system = Some(font_system);
+    }
+
+    pub(crate) fn install_initial_screen_size_globals(&self) {
+        let (screen_width, screen_height) = {
+            let state = self.state.borrow();
+            (state.screen_width, state.screen_height)
+        };
+        install_screen_size_globals(self, screen_width, screen_height);
     }
 
     /// Update screen dimensions in SimState and resize UIParent/WorldFrame to match.

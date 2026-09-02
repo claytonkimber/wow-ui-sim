@@ -236,9 +236,8 @@ fn blizzard_performance_bar_appears_in_game_screen_eager_discovery_only() {
     }
 }
 
-#[test]
-fn blizzard_performance_bar_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_performance_bar_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -259,10 +258,10 @@ fn blizzard_performance_bar_loads_without_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_performance_bar_is_addon_loaded_after_eager_sweep() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_performance_bar_is_addon_loaded_after_eager_sweep(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_PerformanceBar')")
@@ -273,10 +272,10 @@ fn blizzard_performance_bar_is_addon_loaded_after_eager_sweep() {
          eager Game-screen sweep — no LoadOnDemand puts the addon in the eager set"
     );
 }
+}
 
-#[test]
-fn blizzard_performance_bar_publishes_three_global_functions() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_performance_bar_publishes_three_global_functions(env: &WowLuaEnv) {
 
     for func in PUBLIC_GLOBAL_FUNCTIONS {
         let kind: String = env
@@ -302,10 +301,10 @@ fn blizzard_performance_bar_publishes_three_global_functions() {
         );
     }
 }
+}
 
-#[test]
-fn performance_api_shims_are_safe_noops() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn performance_api_shims_are_safe_noops(env: &WowLuaEnv) {
 
     let result: (f64, f64, f64, f64, f64) = env
         .eval(
@@ -321,10 +320,10 @@ fn performance_api_shims_are_safe_noops() {
 
     assert_eq!(result, (60.0, 0.0, 0.0, 0.0, 0.0));
 }
+}
 
-#[test]
-fn performance_bar_on_enter_builds_tooltip_without_format_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn performance_bar_on_enter_builds_tooltip_without_format_errors(env: &WowLuaEnv) {
 
     let result: String = env
         .eval(
@@ -339,4 +338,5 @@ fn performance_bar_on_enter_builds_tooltip_without_format_errors() {
         .expect("PerformanceBar OnEnter probe should run");
 
     assert_eq!(result, "ok");
+}
 }

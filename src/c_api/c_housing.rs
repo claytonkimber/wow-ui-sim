@@ -208,6 +208,12 @@ fn register_house_editor_methods(
     table_set_rust_fn_static(
         state,
         house_editor,
+        "GetActiveHouseEditorMode",
+        get_active_house_editor_mode,
+    )?;
+    table_set_rust_fn_static(
+        state,
+        house_editor,
         "GetHouseEditorPlayerType",
         get_house_editor_player_type,
     )
@@ -532,6 +538,13 @@ fn get_feature_availability(state: &mut LuaState) -> LuaResult<u32> {
 fn get_import_availability(state: &mut LuaState) -> LuaResult<u32> {
     let availability = { borrow_state(state)?.housing.blueprint_import_availability };
     state.push(Val::Num(f64::from(availability)));
+    Ok(1)
+}
+
+#[cfg(feature = "retail-12-1-0")]
+fn get_active_house_editor_mode(state: &mut LuaState) -> LuaResult<u32> {
+    let mode = { borrow_state(state)?.housing.active_house_editor_mode };
+    state.push(Val::Num(f64::from(mode)));
     Ok(1)
 }
 

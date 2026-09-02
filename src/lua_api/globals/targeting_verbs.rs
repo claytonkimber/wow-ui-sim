@@ -273,13 +273,16 @@ pub fn assist_unit(state: &mut LuaState) -> LuaResult<u32> {
 
 /// `ClearTarget()` — clear `current_target`, snapshot to `previous_target`.
 pub fn clear_target(state: &mut LuaState) -> LuaResult<u32> {
-    {
+    let cleared_target = {
         let mut st = borrow_state_mut(state)?;
         let old = st.current_target.take();
+        let cleared_target = old.is_some();
         st.previous_target = old;
-    }
+        cleared_target
+    };
     push_target_changed(state)?;
-    Ok(0)
+    state.push(rilua::Val::Bool(cleared_target));
+    Ok(1)
 }
 
 /// `ClearFocus()` — clear `current_focus`.

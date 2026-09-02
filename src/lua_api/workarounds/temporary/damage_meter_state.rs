@@ -54,6 +54,7 @@ local seededSource = {
 
 local seededSession = {
     sessionID = 1,
+    name = "Current",
     totalAmount = 52000,
     maxAmount = 52000,
     durationSeconds = 40,
@@ -110,14 +111,22 @@ local function IsKnownDamageMeterType(damageType)
     return false
 end
 
+local function IsDamageMeterReset()
+    return type(__wow_damage_meter_state) == "table" and __wow_damage_meter_state.reset == true
+end
+
 local function IsSeededDamageMeterSessionID(sessionID)
-    return sessionID == 0 or sessionID == seededSession.sessionID
+    return not IsDamageMeterReset() and (sessionID == 0 or sessionID == seededSession.sessionID)
 end
 
 local function HasSeededDamageMeterSessionType(sessionType)
-    return sessionType == Enum.DamageMeterSessionType.Overall
+    return not IsDamageMeterReset() and (
+        sessionType == Enum.DamageMeterSessionType.Overall
         or sessionType == Enum.DamageMeterSessionType.Current
+    )
 end
+
+__wow_damage_meter_state = __wow_damage_meter_state or { reset = false }
 
 if rawget(C_DamageMeter, "IsDamageMeterAvailable") == nil then
     function C_DamageMeter.IsDamageMeterAvailable()
@@ -127,13 +136,19 @@ end
 
 if rawget(C_DamageMeter, "GetAvailableCombatSessions") == nil then
     function C_DamageMeter.GetAvailableCombatSessions()
-        return { { sessionID = 1 } }
+        if IsDamageMeterReset() then
+            return {}
+        end
+        return { { sessionID = seededSession.sessionID, name = seededSession.name } }
     end
 end
 
 if rawget(C_DamageMeter, "GetCurrentCombatSessionID") == nil then
     function C_DamageMeter.GetCurrentCombatSessionID()
-        return 1
+        if IsDamageMeterReset() then
+            return nil
+        end
+        return seededSession.sessionID
     end
 end
 
@@ -220,6 +235,12 @@ if rawget(C_DamageMeter, "GetSessionDurationSeconds") == nil then
         return 0
     end
 end
+
+if rawget(C_DamageMeter, "ResetAllCombatSessions") == nil then
+    function C_DamageMeter.ResetAllCombatSessions()
+        __wow_damage_meter_state.reset = true
+    end
+end
 "#;
 
 pub(crate) fn apply_bootstrap(lua: &mut rilua::Lua) -> crate::Result<()> {
@@ -230,6 +251,115 @@ pub(crate) fn apply_bootstrap(lua: &mut rilua::Lua) -> crate::Result<()> {
 #[cfg(test)]
 mod tests {
     use crate::lua_api::WowLuaEnv;
+
+    #[cfg(feature = "retail-12-0-0")]
+    #[test]
+    fn patch_12_0_0_damage_meter_fields_and_reset() {
+        let env = WowLuaEnv::new().expect("lua env should initialize");
+
+        let result: String = env
+            .eval(
+                r#"
+                local available = C_DamageMeter.GetAvailableCombatSessions()
+                if #available ~= 1 or type(available[1].name) ~= "string" or available[1].name ~= "Current" then
+                    return "available_session"
+                end
+                if C_DamageMeter.GetCurrentCombatSessionID() ~= available[1].sessionID then
+                    return "current_session"
+                end
+
+                local session = C_DamageMeter.GetCombatSessionFromID(1, Enum.DamageMeterType.DamageDone)
+                if session == nil or session.sessionID ~= available[1].sessionID or session.durationSeconds ~= 40 then
+                    return "session"
+                end
+                local player = session.combatSources[1]
+                local companion = session.combatSources[2]
+                if type(player.amountPerSecond) ~= "number" or player.amountPerSecond ~= 1300 then
+                    return "player_source_aps"
+                end
+                if type(player.classFilename) ~= "string" or player.classFilename ~= "PALADIN" then
+                    return "player_source_class"
+                end
+                if type(player.specIconID) ~= "number" or player.specIconID ~= 0 then
+                    return "player_source_spec"
+                end
+                if type(companion.amountPerSecond) ~= "number" or companion.amountPerSecond ~= 83.325 then
+                    return "companion_source_aps"
+                end
+                if type(companion.classFilename) ~= "string" or companion.classFilename ~= "WARRIOR" then
+                    return "companion_source_class"
+                end
+                if type(companion.specIconID) ~= "number" or companion.specIconID ~= 0 then
+                    return "companion_source_spec"
+                end
+                if player.amountPerSecond ~= player.totalAmount / session.durationSeconds
+                    or companion.amountPerSecond ~= companion.totalAmount / session.durationSeconds then
+                    return "source_aps_relationship"
+                end
+
+                for _, source in ipairs(session.combatSources) do
+                    local spell = source.combatSpells[1]
+                    local details = spell.combatSpellDetails
+                    if type(spell.amountPerSecond) ~= "number"
+                        or type(spell.totalAmount) ~= "number"
+                        or spell.amountPerSecond ~= source.amountPerSecond
+                        or spell.amountPerSecond ~= spell.totalAmount / session.durationSeconds
+                        or type(details.amount) ~= "number"
+                        or details.amount ~= spell.totalAmount
+                        or type(details.classification) ~= "string"
+                        or details.classification ~= "normal"
+                        or type(details.unitClassFilename) ~= "string"
+                        or details.unitClassFilename ~= source.classFilename then
+                        return "nested_fields"
+                    end
+                end
+
+                local returned = C_DamageMeter.GetCombatSessionFromType(
+                    Enum.DamageMeterSessionType.Current,
+                    Enum.DamageMeterType.DamageDone
+                )
+                if returned == nil or returned.sessionID ~= available[1].sessionID then
+                    return "type_session"
+                end
+
+                local resetReturns = { C_DamageMeter.ResetAllCombatSessions() }
+                if #resetReturns ~= 0 then
+                    return "reset_returns"
+                end
+                if #C_DamageMeter.GetAvailableCombatSessions() ~= 0
+                    or C_DamageMeter.GetCurrentCombatSessionID() ~= nil
+                    or C_DamageMeter.GetCombatSessionFromID(1, Enum.DamageMeterType.DamageDone) ~= nil
+                    or C_DamageMeter.GetCombatSessionFromType(
+                        Enum.DamageMeterSessionType.Current,
+                        Enum.DamageMeterType.DamageDone
+                    ) ~= nil
+                    or C_DamageMeter.GetSessionDurationSeconds(nil, 1) ~= 0 then
+                    return "reset_state"
+                end
+                if C_DamageMeter.GetCombatSessionSourceFromID(
+                    1,
+                    Enum.DamageMeterType.DamageDone,
+                    "Player-1-00000001",
+                    1
+                ) ~= nil or C_DamageMeter.GetCombatSessionSourceFromType(
+                    Enum.DamageMeterSessionType.Current,
+                    Enum.DamageMeterType.DamageDone,
+                    "Player-1-00000001",
+                    1
+                ) ~= nil then
+                    return "reset_source"
+                end
+                C_DamageMeter.ResetAllCombatSessions()
+                if #C_DamageMeter.GetAvailableCombatSessions() ~= 0 then
+                    return "reset_repeat"
+                end
+                return "ok"
+                "#,
+            )
+            .expect("damage meter 12.0.0 probe should run");
+
+        assert_eq!(result, "ok");
+    }
 
     #[test]
     fn installs_seeded_damage_meter_sessions() {

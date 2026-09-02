@@ -107,9 +107,8 @@ fn blizzard_deprecated_spell_script_appears_in_game_discovery_only() {
     );
 }
 
-#[test]
-fn blizzard_deprecated_spell_script_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_spell_script_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -127,10 +126,10 @@ fn blizzard_deprecated_spell_script_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_spell_script_installs_four_direct_aliases() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_spell_script_installs_four_direct_aliases(env: &WowLuaEnv) {
 
     let installed: bool = env
         .eval(
@@ -145,39 +144,46 @@ fn blizzard_deprecated_spell_script_installs_four_direct_aliases() {
         "Deprecated_SpellScript.lua lines 9-12 publish 4 direct global aliases (no closure \
          wrapping — plain right-hand-side reads of C_Spell.<Method>): \
          TargetSpellReplacesBonusTree (temporary target-spell metadata default, returns false); \
-         GetMaxSpellStartRecoveryOffset → C_Spell.GetSpellQueueWindow (UNSTUBBED — resolves \
-         via `__wow_namespace_mt.__index` to no-op); GetSpellQueueWindow → \
-         C_Spell.GetSpellQueueWindow (same UNSTUBBED method, both globals share the same \
-         no-op closure); GetSchoolString (registered at c_spell.rs:79, returns localized \
-         school name string)"
+         GetMaxSpellStartRecoveryOffset → C_Spell.GetSpellQueueWindow; GetSpellQueueWindow → \
+         C_Spell.GetSpellQueueWindow (both globals share the same registered CVar-backed \
+         function); GetSchoolString (registered at c_spell.rs, returns localized school \
+         name string)"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_spell_script_direct_aliases_are_identity_equal_to_c_spell() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_spell_script_direct_aliases_are_identity_equal_to_c_spell(env: &WowLuaEnv) {
 
     let aliases_match: bool = env
         .eval(
-            "return TargetSpellReplacesBonusTree == C_Spell.TargetSpellReplacesBonusTree \
-                and GetMaxSpellStartRecoveryOffset == C_Spell.GetSpellQueueWindow \
-                and GetSpellQueueWindow == C_Spell.GetSpellQueueWindow \
-                and GetSchoolString == C_Spell.GetSchoolString",
+            r#"
+            local originalValue = GetCVar("SpellQueueWindow")
+            local defaultValue = C_Spell.GetSpellQueueWindow()
+            SetCVar("SpellQueueWindow", "250")
+            local updatedValue = C_Spell.GetSpellQueueWindow()
+            SetCVar("SpellQueueWindow", originalValue)
+
+            return TargetSpellReplacesBonusTree == C_Spell.TargetSpellReplacesBonusTree
+                and GetMaxSpellStartRecoveryOffset == C_Spell.GetSpellQueueWindow
+                and GetSpellQueueWindow == C_Spell.GetSpellQueueWindow
+                and GetSchoolString == C_Spell.GetSchoolString
+                and type(defaultValue) == "number"
+                and defaultValue == 400
+                and updatedValue == 250
+            "#,
         )
-        .expect("identity-equality query for 4 direct aliases should succeed");
+        .expect("identity and CVar-backed queue-window query should succeed");
     assert!(
         aliases_match,
-        "Each direct global must be IDENTITY-EQUAL to its backing C_Spell method. The shim \
-         performs plain table-read assignment so both sides reference the SAME function \
-         value. Note that GetMaxSpellStartRecoveryOffset and GetSpellQueueWindow are aliases \
-         to the SAME GetSpellQueueWindow no-op closure — both globals point at the single \
-         cached `function() return nil end` materialized by `__wow_namespace_mt.__index`"
+        "Direct globals must be identity-equal to their backing C_Spell methods, and \
+         C_Spell.GetSpellQueueWindow must return the current numeric SpellQueueWindow CVar"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_spell_script_get_spell_queue_window_aliases_share_the_same_closure() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_spell_script_get_spell_queue_window_aliases_share_the_same_closure(env: &WowLuaEnv) {
 
     let same_closure: bool = env
         .eval("return GetMaxSpellStartRecoveryOffset == GetSpellQueueWindow")
@@ -185,17 +191,15 @@ fn blizzard_deprecated_spell_script_get_spell_queue_window_aliases_share_the_sam
     assert!(
         same_closure,
         "GetMaxSpellStartRecoveryOffset and GetSpellQueueWindow must reference the EXACT \
-         SAME function value — both are aliased to C_Spell.GetSpellQueueWindow on lines 10 \
-         and 11. The first read of C_Spell.GetSpellQueueWindow triggers \
-         `__wow_namespace_mt.__index` to materialize a no-op closure and rawset it on \
-         C_Spell. The second read returns the SAME closure. Both globals end up as \
-         identity-equal references to that single closure value"
+         SAME function value — both are aliased to the registered \
+         C_Spell.GetSpellQueueWindow function on lines 10 and 11. Both globals therefore \
+         reference the same CVar-backed closure"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_spell_script_installs_three_wrapper_closures() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_spell_script_installs_three_wrapper_closures(env: &WowLuaEnv) {
 
     let wrappers_installed: bool = env
         .eval(
@@ -217,10 +221,10 @@ fn blizzard_deprecated_spell_script_installs_three_wrapper_closures() {
          the temporary C_Spell.GetVisibilityInfo visibility shim)"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_spell_script_wrapper_closures_are_not_identity_equal_to_c_spell() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_spell_script_wrapper_closures_are_not_identity_equal_to_c_spell(env: &WowLuaEnv) {
 
     let not_identity_equal: bool = env
         .eval(
@@ -238,10 +242,10 @@ fn blizzard_deprecated_spell_script_wrapper_closures_are_not_identity_equal_to_c
          function values from the registered Rust impls"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_spell_script_visibility_wrapper_translates_string_keys() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_spell_script_visibility_wrapper_translates_string_keys(env: &WowLuaEnv) {
 
     let translated: bool = env
         .eval(
@@ -263,10 +267,10 @@ fn blizzard_deprecated_spell_script_visibility_wrapper_translates_string_keys() 
          visibility overrides"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_spell_script_installs_get_spell_loss_of_control_cooldown_on_c_spell() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_spell_script_installs_get_spell_loss_of_control_cooldown_on_c_spell(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(C_Spell.GetSpellLossOfControlCooldown)")
@@ -292,10 +296,10 @@ fn blizzard_deprecated_spell_script_installs_get_spell_loss_of_control_cooldown_
          in-place mutation of the C_Spell namespace ONLY"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_spell_script_loss_of_control_returns_nothing_for_unknown_spell_id() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_spell_script_loss_of_control_returns_nothing_for_unknown_spell_id(env: &WowLuaEnv) {
 
     let returned_nothing: bool = env
         .eval(
@@ -315,10 +319,10 @@ fn blizzard_deprecated_spell_script_loss_of_control_returns_nothing_for_unknown_
          destructured locals are nil"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_spell_script_load_deprecation_fallbacks_cvar_is_default_on() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_spell_script_load_deprecation_fallbacks_cvar_is_default_on(env: &WowLuaEnv) {
 
     let cvar_on: bool = env
         .eval("return GetCVarBool('loadDeprecationFallbacks')")
@@ -330,6 +334,7 @@ fn blizzard_deprecated_spell_script_load_deprecation_fallbacks_cvar_is_default_o
          the 7 globals (4 direct aliases + 3 wrappers) and the in-place \
          C_Spell.GetSpellLossOfControlCooldown mutation are applied"
     );
+}
 }
 
 #[test]

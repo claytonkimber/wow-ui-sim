@@ -10,21 +10,25 @@ The 12.0.5 audit sources are live-client probe addons under `docs/addons/` and t
 
 Primary retained 12.0.5 probe sources (13 SavedVariables captures): `AnimScriptProbe`, `AttributeDispatchProbe`, `CoreBehaviorProbe`, `DevToolsDumpProbe`, `FrameIdentityProbe`, `HookScriptBindingProbe`, `IsProtectedProbe`, `JustifyProbe`, `ProtectedRetailProbe`, `ScaleEventProbe`, `SetAtlasProbe`, `StoreForbiddenProbe`, and `TextureSetTextureProbe`. `XmlFrameLevelProbe` findings are documented, but its raw capture was not retained.
 
+The machine register is `data/patch-api/12.0.5-probes.json`, sourced from `data/patch-api/sources/12.0.5-probes.json`; [[patch-12-0-5-probe-inventory]] is its human-readable inventory. It preserves 38 probe subfindings. Current machine classification is **33 best-effort, 0 implemented, 4 evidence-required, 1 exception-requested, and 0 untriaged**: the exception is approved provenance-only, while four behavior gaps remain evidence-required—one impossible same-size input-boundary gap and three unsafe Store/security gaps.
+
 ### Itemized probe status
 
-**Implemented with focused regression coverage:** animation handler matrix/rejection (`AnimScriptProbe`); unchanged scalar attribute dispatch (`AttributeDispatchProbe`); retail forbidden-frame behavior, invalid unit-event filters, wildcard false attributes and arity, Raise/Lower ordering (`CoreBehaviorProbe`); frame iteration/dump identity, `[0]` surrogate dispatch, duplicate-frame freshness (`DevToolsDumpProbe` / `FrameIdentityProbe`); HookScript binding validation/chaining; absent legacy `Protect`/`SetProtected` methods plus normal-frame `SetForbidden` no-op; XML FontString justify/default anchors; no-arg/invalid `SetAtlas`; XML frame-level propagation; ordered display/scale event pairs.
+**Machine-classified with direct behavioral evidence:** the full Frame/AnimationGroup/nine-subtype script-handler matrix; repeated scalar/false attribute dispatch and the two-panel ShowUIPanel pulse; normal-frame forbidden behavior and absent retail forbidden constructor; valid/invalid unit-event filters; wildcard false/true/string attributes; Raise/Lower level boundaries and GUI mouse-focus ordering; frame identity slot, surrogate dispatch, duplicate-frame freshness, and DevTools frame-array dump metadata; normal HookScript chaining plus rejected explicit slots 0 and 2; absent legacy protection setters, the full plain-frame and XML-protected-frame sequences, and protected secure templates; frame-layer FontString default points, size variants, explicit anchors, implicit ButtonText anchors, EditBox backing regions/TextInsets, and MessageFrame/ScrollingMessageFrame owner-region behavior; complete observable display/UI-scale/CVAR ordering; the complete invalid-atlas argument matrix; texture path/FDID and clear behavior; and bare/fixed/parent/reparent XML frame-level semantics and flags.
 
-**Best-effort with existing subsystem coverage:** `ShowUIPanel` pulse/`CloseAllWindows`; `GetMouseFoci`/`GetMouseFocus` live return shape; protected-template descendant/anchor non-propagation; same-size maximize/restore duplicate scale-event pair; Store forbidden/dropdown observations. These remain best-effort because their retained capture is not matched by an exact focused simulator regression.
+**Evidence and exception state:** XML raw-capture provenance is the only approved exception because it concerns missing historical evidence while frame-level behavior is independently regression-tested. Same-size transitions remain an evidence-required impossible input-boundary gap. Secure Store behavior, Store dropdown population, and Store forbidden descendants remain evidence-required unsafe Store/security gaps; existing subsystem tests are not substituted for the missing probe behavior.
 
-### Exception requests pending informed approval
+### Open probe gaps and evidence-required rows
 
-A broad approval recorded on 2026-07-14 is superseded pending re-triage and an itemized checklist presented in chat.
+A broad approval recorded on 2026-07-14 is superseded. The five rows below distinguish four item-specific evidence-required behavior gaps from one approved provenance-only exception-requested row. Evidence-required rows carry hashed repository evidence but need no approval, commit, or focused test; they await authoritative/live evidence or correct implementation.
 
-1. **Exact retained-probe regressions:** `ShowUIPanel` pulse then `CloseAllWindows`; exact `GetMouseFoci` shape; protected-template descendant/anchor return values (not mutation-block propagation); Store forbidden/dropdown observations. `Texture:SetTexture("Interface\\Buttons\\UI-Panel-Button-Up")` now exact-replays FDID `130828`, and no-arg `SetTexture()` clears. `SecureActionButtonTemplate:IsProtected()` explicit `(true, true)` is now replayed after real `Blizzard_FrameXML` loading. Existing subsystem tests are not exact probe replays. Repeated `false` attribute dispatch now has focused coverage for two writes, handler `false` arguments, nil lookup during dispatch, and final stored `false`, but is not a literal probe-addon replay.
-2. **Store forbidden lifecycle:** `StoreDropdown_SetDropdown` was nil in the retained capture, so intended dropdown population and forbidden-descendant scan were never exercised. Do not invent lifecycle behavior; need a live capture where this API exists.
-3. **XmlFrameLevel provenance:** bare/template/fixed/reparent findings are regression-tested, but the raw SavedVariables capture is missing. User approval on 2026-07-14 authorizes retaining this provenance gap as an exception pending a fresh live capture; the documented result is not a substitute for the missing raw capture.
-4. **Same-size window transitions:** iced supplies no observable same-size maximize/restore event, so duplicate display/scale pair emission cannot be modeled without a platform window-state signal.
-5. **Unscoped generic defaults:** no 12.0.5 patch API diff snapshot exists locally. Generic fallbacks cannot be claimed as 12.0.5-complete without a concrete probe/addon contract.
+1. **ProtectedRetailProbe.SecureStore — evidence-required unsafe:** Retained Store frames are forbidden, legacy setters are absent, and `IsProtected` errors; the current simulator returns normally, so exact forbidden/secret-return enforcement is unsafe to guess.
+2. **ScaleEventProbe.SameSizeDuplicatePair — evidence-required impossible:** Duplicate ordered display/scale event pairs occur on same-size maximize/restore transitions, but the simulator receives no maximize/restore/fullscreen signal and cannot distinguish them from no transition; correct behavior remains unmodeled.
+3. **XmlFrameLevelProbe.RawCaptureProvenance — approved impossible:** Behavior is regression-tested, but the raw SavedVariables capture does not exist and cannot be reconstructed locally.
+4. **StoreForbiddenProbe.DropdownPopulation — evidence-required unsafe:** The retained capture has `StoreDropdown_SetDropdown == nil`, so population, reuse, text/check, callback, and protection behavior was never observed.
+5. **StoreForbiddenProbe.ForbiddenDescendants — evidence-required unsafe:** The retained file lacks the `/sfp` manual descendant scan, so Store descendant forbidden/protected state is unknown; correct behavior remains unmodeled pending authoritative/live evidence.
+
+The 38-row register is complete only for its explicit probe contract; generic fallbacks cannot be claimed as globally patch-complete without another concrete source.
 
 ### Completed modeled work
 
@@ -55,6 +59,7 @@ Regression coverage exists in:
 - `tests/protected_frame_enforcement.rs` — retail `SetForbidden` no-op behavior.
 - `tests/protected_attribute_enforcement.rs` — wildcard explicit-false lookup and repeated-false dispatch ordering.
 - `tests/frame_level.rs` — Raise/Lower and raised-frame-level ordering.
+- `src/iced_app/mouse_tests.rs` — GUI hover, `GetMouseFocus`/`GetMouseFoci`, and Raise/Lower focus ordering.
 - `tests/security_api.rs`, `tests/frame_table_iteration.rs`, `tests/globals_legacy.rs` — frame identity slot, surrogate dispatch, opaque identity userdata, duplicate named-frame freshness.
 - `tests/xml_frame_strata.rs` — XML `frameLevel` and `fixedFrameLevel` semantics.
 - `src/iced_app/resize_event_tests.rs` — display/scale ordered-pair behavior.
@@ -67,7 +72,7 @@ The remaining generic defaults are intentionally outside this 12.0.5 audit unles
 
 ### Audit state
 
-This audit remains open: remaining fidelity gaps are pending exception requests above. No 12.0.5-specific inert-default module remains, but absence of a patch shim is not proof that every retained probe result has exact regression coverage.
+This audit remains open with 4 evidence-required rows and 1 approved provenance-only exception-requested row. The four behavior gaps are one impossible same-size input-boundary gap and three unsafe Store/security gaps; they are not exception or approval candidates. Authoritative/live evidence or correct behavior is still required before this audit can close. No 12.0.5-specific inert-default module remains, but absence of a patch shim is not proof that every retained probe result has exact regression coverage.
 
 ## Sources
 

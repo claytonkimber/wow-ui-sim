@@ -81,6 +81,133 @@ fn test_startup_utility_globals_exist() {
 }
 #[cfg(feature = "retail-12-0-7")]
 #[test]
+fn test_patch_12_0_7_duration_objects_and_text_binding() {
+    let env = WowLuaEnv::new().unwrap();
+    let result: String = env
+        .eval(
+            r#"
+            local clock = C_DurationUtil.CreateManualClock(5)
+            if clock:GetTime() ~= 5 then return "DurationClock.GetTime" end
+            clock:SetTime(11)
+            if clock:GetTime() ~= 11 then return "DurationManualClock.SetTime" end
+            clock:AdvanceTime(2)
+            if clock:GetTime() ~= 13 then return "DurationManualClock.AdvanceTime" end
+            clock:RewindTime(3)
+            if clock:GetTime() ~= 10 then return "DurationManualClock.RewindTime" end
+            clock:ResetTime()
+            if clock:GetTime() ~= 0 then return "DurationManualClock.ResetTime" end
+
+            if C_DurationUtil.CreateDurationTextFormattingOptions() ~= nil then
+                return "DurationTextFormattingOptions factory"
+            end
+            if C_DurationUtil.CreateDurationTextRawValue() ~= nil then
+                return "DurationTextRawValue factory"
+            end
+
+            local durationObject = C_DurationUtil.CreateDuration()
+            if durationObject:GetClock() ~= nil then return "DurationObject.GetClock default" end
+            durationObject:SetClock(clock)
+            if durationObject:GetClock() ~= clock then return "DurationObject.SetClock" end
+            if durationObject:HasExpired() ~= false then return "DurationObject.HasExpired" end
+            if durationObject:HasStarted() ~= false then return "DurationObject.HasStarted" end
+            if durationObject:IsActive() ~= false then return "DurationObject.IsActive" end
+
+            local binding = C_DurationUtil.CreateDurationTextBinding()
+            if binding:GetDuration() == nil then return "DurationTextBinding.GetDuration default" end
+            if binding:CanFormatText() ~= true then return "DurationTextBinding.CanFormatText" end
+            if binding:CanUpdateFontString() ~= false then return "DurationTextBinding.CanUpdateFontString default" end
+            if binding:GetExpiredText() ~= nil then return "DurationTextBinding.GetExpiredText default" end
+            if binding:GetFontString() ~= nil then return "DurationTextBinding.GetFontString default" end
+            if binding:GetFormattedText() ~= "0" then return "DurationTextBinding.GetFormattedText default" end
+            if binding:GetTimeModifier() ~= 0 then return "DurationTextBinding.GetTimeModifier default" end
+            if binding:GetUpdateInterval() ~= 1 then return "DurationTextBinding.GetUpdateInterval default" end
+            if binding:GetZeroDurationText() ~= nil then return "DurationTextBinding.GetZeroDurationText default" end
+            if binding:IsEnabled() ~= true then return "DurationTextBinding.IsEnabled default" end
+
+            binding:SetDuration(10)
+            if binding:GetDuration() ~= 10 then return "DurationTextBinding.SetDuration" end
+            if binding:GetFormattedText() ~= "10" then return "DurationTextBinding.GetFormattedText" end
+            binding:SetExpiredText("expired")
+            if binding:GetExpiredText() ~= "expired" then return "DurationTextBinding.SetExpiredText" end
+            binding:SetZeroDurationText("zero")
+            if binding:GetZeroDurationText() ~= "zero" then return "DurationTextBinding.SetZeroDurationText" end
+            binding:SetTimeModifier(1.5)
+            if binding:GetTimeModifier() ~= 1.5 then return "DurationTextBinding.SetTimeModifier" end
+            binding:SetUpdateInterval(0.25)
+            if binding:GetUpdateInterval() ~= 0.25 then return "DurationTextBinding.SetUpdateInterval" end
+            binding:SetClock(clock)
+            if binding:GetClock() ~= clock then return "DurationTextBinding clock" end
+
+            binding:Disable()
+            if binding:IsEnabled() ~= false or binding:IsActive() ~= false then
+                return "DurationTextBinding.Disable"
+            end
+            binding:Enable()
+            if binding:IsEnabled() ~= true or binding:IsActive() ~= true then
+                return "DurationTextBinding.Enable"
+            end
+            binding:SetEnabled(false)
+            if binding:IsEnabled() ~= false or binding:IsActive() ~= false then
+                return "DurationTextBinding.SetEnabled false"
+            end
+            binding:SetEnabled(true)
+            if binding:IsEnabled() ~= true then return "DurationTextBinding.SetEnabled true" end
+            if binding:HasSecretValues() ~= false then return "DurationTextBinding.HasSecretValues" end
+
+            local owner = CreateFrame("Frame")
+            local fontString = owner:CreateFontString()
+            binding:SetFontString(fontString)
+            if binding:GetFontString() ~= fontString then return "DurationTextBinding.SetFontString" end
+            if binding:CanUpdateFontString() ~= true then return "DurationTextBinding.CanUpdateFontString" end
+            binding:SetDuration(7)
+            binding:UpdateFontString()
+            if fontString:GetText() ~= "7" then return "DurationTextBinding.UpdateFontString" end
+
+            binding:SetDuration(durationObject)
+            if binding:GetDuration() ~= durationObject then return "DurationTextBinding duration object" end
+            if type(binding.SetToDefaults) ~= "function" then return "DurationTextBinding.SetToDefaults method" end
+            binding:SetToDefaults()
+            if binding:IsEnabled() ~= true then return "DurationTextBinding.SetToDefaults enabled" end
+            if binding:GetExpiredText() ~= nil or binding:GetZeroDurationText() ~= nil then
+                return "DurationTextBinding.SetToDefaults text"
+            end
+            return "ok"
+            "#,
+        )
+        .unwrap();
+
+    assert_eq!(result, "ok");
+}
+
+#[cfg(feature = "retail-12-1-0")]
+#[test]
+fn test_patch_12_1_duration_binding_reference_lifetime_and_identity() {
+    let env = WowLuaEnv::new().unwrap();
+    let result: String = env
+        .eval(
+            r#"
+            local first = C_DurationUtil.CreateDurationTextBinding()
+            local second = C_DurationUtil.CreateDurationTextBinding()
+            if type(first) ~= "table" then return "type" end
+            if first == second then return "distinct" end
+            if type(first.SetDuration) ~= "function" then return "method" end
+
+            first:SetDuration(17)
+            local retained = { first }
+            first = nil
+            collectgarbage("collect")
+            if retained[1]:GetDuration() ~= 17 then return "retained" end
+            if retained[1] ~= retained[1] then return "identity" end
+            return "ok"
+            "#,
+        )
+        .unwrap();
+
+    assert_eq!(result, "ok");
+}
+
+#[cfg(feature = "retail-12-0-7")]
+#[test]
 fn test_patch_12_0_7_safe_global_bridges() {
     let env = WowLuaEnv::new().unwrap();
     let result: String = env
@@ -99,48 +226,6 @@ fn test_patch_12_0_7_safe_global_bridges() {
             if type(C_Container.CalculateTotalNumberOfFreeBagSlots()) ~= "number" then return "container-free" end
             if type(C_DelvesUI.GetDelveEntranceTitleString(1)) ~= "string" then return "delve-title" end
             if type(C_DelvesUI.GetWorldTierDifficultyForActivePlayer()) ~= "number" then return "delve-world-tier" end
-            local clock = C_DurationUtil.CreateManualClock(5)
-            if clock:GetTime() ~= 5 then return "clock-time" end
-            clock:AdvanceTime(2)
-            if clock:GetTime() ~= 7 then return "clock-advance" end
-            clock:RewindTime(3)
-            if clock:GetTime() ~= 4 then return "clock-rewind" end
-            clock:ResetTime()
-            if clock:GetTime() ~= 0 then return "clock-reset" end
-            local binding = C_DurationUtil.CreateDurationTextBinding()
-            if binding:GetDuration() == nil then return "duration-default-value" end
-            if C_DurationUtil.CreateDurationTextFormattingOptions() ~= nil then return "duration-format-options-factory" end
-            if C_DurationUtil.CreateDurationTextRawValue() ~= nil then return "duration-raw-value-factory" end
-            binding:SetDuration(10)
-            if binding:GetDuration() ~= 10 then return "duration-value" end
-            binding:SetDuration(3)
-            if binding:GetFormattedText() ~= "3" then return "duration-text" end
-            if binding:IsEnabled() ~= true then return "duration-enabled" end
-            binding:Disable()
-            if binding:IsActive() ~= false then return "duration-disabled" end
-            binding:Enable()
-            if binding:GetClock() == nil then return "duration-clock" end
-            if type(binding.HasSecretValues) ~= "function" then return "duration-secret-method" end
-            if binding:HasSecretValues() ~= false then return "duration-secret-values" end
-            if type(binding.SetEnabled) ~= "function" then return "duration-set-enabled-method" end
-            binding:SetEnabled(false)
-            if binding:IsEnabled() ~= false or binding:IsActive() ~= false then return "duration-set-disabled" end
-            binding:SetEnabled(true)
-            if binding:IsEnabled() ~= true then return "duration-set-enabled" end
-            local durationObject = C_DurationUtil.CreateDuration()
-            binding:SetDuration(durationObject)
-            if binding:GetDuration() ~= durationObject then return "duration-object" end
-            durationObject:SetClock(clock)
-            if durationObject:GetClock() ~= clock then return "duration-object-clock" end
-            if durationObject:HasExpired() ~= false then return "duration-object-expired" end
-            if durationObject:HasStarted() ~= false then return "duration-object-started" end
-            if durationObject:IsActive() ~= false then return "duration-object-active" end
-            if type(binding.SetToDefaults) ~= "function" then return "duration-defaults-method" end
-            binding:SetExpiredText("expired")
-            binding:SetZeroDurationText("zero")
-            binding:SetToDefaults()
-            if binding:IsEnabled() ~= true then return "duration-default-enabled" end
-            if binding:GetExpiredText() ~= nil or binding:GetZeroDurationText() ~= nil then return "duration-default-text" end
             local r, g, b, a = C_EncounterTimeline.GetEventColor(1)
             if r ~= 1 or g ~= 1 or b ~= 1 or a ~= 1 then return "event-color" end
             C_EncounterEvents.SetEventColor(1, { r = 0.2, g = 0.4, b = 0.6, a = 0.8 })
@@ -657,6 +742,7 @@ fn test_patch_12_1_housing_editor_decor_layout_state() {
             local petInfo = C_HousingCustomizeMode.GetSelectedDecorPetInfo()
             local maxIndoor, maxOutdoor = C_HousingDecor.GetBothMaxPlacementBudgets()
             local spentIndoor, spentOutdoor = C_HousingDecor.GetBothSpentPlacementBudgets()
+            if C_HouseEditor.GetActiveHouseEditorMode() ~= Enum.HouseEditorMode.None then return "editor-mode" end
             if C_HouseEditor.GetHouseEditorPlayerType() ~= 7 then return "editor-type" end
             if petInfo.petGUID ~= "pet-1" or petInfo.petName ~= "Biscuit" then return "pet-info" end
             if C_HousingDecor.AnyDecorPlacedInRoom(11) ~= true then return "room-decor" end

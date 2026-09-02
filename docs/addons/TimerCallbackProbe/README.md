@@ -1,8 +1,8 @@
 # TimerCallbackProbe
 
 Captures **real-client ground truth** for three `C_Timer` callback behaviors
-that wow-ui-sim cannot confirm about itself, so they can be compared against the
-simulator and Wowless's model.
+that require live-client confirmation beyond wow-ui-sim's focused runtime tests.
+Results can be compared against the simulator and Wowless's model.
 
 ## Why
 
@@ -19,8 +19,10 @@ local obj1 = C_Timer.NewTicker(0.05, cb, 5)
 C_Timer.NewTicker(0.08, obj1, 3)   -- the returned ticker, reused as a callback
 ```
 
-For this to pass (8 = 5 + 3), three things must hold, and they are **load-bearing
-assumptions** the simulator does not satisfy:
+For this to pass (8 = 5 + 3), three things must hold. The probe was added when
+wow-ui-sim did not satisfy these assumptions; the current simulator models the
+container path, while this addon remains the live-client check for timer
+integration and scheduling behavior:
 
 1. `C_Timer.NewTicker` accepts a `C_FunctionContainers` callback object (not a raw
    function) as its callback.
@@ -30,26 +32,24 @@ assumptions** the simulator does not satisfy:
    independent ("state not shared").
 
 This test does **not** exist in Wowless's own suite, and Wowless only *models*
-the behavior — neither is live-client proof. wow-ui-sim diverges (see below), so
-the only way to know whether the test encodes real WoW behavior is to probe the
-live client.
+the behavior — neither is live-client proof. The historical simulator divergence
+is retained below; the only way to establish retail behavior is to probe the live
+client.
 
-## What wow-ui-sim does (the divergence being checked)
+## What wow-ui-sim does (current model)
 
-Captured via the simulator's Rust/Lua probes:
+The current simulator models the container path:
 
-- `C_FunctionContainers.CreateCallback(fn)` → a **table**, not callable via `()`
-  (you must `:Invoke()`); `hasInvoke = true`.
-- `C_Timer.NewTicker(d, container, n)` → **errors**:
-  `bad argument #2 (function expected, got table)`. The sim requires a raw
-  function callback.
-- `C_Timer.NewTicker(d, plainFn, n)` → returns an **opaque handle** `{__id, Cancel}`,
-  **not** the function — so `obj1 ~= fn`, and feeding it back is meaningless.
-- Plain-function "state not shared" (same function in two tickers) **does** reach
-  8 in-sim — per-ticker iteration state is independent for the normal case.
+- `C_FunctionContainers.CreateCallback(fn)` returns **userdata**, is not callable
+  via `()`, and exposes `:Invoke`, `:Cancel`, and `:IsCancelled`.
+- `C_Timer.NewTimer` and `C_Timer.NewTicker` accept a function or container and
+  return the callback container; a plain function is wrapped in a fresh container.
+- Timer registrations keep independent iteration state, and container
+  cancellation cancels the registrations it backs.
 
-So in the simulator the Feronn test dies on its **first** line (ticker A can't be
-created from a container). The interesting shared-state question is never reached.
+The focused Rust proof is limited to userdata type, method exposure,
+cancellation/invoke suppression, per-instance fields, and read-only keys. This
+probe remains useful for live scheduling, timer integration, and edge semantics.
 
 ## What it probes
 
@@ -91,13 +91,14 @@ For each async scenario:
 - `DIVERGES (n/8)` — both started but the total is wrong; iteration state is
   shared or the reused callback no-ops.
 
-If the live client returns `PASS` for `sharedContainer`, the simulator has a real
-`C_Timer`/`C_FunctionContainers` gap to close (accept container callbacks; return
-the callback object from `NewTicker`). If it returns `rejected`, the Feronn test
-encodes behavior real WoW does not support, and the test — not the simulator — is
-wrong.
+A live `PASS` for `sharedContainer` confirms the retail timer/container path
+that the simulator now models. If the client rejects the container, the Feronn
+test does not encode supported retail behavior.
 
 ## Captured result (client 12.0.7.68182, interface 120007, 2026-06-16)
+
+The simulator values in this capture are historical, from before the container
+model was fixed.
 
 ```
 static:
@@ -122,7 +123,7 @@ plainFunction (control):
 
 ### Conclusion
 
-**The Feronn test encodes genuine retail behavior — the simulator has the bug, not the test.**
+**The Feronn test encodes genuine retail behavior; the simulator gap identified by this capture was fixed.**
 
 > **Probe-bug correction:** `containerHasInvoke = false` above is a **false
 > negative**. The probe checked `type(cb)=="table" and type(cb.Invoke)=="function"`,
@@ -147,14 +148,14 @@ On retail:
 - A plain-function callback is wrapped into a container too
   (`plainTickerEqualsFn = false`).
 
-The simulator (before the fix) diverged on every container-related point:
+The historical simulator capture diverged on every container-related point:
 
-1. `CreateCallback` → a Lua **table** (retail: userdata).
-2. `NewTicker` **rejected** a container callback (`bad argument #2 (function expected, got table)`); retail accepts it.
-3. `NewTicker` returned a fresh opaque `{__id, Cancel}` handle, not the callback container; retail returns the container itself.
+1. `CreateCallback` returned a Lua **table** (retail: userdata).
+2. `NewTicker` rejected a container callback; retail accepts it.
+3. `NewTicker` returned a fresh opaque handle, not the callback container.
 
-The plain-function path matched retail (both reach 8/8). The gap was the
-FunctionContainer model.
+The plain-function path matched retail (both reached 8/8). The gap was the
+FunctionContainer model, now fixed.
 
 ### Fix (landed)
 

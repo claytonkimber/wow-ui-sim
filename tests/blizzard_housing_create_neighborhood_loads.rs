@@ -4,7 +4,6 @@ use std::path::PathBuf;
 use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, find_toc_file, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
-use wow_ui_sim::startup::fire_startup_events_for_screen;
 use wow_ui_sim::toc::TocFile;
 
 fn blizzard_ui_dir() -> PathBuf {
@@ -21,32 +20,9 @@ fn create_neighborhood_toc() -> PathBuf {
     create_neighborhood_dir().join("Blizzard_HousingCreateNeighborhood.toc")
 }
 
-fn load_full_game_ui_with_create_neighborhood_lod() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-
-    wow_ui_sim::xml::register_intrinsic_templates();
-
-    let ui = blizzard_ui_dir();
-    let addons = discover_blizzard_addons_for_screen(&ui, ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    env.apply_post_load_workarounds();
-    fire_startup_events_for_screen(&env, ScreenKind::Game);
-
+fn load_housing_create_neighborhood(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &create_neighborhood_toc())
         .expect("Blizzard_HousingCreateNeighborhood should load via explicit Rust loader call");
-
-    env
 }
 
 #[test]
@@ -167,9 +143,9 @@ fn blizzard_housing_create_neighborhood_excluded_from_all_screen_auto_discovery_
     }
 }
 
-#[test]
-fn blizzard_housing_create_neighborhood_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui_with_create_neighborhood_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_create_neighborhood_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
+    load_housing_create_neighborhood(env);
 
     let lua_errors: Vec<String> = env.state().borrow().lua_errors.clone();
     let related: Vec<&String> = lua_errors
@@ -196,10 +172,11 @@ fn blizzard_housing_create_neighborhood_loads_without_addon_specific_lua_errors(
             .join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_housing_create_neighborhood_is_addon_loaded_returns_true_after_explicit_lod_load() {
-    let env = load_full_game_ui_with_create_neighborhood_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_create_neighborhood_is_addon_loaded_returns_true_after_explicit_lod_load(env: &WowLuaEnv) {
+    load_housing_create_neighborhood(env);
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_HousingCreateNeighborhood')")
@@ -210,10 +187,11 @@ fn blizzard_housing_create_neighborhood_is_addon_loaded_returns_true_after_expli
          return true"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_create_neighborhood_dependency_loads_via_game_screen_pass() {
-    let env = load_full_game_ui_with_create_neighborhood_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_create_neighborhood_dependency_loads_via_game_screen_pass(env: &WowLuaEnv) {
+    load_housing_create_neighborhood(env);
 
     let templates_loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_HousingTemplates')")
@@ -224,10 +202,11 @@ fn blizzard_housing_create_neighborhood_dependency_loads_via_game_screen_pass() 
          TOC, must be loaded before the explicit LoD load runs"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_create_neighborhood_publishes_three_named_frames_globally() {
-    let env = load_full_game_ui_with_create_neighborhood_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_create_neighborhood_publishes_three_named_frames_globally(env: &WowLuaEnv) {
+    load_housing_create_neighborhood(env);
 
     for frame_name in [
         "HousingCreateGuildNeighborhoodFrame",
@@ -248,10 +227,11 @@ fn blizzard_housing_create_neighborhood_publishes_three_named_frames_globally() 
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_create_neighborhood_does_not_publish_virtual_templates() {
-    let env = load_full_game_ui_with_create_neighborhood_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_create_neighborhood_does_not_publish_virtual_templates(env: &WowLuaEnv) {
+    load_housing_create_neighborhood(env);
 
     for template_name in [
         "HousingCreateNeighborhoodTemplate",
@@ -267,10 +247,11 @@ fn blizzard_housing_create_neighborhood_does_not_publish_virtual_templates() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_create_neighborhood_base_mixin_publishes_three_methods() {
-    let env = load_full_game_ui_with_create_neighborhood_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_create_neighborhood_base_mixin_publishes_three_methods(env: &WowLuaEnv) {
+    load_housing_create_neighborhood(env);
 
     for method in [
         "CreateNeighborhoodBaseOnLoad",
@@ -294,10 +275,11 @@ fn blizzard_housing_create_neighborhood_base_mixin_publishes_three_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_create_neighborhood_confirmation_base_mixin_publishes_one_method() {
-    let env = load_full_game_ui_with_create_neighborhood_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_create_neighborhood_confirmation_base_mixin_publishes_one_method(env: &WowLuaEnv) {
+    load_housing_create_neighborhood(env);
 
     let exists: bool = env
         .eval(
@@ -312,10 +294,11 @@ fn blizzard_housing_create_neighborhood_confirmation_base_mixin_publishes_one_me
          text via HOUSING_CREATENEIGHBORHOOD_CANCELBUTTON"
     );
 }
+}
 
-#[test]
-fn blizzard_housing_create_charter_confirmation_mixin_publishes_five_methods() {
-    let env = load_full_game_ui_with_create_neighborhood_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_create_charter_confirmation_mixin_publishes_five_methods(env: &WowLuaEnv) {
+    load_housing_create_neighborhood(env);
 
     for method in ["OnLoad", "SetCharterInfo", "OnShow", "OnHide", "OnEvent"] {
         let exists: bool = env
@@ -338,10 +321,11 @@ fn blizzard_housing_create_charter_confirmation_mixin_publishes_five_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_create_guild_confirmation_mixin_publishes_two_methods() {
-    let env = load_full_game_ui_with_create_neighborhood_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_create_guild_confirmation_mixin_publishes_two_methods(env: &WowLuaEnv) {
+    load_housing_create_neighborhood(env);
 
     for method in ["OnLoad", "OnShow"] {
         let exists: bool = env
@@ -362,10 +346,11 @@ fn blizzard_housing_create_guild_confirmation_mixin_publishes_two_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_create_guild_neighborhood_mixin_publishes_six_methods() {
-    let env = load_full_game_ui_with_create_neighborhood_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_create_guild_neighborhood_mixin_publishes_six_methods(env: &WowLuaEnv) {
+    load_housing_create_neighborhood(env);
 
     for method in [
         "OnCreateNeighborhoodClicked",
@@ -396,10 +381,11 @@ fn blizzard_housing_create_guild_neighborhood_mixin_publishes_six_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_create_neighborhood_charter_mixin_publishes_seven_methods() {
-    let env = load_full_game_ui_with_create_neighborhood_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_create_neighborhood_charter_mixin_publishes_seven_methods(env: &WowLuaEnv) {
+    load_housing_create_neighborhood(env);
 
     for method in [
         "SetCharterInfo",
@@ -428,10 +414,11 @@ fn blizzard_housing_create_neighborhood_charter_mixin_publishes_seven_methods() 
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_create_guild_frame_inherits_template_children() {
-    let env = load_full_game_ui_with_create_neighborhood_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_create_guild_frame_inherits_template_children(env: &WowLuaEnv) {
+    load_housing_create_neighborhood(env);
 
     for parent_key in [
         "Border",
@@ -464,10 +451,11 @@ fn blizzard_housing_create_guild_frame_inherits_template_children() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_create_guild_frame_adds_guild_specific_children() {
-    let env = load_full_game_ui_with_create_neighborhood_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_create_guild_frame_adds_guild_specific_children(env: &WowLuaEnv) {
+    load_housing_create_neighborhood(env);
 
     for parent_key in [
         "GuildLabel",
@@ -491,10 +479,11 @@ fn blizzard_housing_create_guild_frame_adds_guild_specific_children() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_create_guild_frame_nested_confirmation_publishes_subtree() {
-    let env = load_full_game_ui_with_create_neighborhood_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_create_guild_frame_nested_confirmation_publishes_subtree(env: &WowLuaEnv) {
+    load_housing_create_neighborhood(env);
 
     let confirmation_exists: bool = env
         .eval(
@@ -534,10 +523,11 @@ fn blizzard_housing_create_guild_frame_nested_confirmation_publishes_subtree() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_create_charter_frame_inherits_template_and_adds_warning() {
-    let env = load_full_game_ui_with_create_neighborhood_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_create_charter_frame_inherits_template_and_adds_warning(env: &WowLuaEnv) {
+    load_housing_create_neighborhood(env);
 
     for parent_key in [
         "Border",
@@ -569,10 +559,11 @@ fn blizzard_housing_create_charter_frame_inherits_template_and_adds_warning() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_create_charter_confirmation_frame_publishes_template_children() {
-    let env = load_full_game_ui_with_create_neighborhood_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_create_charter_confirmation_frame_publishes_template_children(env: &WowLuaEnv) {
+    load_housing_create_neighborhood(env);
 
     for parent_key in [
         "Border",
@@ -608,10 +599,11 @@ fn blizzard_housing_create_charter_confirmation_frame_publishes_template_childre
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_create_neighborhood_registers_three_named_panels_via_register_ui_panel() {
-    let env = load_full_game_ui_with_create_neighborhood_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_create_neighborhood_registers_three_named_panels_via_register_ui_panel(env: &WowLuaEnv) {
+    load_housing_create_neighborhood(env);
 
     for frame_name in [
         "HousingCreateGuildNeighborhoodFrame",
@@ -632,10 +624,11 @@ fn blizzard_housing_create_neighborhood_registers_three_named_panels_via_registe
         );
     }
 }
+}
 
-#[test]
-fn blizzard_housing_create_neighborhood_registration_uses_center_area_with_pushable_two() {
-    let env = load_full_game_ui_with_create_neighborhood_lod();
+prefork_full_ui_case! {
+fn blizzard_housing_create_neighborhood_registration_uses_center_area_with_pushable_two(env: &WowLuaEnv) {
+    load_housing_create_neighborhood(env);
 
     let area: String = env
         .eval("return UIPanelWindows['HousingCreateGuildNeighborhoodFrame'].area")
@@ -666,4 +659,5 @@ fn blizzard_housing_create_neighborhood_registration_uses_center_area_with_pusha
         "Registration.lua omits allowOtherPanels — falls back to falsy default; only area and \
          pushable are explicitly declared in the shared attributes table"
     );
+}
 }

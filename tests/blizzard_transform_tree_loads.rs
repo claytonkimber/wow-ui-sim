@@ -281,9 +281,8 @@ fn no_other_addon_declares_transform_tree_as_dependency() {
     );
 }
 
-#[test]
-fn explicit_load_publishes_four_mixins_with_inheritance() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn explicit_load_publishes_four_mixins_with_inheritance(env: &WowLuaEnv) {
 
     load_addon(&env.loader_env(), &transform_tree_toc())
         .expect("Blizzard_TransformTree must load via Rust loader");
@@ -324,10 +323,10 @@ fn explicit_load_publishes_four_mixins_with_inheritance() {
         );
     }
 }
+}
 
-#[test]
-fn explicit_load_publishes_global_constructor_and_pool_helpers() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn explicit_load_publishes_global_constructor_and_pool_helpers(env: &WowLuaEnv) {
 
     load_addon(&env.loader_env(), &transform_tree_toc())
         .expect("Blizzard_TransformTree must load via Rust loader");
@@ -352,10 +351,10 @@ fn explicit_load_publishes_global_constructor_and_pool_helpers() {
         );
     }
 }
+}
 
-#[test]
-fn explicit_load_publishes_no_named_top_level_frames() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn explicit_load_publishes_no_named_top_level_frames(env: &WowLuaEnv) {
 
     load_addon(&env.loader_env(), &transform_tree_toc())
         .expect("Blizzard_TransformTree must load via Rust loader");
@@ -378,10 +377,10 @@ fn explicit_load_publishes_no_named_top_level_frames() {
          Blizzard_AzeriteEmpoweredItemUI.lua:26). Got count={count}"
     );
 }
+}
 
-#[test]
-fn frame_node_inherits_base_node_methods_via_create_from_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn frame_node_inherits_base_node_methods_via_create_from_mixins(env: &WowLuaEnv) {
 
     load_addon(&env.loader_env(), &transform_tree_toc())
         .expect("Blizzard_TransformTree must load via Rust loader");
@@ -429,10 +428,10 @@ fn frame_node_inherits_base_node_methods_via_create_from_mixins() {
          first GetGlobalX query"
     );
 }
+}
 
-#[test]
-fn explicit_load_emits_no_addon_specific_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn explicit_load_emits_no_addon_specific_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -460,4 +459,5 @@ fn explicit_load_emits_no_addon_specific_errors() {
         addon_specific.len(),
         addon_specific
     );
+}
 }

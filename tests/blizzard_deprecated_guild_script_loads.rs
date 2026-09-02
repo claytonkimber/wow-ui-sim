@@ -100,9 +100,8 @@ fn blizzard_deprecated_guild_script_appears_in_game_discovery_only() {
     );
 }
 
-#[test]
-fn blizzard_deprecated_guild_script_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_guild_script_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -120,10 +119,10 @@ fn blizzard_deprecated_guild_script_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_guild_script_installs_guild_management_function_shims() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_guild_script_installs_guild_management_function_shims(env: &WowLuaEnv) {
 
     let installed: bool = env
         .eval(
@@ -150,10 +149,10 @@ fn blizzard_deprecated_guild_script_installs_guild_management_function_shims() {
          alias becomes a callable no-op, not nil"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_guild_script_installs_guild_text_function_shims() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_guild_script_installs_guild_text_function_shims(env: &WowLuaEnv) {
 
     let installed: bool = env
         .eval(
@@ -192,11 +191,10 @@ fn blizzard_deprecated_guild_script_installs_guild_text_function_shims() {
          C_GuildInfo._textState.infoText (runtime_surface_bootstrap.lua:8822), not empty"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_guild_script_globals_alias_c_guild_info_methods() {
-    let env = load_full_game_ui();
-
+prefork_full_ui_case! {
+fn blizzard_deprecated_guild_script_globals_alias_c_guild_info_methods(env: &WowLuaEnv) {
     let aliases_match: bool = env
         .eval(
             "return GuildInvite == C_GuildInfo.Invite \
@@ -215,17 +213,70 @@ fn blizzard_deprecated_guild_script_globals_alias_c_guild_info_methods() {
     assert!(
         aliases_match,
         "All 11 deprecated guild globals must reference identity-equal values to their \
-         backing C_GuildInfo methods. The 8 management methods land on cached no-op \
-         closures (the namespace __index caches via `rawset(t, key, fn)` so subsequent \
-         reads return the SAME function); the 3 text methods land on the explicit \
-         _textState-backed closures. Identity equality is the strongest verifiable \
-         invariant — confirms both sides see the same value object"
+         backing C_GuildInfo methods after Blizzard_DeprecatedGuildScript loads"
     );
+
+    {
+        let mut state = env.state().borrow_mut();
+        state.world.guild_name = Some("State Backed Guild".into());
+        state.world.guild_rank = Some("Member".into());
+        state.world.guild_members.clear();
+        state.world.guild_num_members = 0;
+    }
+
+    env.exec(r#"C_GuildInfo.Invite("StateBackedRecruit")"#)
+        .expect("C_GuildInfo.Invite should execute");
+    let invited_rank = env
+        .state()
+        .borrow()
+        .world
+        .guild_members
+        .iter()
+        .find(|member| member.name == "StateBackedRecruit")
+        .map(|member| member.rank_index)
+        .expect("C_GuildInfo.Invite should append the named member");
+    assert!(invited_rank > 1, "seeded guild should have a promotable rank");
+
+    env.exec(r#"C_GuildInfo.Promote("StateBackedRecruit")"#)
+        .expect("C_GuildInfo.Promote should execute");
+    let promoted_rank = env
+        .state()
+        .borrow()
+        .world
+        .guild_members
+        .iter()
+        .find(|member| member.name == "StateBackedRecruit")
+        .map(|member| member.rank_index)
+        .expect("promoted member should remain in the roster");
+    assert_eq!(promoted_rank, invited_rank - 1);
+
+    env.exec(r#"C_GuildInfo.Uninvite("StateBackedRecruit")"#)
+        .expect("C_GuildInfo.Uninvite should execute");
+    assert!(
+        env.state()
+            .borrow()
+            .world
+            .guild_members
+            .iter()
+            .all(|member| member.name != "StateBackedRecruit"),
+        "C_GuildInfo.Uninvite should remove the named member"
+    );
+
+    env.exec(
+        r#"C_GuildInfo.Invite("LastMember")
+           C_GuildInfo.Leave()"#,
+    )
+    .expect("C_GuildInfo.Leave should execute after an invite");
+    let state = env.state().borrow();
+    assert!(state.world.guild_name.is_none());
+    assert!(state.world.guild_rank.is_none());
+    assert_eq!(state.world.guild_num_members, 0);
+    assert!(state.world.guild_members.is_empty());
+}
 }
 
-#[test]
-fn blizzard_deprecated_guild_script_load_deprecation_fallbacks_cvar_is_default_on() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_guild_script_load_deprecation_fallbacks_cvar_is_default_on(env: &WowLuaEnv) {
 
     let cvar_on: bool = env
         .eval("return GetCVarBool('loadDeprecationFallbacks')")
@@ -238,6 +289,7 @@ fn blizzard_deprecated_guild_script_load_deprecation_fallbacks_cvar_is_default_o
          and any legacy guild-management addon calling GuildInvite / GuildPromote / \
          GetGuildRosterMOTD / etc. blows up with `attempt to call a nil value`"
     );
+}
 }
 
 #[test]

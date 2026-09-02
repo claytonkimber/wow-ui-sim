@@ -306,9 +306,8 @@ fn blizzard_professions_book_appears_in_full_addon_inventory() {
     );
 }
 
-#[test]
-fn blizzard_professions_book_loads_explicitly_after_dependencies() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_professions_book_loads_explicitly_after_dependencies(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -340,10 +339,10 @@ fn blizzard_professions_book_loads_explicitly_after_dependencies() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_professions_book_publishes_two_mixin_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_professions_book_publishes_two_mixin_globals(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &professions_book_toc())
         .expect("Blizzard_ProfessionsBook loads cleanly");
 
@@ -360,10 +359,10 @@ fn blizzard_professions_book_publishes_two_mixin_globals() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_professions_book_publishes_global_functions_and_tables() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_professions_book_publishes_global_functions_and_tables(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &professions_book_toc())
         .expect("Blizzard_ProfessionsBook loads cleanly");
 
@@ -392,10 +391,10 @@ fn blizzard_professions_book_publishes_global_functions_and_tables() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_professions_book_named_top_level_frames_are_in_global_env() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_professions_book_named_top_level_frames_are_in_global_env(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &professions_book_toc())
         .expect("Blizzard_ProfessionsBook loads cleanly");
 
@@ -418,10 +417,10 @@ fn blizzard_professions_book_named_top_level_frames_are_in_global_env() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_professions_book_virtual_templates_not_in_global_env() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_professions_book_virtual_templates_not_in_global_env(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &professions_book_toc())
         .expect("Blizzard_ProfessionsBook loads cleanly");
 
@@ -445,10 +444,10 @@ fn blizzard_professions_book_virtual_templates_not_in_global_env() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_professions_book_profession_ranks_table_has_eleven_entries() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_professions_book_profession_ranks_table_has_eleven_entries(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &professions_book_toc())
         .expect("Blizzard_ProfessionsBook loads cleanly");
 
@@ -480,4 +479,5 @@ fn blizzard_professions_book_profession_ranks_table_has_eleven_entries() {
          recent classic-style tier before the Dragonflight ranks system superseded \
          the linear cap progression"
     );
+}
 }

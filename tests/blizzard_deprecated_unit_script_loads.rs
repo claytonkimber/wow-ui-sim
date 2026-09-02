@@ -143,9 +143,8 @@ fn blizzard_deprecated_unit_script_appears_in_game_discovery_only() {
     );
 }
 
-#[test]
-fn blizzard_deprecated_unit_script_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_unit_script_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -163,10 +162,10 @@ fn blizzard_deprecated_unit_script_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_unit_script_installs_show_boss_frame_when_uninteractable() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_unit_script_installs_show_boss_frame_when_uninteractable(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(ShowBossFrameWhenUninteractable)")
@@ -182,10 +181,10 @@ fn blizzard_deprecated_unit_script_installs_show_boss_frame_when_uninteractable(
          shim now defers to visibility)"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_unit_script_show_boss_frame_returns_true_for_player() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_unit_script_show_boss_frame_returns_true_for_player(env: &WowLuaEnv) {
 
     let visible: bool = env
         .eval("return ShowBossFrameWhenUninteractable('player')")
@@ -197,10 +196,10 @@ fn blizzard_deprecated_unit_script_show_boss_frame_returns_true_for_player() {
          'pet' / 'vehicle' as always visible — no fog-of-war / range modeling in the sim"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_unit_script_show_boss_frame_returns_false_for_empty_string() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_unit_script_show_boss_frame_returns_false_for_empty_string(env: &WowLuaEnv) {
 
     let visible: bool = env
         .eval("return ShowBossFrameWhenUninteractable('')")
@@ -212,10 +211,10 @@ fn blizzard_deprecated_unit_script_show_boss_frame_returns_false_for_empty_strin
          string. This documents the wrapper's straight passthrough semantics"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_unit_script_classic_overrides_globals_do_not_leak_on_mainline() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_unit_script_classic_overrides_globals_do_not_leak_on_mainline(env: &WowLuaEnv) {
 
     let no_classic_globals: bool = env
         .eval("return _G.CastingInfo == nil and _G.ChannelInfo == nil")
@@ -229,10 +228,10 @@ fn blizzard_deprecated_unit_script_classic_overrides_globals_do_not_leak_on_main
          If these globals leak, the file filter is broken"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_unit_script_load_deprecation_fallbacks_cvar_is_default_on() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_unit_script_load_deprecation_fallbacks_cvar_is_default_on(env: &WowLuaEnv) {
 
     let cvar_on: bool = env
         .eval("return GetCVarBool('loadDeprecationFallbacks')")
@@ -243,6 +242,7 @@ fn blizzard_deprecated_unit_script_load_deprecation_fallbacks_cvar_is_default_on
          '1') so the early-return guard at Deprecated_UnitScript.lua:4 doesn't bail before \
          ShowBossFrameWhenUninteractable is defined"
     );
+}
 }
 
 #[test]

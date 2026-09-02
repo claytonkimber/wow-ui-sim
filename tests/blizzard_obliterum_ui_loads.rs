@@ -23,7 +23,10 @@ fn obliterum_toc() -> PathBuf {
     obliterum_dir().join("Blizzard_ObliterumUI.toc")
 }
 
-const OBLITERUM_TOC_FILES: &[&str] = &["Blizzard_ObliterumUI.xml"];
+const OBLITERUM_TOC_FILES: &[&str] = &[
+    "Blizzard_ObliterumUI_Bootstrap.lua",
+    "Blizzard_ObliterumUI.xml",
+];
 
 const PUBLIC_MIXINS: &[&str] = &["ObliterumForgeMixin", "ObliterumForgeItemSlotMixin"];
 
@@ -160,7 +163,7 @@ fn blizzard_obliterum_toc_declares_load_on_demand_in_raw_bytes() {
 }
 
 #[test]
-fn blizzard_obliterum_toc_lists_single_xml_file() {
+fn blizzard_obliterum_toc_lists_bootstrap_then_xml() {
     let toc = TocFile::from_file(&obliterum_toc()).expect("Blizzard_ObliterumUI TOC parses");
     let listed: Vec<String> = toc
         .files

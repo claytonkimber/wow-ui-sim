@@ -300,9 +300,8 @@ fn absent_from_glue_screen_auto_discovery() {
     }
 }
 
-#[test]
-fn loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -323,10 +322,10 @@ fn loads_without_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn is_addon_loaded_after_eager_pass() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn is_addon_loaded_after_eager_pass(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_WorldMap')")
@@ -346,10 +345,10 @@ fn is_addon_loaded_after_eager_pass() {
         );
     }
 }
+}
 
-#[test]
-fn primary_mixins_publish_at_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn primary_mixins_publish_at_globals(env: &WowLuaEnv) {
 
     for mixin_name in PRIMARY_MIXINS {
         let kind: String = env
@@ -363,10 +362,10 @@ fn primary_mixins_publish_at_globals() {
         );
     }
 }
+}
 
-#[test]
-fn debug_data_provider_mixins_remain_gated_off_for_non_gm_clients() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn debug_data_provider_mixins_remain_gated_off_for_non_gm_clients(env: &WowLuaEnv) {
 
     for mixin_name in GM_CLIENT_GATED_MIXINS {
         let kind: String = env
@@ -380,10 +379,10 @@ fn debug_data_provider_mixins_remain_gated_off_for_non_gm_clients() {
         );
     }
 }
+}
 
-#[test]
-fn template_mixins_publish_from_world_map_templates_lua() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn template_mixins_publish_from_world_map_templates_lua(env: &WowLuaEnv) {
 
     for mixin_name in TEMPLATE_MIXINS {
         let kind: String = env
@@ -399,10 +398,10 @@ fn template_mixins_publish_from_world_map_templates_lua() {
         );
     }
 }
+}
 
-#[test]
-fn xml_templates_register_in_template_registry() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn xml_templates_register_in_template_registry(env: &WowLuaEnv) {
     let _ = env;
 
     for template_name in VIRTUAL_TEMPLATES {
@@ -413,10 +412,10 @@ fn xml_templates_register_in_template_registry() {
         );
     }
 }
+}
 
-#[test]
-fn world_map_frame_publishes_with_dual_mixin_and_parent_uiparent() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn world_map_frame_publishes_with_dual_mixin_and_parent_uiparent(env: &WowLuaEnv) {
 
     let kind: String = env
         .eval("return type(WorldMapFrame)")
@@ -436,10 +435,10 @@ fn world_map_frame_publishes_with_dual_mixin_and_parent_uiparent() {
         .expect("WorldMapFrame:GetName() probe should succeed");
     assert_eq!(name, "WorldMapFrame");
 }
+}
 
-#[test]
-fn world_map_frame_carries_blackout_and_border_children() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn world_map_frame_carries_blackout_and_border_children(env: &WowLuaEnv) {
 
     let blackout_kind: String = env
         .eval("return type(WorldMapFrame.BlackoutFrame)")
@@ -464,10 +463,10 @@ fn world_map_frame_carries_blackout_and_border_children() {
          `_UI-Frame-InnerTopTile`"
     );
 }
+}
 
-#[test]
-fn world_map_frame_template_carries_scroll_container() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn world_map_frame_template_carries_scroll_container(env: &WowLuaEnv) {
 
     let scroll_kind: String = env
         .eval("return type(WorldMapFrame.ScrollContainer)")
@@ -480,4 +479,5 @@ fn world_map_frame_template_carries_scroll_container() {
          actual map canvas: pan/zoom/pin-rendering all happen inside the ScrollContainer's \
          content frame"
     );
+}
 }

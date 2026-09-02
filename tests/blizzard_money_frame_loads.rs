@@ -319,9 +319,8 @@ fn blizzard_money_frame_appears_on_every_screen_discovery() {
     }
 }
 
-#[test]
-fn blizzard_money_frame_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_money_frame_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -345,10 +344,10 @@ fn blizzard_money_frame_loads_without_addon_specific_lua_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_money_frame_is_addon_loaded_after_auto_discovery() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_money_frame_is_addon_loaded_after_auto_discovery(env: &WowLuaEnv) {
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_MoneyFrame')")
         .expect("IsAddOnLoaded probe succeeds");
@@ -358,10 +357,10 @@ fn blizzard_money_frame_is_addon_loaded_after_auto_discovery() {
          Game-screen auto-discovery sweep"
     );
 }
+}
 
-#[test]
-fn blizzard_money_frame_publishes_module_constants() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_money_frame_publishes_module_constants(env: &WowLuaEnv) {
     for (name, expected) in MODULE_CONSTANTS {
         let value: i64 = env
             .eval(&format!("return _G.{name}"))
@@ -375,10 +374,10 @@ fn blizzard_money_frame_publishes_module_constants() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_money_frame_publishes_seven_public_mixins_as_tables() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_money_frame_publishes_seven_public_mixins_as_tables(env: &WowLuaEnv) {
     for mixin in PUBLIC_MIXINS {
         let kind: String = env
             .eval(&format!("return type(_G.{mixin})"))
@@ -396,10 +395,10 @@ fn blizzard_money_frame_publishes_seven_public_mixins_as_tables() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_money_frame_publishes_money_frame_public_functions() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_money_frame_publishes_money_frame_public_functions(env: &WowLuaEnv) {
     for func in MONEY_FRAME_PUBLIC_FUNCTIONS {
         let kind: String = env
             .eval(&format!("return type(_G.{func})"))
@@ -416,10 +415,10 @@ fn blizzard_money_frame_publishes_money_frame_public_functions() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_money_frame_publishes_money_input_public_functions() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_money_frame_publishes_money_input_public_functions(env: &WowLuaEnv) {
     for func in MONEY_INPUT_PUBLIC_FUNCTIONS {
         let kind: String = env
             .eval(&format!("return type(_G.{func})"))
@@ -436,10 +435,10 @@ fn blizzard_money_frame_publishes_money_input_public_functions() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_money_frame_get_money_type_info_field_returns_canonical_metadata() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_money_frame_get_money_type_info_field_returns_canonical_metadata(env: &WowLuaEnv) {
 
     for ty in BUILTIN_MONEY_TYPES {
         let probe = format!("return type(GetMoneyTypeInfoField('{ty}', 'UpdateFunc'))");
@@ -469,10 +468,10 @@ fn blizzard_money_frame_get_money_type_info_field_returns_canonical_metadata() {
          dragged off"
     );
 }
+}
 
-#[test]
-fn blizzard_money_frame_add_money_type_info_registers_then_no_overwrite() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_money_frame_add_money_type_info_registers_then_no_overwrite(env: &WowLuaEnv) {
 
     let probe = "\
         AddMoneyTypeInfo('TEST_PROBE', { collapse = 7, marker = 'fresh' }); \
@@ -491,10 +490,10 @@ fn blizzard_money_frame_add_money_type_info_registers_then_no_overwrite() {
          to publish a custom money type without risking accidental overwrite"
     );
 }
+}
 
-#[test]
-fn blizzard_money_frame_get_denominations_from_copper_publishes_as_function() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_money_frame_get_denominations_from_copper_publishes_as_function(env: &WowLuaEnv) {
     let kind: String = env
         .eval("return type(GetDenominationsFromCopper)")
         .expect("GetDenominationsFromCopper type probe succeeds");
@@ -509,10 +508,10 @@ fn blizzard_money_frame_get_denominations_from_copper_publishes_as_function() {
          binding is a load-time effect of the addon Lua running"
     );
 }
+}
 
-#[test]
-fn blizzard_money_frame_virtual_templates_do_not_leak_as_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_money_frame_virtual_templates_do_not_leak_as_globals(env: &WowLuaEnv) {
     for template in VIRTUAL_TEMPLATES_THAT_MUST_NOT_LEAK {
         let kind: String = env
             .eval(&format!("return type(_G.{template})"))
@@ -527,10 +526,10 @@ fn blizzard_money_frame_virtual_templates_do_not_leak_as_globals() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_money_frame_localization_table_does_not_leak_as_global() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_money_frame_localization_table_does_not_leak_as_global(env: &WowLuaEnv) {
     let l10n_kind: String = env
         .eval("return type(_G.l10nTable)")
         .expect("l10nTable global probe succeeds");
@@ -550,4 +549,5 @@ fn blizzard_money_frame_localization_table_does_not_leak_as_global() {
          enUS keeps the Shared default of 0; only zhCN / zhTW localizeFrames closures \
          override (to 2 and 1 respectively)"
     );
+}
 }

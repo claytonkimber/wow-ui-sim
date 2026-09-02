@@ -154,9 +154,8 @@ fn blizzard_fonts_shared_auto_loads_on_game_and_login_screens() {
     );
 }
 
-#[test]
-fn blizzard_fonts_shared_loads_via_full_game_ui_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_fonts_shared_loads_via_full_game_ui_without_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -177,10 +176,10 @@ fn blizzard_fonts_shared_loads_via_full_game_ui_without_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_fonts_shared_is_addon_loaded_returns_true_after_full_game_ui_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_fonts_shared_is_addon_loaded_returns_true_after_full_game_ui_load(env: &WowLuaEnv) {
 
     let post_load: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_Fonts_Shared') and true or false")
@@ -192,10 +191,10 @@ fn blizzard_fonts_shared_is_addon_loaded_returns_true_after_full_game_ui_load() 
          (src/loader/addon.rs:131) registers it"
     );
 }
+}
 
-#[test]
-fn blizzard_fonts_shared_publishes_canonical_system_font_family_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_fonts_shared_publishes_canonical_system_font_family_globals(env: &WowLuaEnv) {
 
     let families_present: (bool, bool, bool, bool, bool, bool) = env
         .eval(
@@ -218,10 +217,10 @@ fn blizzard_fonts_shared_publishes_canonical_system_font_family_globals() {
          frame:CreateFontString(nil, \"OVERLAY\", \"SystemFont_Small\")` resolve"
     );
 }
+}
 
-#[test]
-fn blizzard_fonts_shared_publishes_canonical_game_font_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_fonts_shared_publishes_canonical_game_font_globals(env: &WowLuaEnv) {
 
     let game_fonts_present: (bool, bool, bool, bool, bool, bool, bool) = env
         .eval(
@@ -245,10 +244,10 @@ fn blizzard_fonts_shared_publishes_canonical_game_font_globals() {
          existing tests in tests/globals_legacy.rs:449 and tests/missing_apis.rs:201"
     );
 }
+}
 
-#[test]
-fn blizzard_fonts_shared_publishes_canonical_glue_font_globals_on_game_screen() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_fonts_shared_publishes_canonical_glue_font_globals_on_game_screen(env: &WowLuaEnv) {
 
     let glue_fonts_present: (bool, bool, bool, bool) = env
         .eval(
@@ -270,10 +269,10 @@ fn blizzard_fonts_shared_publishes_canonical_glue_font_globals_on_game_screen() 
          are virtual and cost nothing if unused"
     );
 }
+}
 
-#[test]
-fn blizzard_fonts_shared_publishes_number_font_specialty_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_fonts_shared_publishes_number_font_specialty_globals(env: &WowLuaEnv) {
 
     let number_fonts_present: (bool, bool, bool, bool) = env
         .eval(
@@ -292,10 +291,10 @@ fn blizzard_fonts_shared_publishes_number_font_specialty_globals() {
          cooldown-counter style code resolves"
     );
 }
+}
 
-#[test]
-fn blizzard_fonts_shared_publishes_quest_title_font() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_fonts_shared_publishes_quest_title_font(env: &WowLuaEnv) {
 
     let quest_title_present: bool = env
         .eval("return QuestTitleFont ~= nil")
@@ -308,10 +307,10 @@ fn blizzard_fonts_shared_publishes_quest_title_font() {
          loads its 146 `<Font>` entries beyond the bulk-checked Glue/Game variants"
     );
 }
+}
 
-#[test]
-fn blizzard_fonts_shared_load_locale_dep_loaded_first() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_fonts_shared_load_locale_dep_loaded_first(env: &WowLuaEnv) {
 
     let load_locale_loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_LoadLocale') and true or false")
@@ -323,4 +322,5 @@ fn blizzard_fonts_shared_load_locale_dep_loaded_first() {
          — confirms the dep is satisfied in the same auto-discovery pass and that \
          IsAddOnLoaded reflects the dep load"
     );
+}
 }

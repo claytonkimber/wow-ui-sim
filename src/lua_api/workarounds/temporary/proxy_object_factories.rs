@@ -216,6 +216,14 @@ if rawget(C_StringUtil, "CreateSecondsFormatter") == nil then
     self.defaultAbbreviation = abbreviation
   end
 
+  function secondsFormatterMethods:SetRounding(rounding)
+    self.rounding = rounding
+  end
+
+  function secondsFormatterMethods:SetCanRoundUpLastUnit(canRoundUp)
+    self.canRoundUpLastUnit = canRoundUp
+  end
+
   function secondsFormatterMethods:SetMinInterval(interval)
     self.minInterval = interval
   end

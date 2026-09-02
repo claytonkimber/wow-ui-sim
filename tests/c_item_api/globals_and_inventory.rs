@@ -31,8 +31,8 @@ fn test_c_encoding_util_base64() {
 #[test]
 fn test_legacy_get_item_info() {
     let env = env();
-    let is_nil: bool = env.eval("return GetItemInfo(1) == nil").unwrap();
-    assert!(is_nil);
+    let name: String = env.eval("return GetItemInfo(1)").unwrap();
+    assert_eq!(name, "Unknown");
 }
 
 #[test]

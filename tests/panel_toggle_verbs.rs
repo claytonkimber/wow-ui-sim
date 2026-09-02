@@ -58,6 +58,15 @@ fn toggle_friends_frame_roundtrips() {
     assert!(is_open(&env, "Friends"));
 }
 
+#[cfg(feature = "client-retail")]
+#[test]
+fn retail_defers_toggle_guild_frame_to_blizzard_ui() {
+    let env = env();
+    let toggle_type: String = env.eval("return type(ToggleGuildFrame)").unwrap();
+    assert_eq!(toggle_type, "nil");
+}
+
+#[cfg(not(feature = "client-retail"))]
 #[test]
 fn toggle_guild_frame_roundtrips() {
     let env = env();

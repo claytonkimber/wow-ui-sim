@@ -590,42 +590,82 @@ fn apply_bc_entry(
     }
 }
 
-/// Remap mask texture UVs for resolved atlas entries.
+/// Remap mask texture UVs for resolved atlas entries (RGBA or BC).
 fn resolve_mask_requests(
-    atlas: &mut crate::render::shader::atlas::GpuTextureAtlas,
+    atlas: &crate::render::shader::atlas::GpuTextureAtlas,
     requests: &[crate::render::TextureRequest],
     vertices: &mut [crate::render::QuadVertex],
 ) {
     for request in requests {
-        if let Some(entry) = atlas.get(&request.path) {
-            let start = request.vertex_start as usize;
-            let end = start + request.vertex_count as usize;
-            let tex_idx = entry.tex_index();
-            for vertex in vertices[start..end].iter_mut() {
-                if vertex.mask_tex_index == -2 {
-                    vertex.mask_tex_index = tex_idx;
-                    vertex.mask_tex_coords[0] = remap_entry_uv(
-                        vertex.mask_tex_coords[0],
-                        UvRemap::entry_axis(
-                            entry.uv_x,
-                            entry.uv_width,
-                            entry.original_width,
-                            entry.tier,
-                        )
-                        .with_inset(request.use_uv_inset),
-                    );
-                    vertex.mask_tex_coords[1] = remap_entry_uv(
-                        vertex.mask_tex_coords[1],
-                        UvRemap::entry_axis(
-                            entry.uv_y,
-                            entry.uv_height,
-                            entry.original_height,
-                            entry.tier,
-                        )
-                        .with_inset(request.use_uv_inset),
-                    );
-                }
-            }
+        if let Some(entry) = resolved_texture_entry(atlas, &request.path) {
+            apply_resolved_mask_entry(
+                request_vertices(request, vertices),
+                entry,
+                request.use_uv_inset,
+            );
+        }
+    }
+}
+
+fn apply_resolved_mask_entry(
+    vertices: &mut [crate::render::QuadVertex],
+    entry: ResolvedTextureEntry,
+    use_uv_inset: bool,
+) {
+    match entry {
+        ResolvedTextureEntry::Rgba(entry) => apply_rgba_mask_entry(vertices, &entry, use_uv_inset),
+        ResolvedTextureEntry::Bc(entry) => apply_bc_mask_entry(vertices, &entry),
+    }
+}
+
+fn apply_rgba_mask_entry(
+    vertices: &mut [crate::render::QuadVertex],
+    entry: &crate::render::shader::atlas::TextureEntry,
+    use_uv_inset: bool,
+) {
+    let tex_idx = entry.tex_index();
+    for vertex in vertices.iter_mut() {
+        if vertex.mask_tex_index == -2 {
+            vertex.mask_tex_index = tex_idx;
+            vertex.mask_tex_coords[0] = remap_entry_uv(
+                vertex.mask_tex_coords[0],
+                UvRemap::entry_axis(entry.uv_x, entry.uv_width, entry.original_width, entry.tier)
+                    .with_inset(use_uv_inset),
+            );
+            vertex.mask_tex_coords[1] = remap_entry_uv(
+                vertex.mask_tex_coords[1],
+                UvRemap::entry_axis(
+                    entry.uv_y,
+                    entry.uv_height,
+                    entry.original_height,
+                    entry.tier,
+                )
+                .with_inset(use_uv_inset),
+            );
+        }
+    }
+}
+
+fn apply_bc_mask_entry(
+    vertices: &mut [crate::render::QuadVertex],
+    entry: &crate::render::shader::atlas::BcTextureEntry,
+) {
+    let tex_idx = entry.tex_index();
+    for vertex in vertices.iter_mut() {
+        if vertex.mask_tex_index == -2 {
+            vertex.mask_tex_index = tex_idx;
+            vertex.mask_tex_coords[0] = remap_bc_entry_uv(
+                vertex.mask_tex_coords[0],
+                entry.uv_x,
+                entry.uv_width,
+                entry.original_width,
+            );
+            vertex.mask_tex_coords[1] = remap_bc_entry_uv(
+                vertex.mask_tex_coords[1],
+                entry.uv_y,
+                entry.uv_height,
+                entry.original_height,
+            );
         }
     }
 }

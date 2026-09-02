@@ -84,6 +84,7 @@ fn quest_choice_set_active_writes_choice_id() {
     assert_eq!(env.state().borrow().quest_choice_id, Some(4567));
 }
 
+#[cfg(feature = "client-mists")]
 #[test]
 fn c_quest_choice_populates_seeded_options_and_records_response() {
     let env = env();

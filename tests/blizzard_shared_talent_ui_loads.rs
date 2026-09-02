@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 
-use wow_ui_sim::loader::load_addon;
 use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, find_toc_file};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
@@ -68,31 +67,6 @@ const PUBLIC_UTIL_TABLES: &[&str] = &[
     "TalentButtonUtil",
     "TalentButtonAnimUtil",
 ];
-
-fn fresh_env() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-    wow_ui_sim::xml::register_intrinsic_templates();
-    env
-}
-
-fn load_full_game_ui() -> WowLuaEnv {
-    let env = fresh_env();
-
-    let addons = discover_blizzard_addons_for_screen(&blizzard_ui_dir(), ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    env.apply_post_load_workarounds();
-    env
-}
 
 #[test]
 fn find_toc_file_resolves_bare_toc() {
@@ -224,7 +198,7 @@ fn toc_body_starts_with_util_then_edge_templates_then_button_templates() {
 }
 
 #[test]
-fn toc_body_ends_with_frame_grid_completing_layout_chain() {
+fn toc_body_ends_with_frame_grid_then_auto_commit_frame() {
     let raw = std::fs::read_to_string(talent_ui_toc()).expect("TOC reads utf-8");
 
     let body_lines: Vec<&str> = raw
@@ -235,19 +209,19 @@ fn toc_body_ends_with_frame_grid_completing_layout_chain() {
         })
         .collect();
 
-    let last_two = &body_lines[body_lines.len() - 2..];
+    let last_four = &body_lines[body_lines.len() - 4..];
     assert_eq!(
-        last_two,
+        last_four,
         [
             "Blizzard_TalentFrameGrid.lua",
-            "Blizzard_TalentFrameGrid.xml"
+            "Blizzard_TalentFrameGrid.xml",
+            "Blizzard_AutoCommitTraitFrame.lua",
+            "Blizzard_AutoCommitTraitFrame.xml",
         ],
-        "TOC body MUST end with FrameGrid lua/xml pair — TalentFrameGridMixin \
-         is the layout strategy that all consumer talent UIs (PlayerSpells \
-         spec tab, Profession trees) inherit when they need a 2D grid \
-         positioning of nodes. Loading FrameGrid last lets it reference every \
-         button/edge/card mixin defined earlier in the chain. Got: \
-         {last_two:?}"
+        "TOC body MUST end with the FrameGrid pair followed by the \
+         AutoCommitTraitFrame pair. FrameGrid completes the shared layout \
+         chain before AutoCommitTraitFrame consumes the published talent \
+         frame and button mixins. Got: {last_four:?}"
     );
 }
 
@@ -268,22 +242,24 @@ fn toc_body_count_breakdown_matches_filesystem_layout() {
 
     assert_eq!(
         lua_count + xml_count,
-        32,
-        "TOC body lists exactly 32 file entries — counted from the upstream \
-         `vendor/wow-ui-source` checkout. Got lua={lua_count} xml={xml_count}"
+        34,
+        "TOC body lists exactly 34 file entries from the active retail \
+         Blizzard UI cache. Got lua={lua_count} xml={xml_count}"
     );
     assert_eq!(
-        lua_count, 16,
-        "TOC body must list exactly 16 .lua entries (Util + AnimUtil + \
-         per-component .lua files). 4 additional .lua siblings \
-         (EdgeTemplates, SelectionTemplates, FrameTemplates, Frame) are \
-         loaded indirectly via `<Script file=...>` from their companion .xml \
-         and so are NOT listed in the TOC body. Got: {lua_count}"
+        lua_count, 17,
+        "TOC body must list exactly 17 .lua entries (Util + AnimUtil + \
+         per-component files, including AutoCommitTraitFrame). 4 additional \
+         .lua siblings (EdgeTemplates, SelectionTemplates, FrameTemplates, \
+         Frame) are loaded indirectly via `<Script file=...>` from their \
+         companion .xml and so are NOT listed in the TOC body. Got: \
+         {lua_count}"
     );
     assert_eq!(
-        xml_count, 16,
-        "TOC body must list exactly 16 .xml entries — one per component that \
-         registers virtual templates or instantiates frames. Got: {xml_count}"
+        xml_count, 17,
+        "TOC body must list exactly 17 .xml entries — one per component that \
+         registers virtual templates or instantiates frames, including \
+         AutoCommitTraitFrame. Got: {xml_count}"
     );
 }
 
@@ -363,279 +339,279 @@ fn eager_discovery_includes_addon_on_game_screen_only() {
     }
 }
 
-#[test]
-fn full_game_load_emits_no_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+    fn full_game_load_emits_no_addon_specific_lua_errors(env: &WowLuaEnv) {
 
-    let errors: Vec<String> = env.state().borrow().lua_errors.clone();
-    let relevant: Vec<&String> = errors
-        .iter()
-        .filter(|e| {
-            e.contains("Blizzard_SharedTalentUI")
-                || e.contains("SharedTalent")
-                || e.contains("TalentButton")
-                || e.contains("TalentDisplay")
-                || e.contains("TalentFrame")
-                || e.contains("TalentEdge")
-        })
-        .collect();
-    assert!(
-        relevant.is_empty(),
-        "Eager load via full Game UI discovery must emit zero addon-specific \
-         Lua errors. Got:\n  {}",
-        relevant
+        let errors: Vec<String> = env.state().borrow().lua_errors.clone();
+        let relevant: Vec<&String> = errors
             .iter()
-            .map(|s| s.as_str())
-            .collect::<Vec<_>>()
-            .join("\n  ")
-    );
+            .filter(|e| {
+                e.contains("Blizzard_SharedTalentUI")
+                    || e.contains("SharedTalent")
+                    || e.contains("TalentButton")
+                    || e.contains("TalentDisplay")
+                    || e.contains("TalentFrame")
+                    || e.contains("TalentEdge")
+            })
+            .collect();
+        assert!(
+            relevant.is_empty(),
+            "Eager load via full Game UI discovery must emit zero addon-specific \
+             Lua errors. Got:\n  {}",
+            relevant
+                .iter()
+                .map(|s| s.as_str())
+                .collect::<Vec<_>>()
+                .join("\n  ")
+        );
+    }
 }
 
-#[test]
-fn is_addon_loaded_returns_true_after_full_game_discovery() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+    fn is_addon_loaded_returns_true_after_full_game_discovery(env: &WowLuaEnv) {
 
-    let loaded: bool = env
-        .eval("return C_AddOns.IsAddOnLoaded('Blizzard_SharedTalentUI')")
-        .expect("IsAddOnLoaded probe");
-    assert!(
-        loaded,
-        "C_AddOns.IsAddOnLoaded('Blizzard_SharedTalentUI') must be true \
-         after eager discovery loads it on Game screen"
-    );
+        let loaded: bool = env
+            .eval("return C_AddOns.IsAddOnLoaded('Blizzard_SharedTalentUI')")
+            .expect("IsAddOnLoaded probe");
+        assert!(
+            loaded,
+            "C_AddOns.IsAddOnLoaded('Blizzard_SharedTalentUI') must be true \
+             after eager discovery loads it on Game screen"
+        );
 
-    let dep_loaded: bool = env
-        .eval("return C_AddOns.IsAddOnLoaded('Blizzard_SpellSearch')")
-        .expect("Blizzard_SpellSearch IsAddOnLoaded probe");
-    assert!(
-        dep_loaded,
-        "Blizzard_SpellSearch must also be loaded — it's the single hard \
-         Dependency of Blizzard_SharedTalentUI, dragged in via the dep graph"
-    );
+        let dep_loaded: bool = env
+            .eval("return C_AddOns.IsAddOnLoaded('Blizzard_SpellSearch')")
+            .expect("Blizzard_SpellSearch IsAddOnLoaded probe");
+        assert!(
+            dep_loaded,
+            "Blizzard_SpellSearch must also be loaded — it's the single hard \
+             Dependency of Blizzard_SharedTalentUI, dragged in via the dep graph"
+        );
+    }
 }
 
-#[test]
-fn publishes_41_mixin_tables_for_talent_ui_widget_families() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+    fn publishes_41_mixin_tables_for_talent_ui_widget_families(env: &WowLuaEnv) {
 
-    for mixin in PUBLIC_MIXINS {
+        for mixin in PUBLIC_MIXINS {
+            let kind: String = env
+                .eval(&format!("return type({mixin})"))
+                .unwrap_or_else(|_| panic!("{mixin} probe failed"));
+            assert_eq!(
+                kind, "table",
+                "_G.{mixin} must be a table — every consumer talent UI calls \
+                 CreateFromMixins(<Mixin>) on these. Missing any one means the \
+                 corresponding talent component fails to instantiate"
+            );
+        }
+    }
+}
+
+prefork_full_ui_case! {
+    fn publishes_four_util_namespace_tables(env: &WowLuaEnv) {
+
+        for util in PUBLIC_UTIL_TABLES {
+            let kind: String = env
+                .eval(&format!("return type({util})"))
+                .unwrap_or_else(|_| panic!("{util} probe failed"));
+            assert_eq!(
+                kind, "table",
+                "_G.{util} must be a table — TalentUtil holds spell/talent name \
+                 helpers, TalentFrameUtil holds currency/subtree query helpers, \
+                 TalentButtonUtil holds geometry constants and the BaseVisualState \
+                 enum, TalentButtonAnimUtil holds the animation reset hook"
+            );
+        }
+    }
+}
+
+prefork_full_ui_case! {
+    fn talent_button_util_publishes_base_visual_state_enum_with_nine_states(env: &WowLuaEnv) {
+
         let kind: String = env
-            .eval(&format!("return type({mixin})"))
-            .unwrap_or_else(|_| panic!("{mixin} probe failed"));
+            .eval("return type(TalentButtonUtil.BaseVisualState)")
+            .expect("BaseVisualState probe");
         assert_eq!(
             kind, "table",
-            "_G.{mixin} must be a table — every consumer talent UI calls \
-             CreateFromMixins(<Mixin>) on these. Missing any one means the \
-             corresponding talent component fails to instantiate"
+            "TalentButtonUtil.BaseVisualState must be a table — declared in \
+             Blizzard_SharedTalentUtil.lua line 249. The enum drives the alpha / \
+             border / overlay rendering choice for every talent button"
         );
+
+        let expected_states = [
+            ("Normal", 1),
+            ("Gated", 2),
+            ("Disabled", 3),
+            ("Locked", 4),
+            ("Selectable", 5),
+            ("Maxed", 6),
+            ("Invisible", 7),
+            ("RefundInvalid", 8),
+            ("DisplayError", 9),
+        ];
+
+        for (state_name, expected_id) in expected_states {
+            let id: i64 = env
+                .eval(&format!(
+                    "return TalentButtonUtil.BaseVisualState.{state_name}"
+                ))
+                .unwrap_or_else(|_| panic!("BaseVisualState.{state_name} probe failed"));
+            assert_eq!(
+                id, expected_id,
+                "TalentButtonUtil.BaseVisualState.{state_name} must equal \
+                 {expected_id} — the enum is hand-numbered (not EnumUtil.MakeEnum) \
+                 so the values are pinned at the source. Reordering would silently \
+                 reassign meanings to lookup tables keyed off these ids"
+            );
+        }
     }
 }
 
-#[test]
-fn publishes_four_util_namespace_tables() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+    fn talent_button_anim_util_exposes_animation_reset_hook(env: &WowLuaEnv) {
 
-    for util in PUBLIC_UTIL_TABLES {
         let kind: String = env
-            .eval(&format!("return type({util})"))
-            .unwrap_or_else(|_| panic!("{util} probe failed"));
+            .eval("return type(TalentButtonAnimUtil.TalentButtonAnimationReset)")
+            .expect("TalentButtonAnimationReset probe");
         assert_eq!(
-            kind, "table",
-            "_G.{util} must be a table — TalentUtil holds spell/talent name \
-             helpers, TalentFrameUtil holds currency/subtree query helpers, \
-             TalentButtonUtil holds geometry constants and the BaseVisualState \
-             enum, TalentButtonAnimUtil holds the animation reset hook"
+            kind, "function",
+            "TalentButtonAnimUtil.TalentButtonAnimationReset must be a function — \
+             passed as the resetterFunc to CreateFramePool by every talent frame \
+             that pools button animations. Missing this would leak animation \
+             state between pooled button reuses"
+        );
+
+        let state_kind: String = env
+            .eval("return type(TalentButtonAnimUtil.TalentButtonAnimState)")
+            .expect("TalentButtonAnimState probe");
+        assert_eq!(
+            state_kind, "table",
+            "TalentButtonAnimUtil.TalentButtonAnimState must be a table — \
+             enumerates the per-button animation states (Idle, Pulsing, etc.) \
+             that the reset hook clears"
         );
     }
 }
 
-#[test]
-fn talent_button_util_publishes_base_visual_state_enum_with_nine_states() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+    fn talent_button_select_mixin_inherits_from_talent_button_base_mixin(env: &WowLuaEnv) {
 
-    let kind: String = env
-        .eval("return type(TalentButtonUtil.BaseVisualState)")
-        .expect("BaseVisualState probe");
-    assert_eq!(
-        kind, "table",
-        "TalentButtonUtil.BaseVisualState must be a table — declared in \
-         Blizzard_SharedTalentUtil.lua line 249. The enum drives the alpha / \
-         border / overlay rendering choice for every talent button"
-    );
-
-    let expected_states = [
-        ("Normal", 1),
-        ("Gated", 2),
-        ("Disabled", 3),
-        ("Locked", 4),
-        ("Selectable", 5),
-        ("Maxed", 6),
-        ("Invisible", 7),
-        ("RefundInvalid", 8),
-        ("DisplayError", 9),
-    ];
-
-    for (state_name, expected_id) in expected_states {
-        let id: i64 = env
-            .eval(&format!(
-                "return TalentButtonUtil.BaseVisualState.{state_name}"
-            ))
-            .unwrap_or_else(|_| panic!("BaseVisualState.{state_name} probe failed"));
-        assert_eq!(
-            id, expected_id,
-            "TalentButtonUtil.BaseVisualState.{state_name} must equal \
-             {expected_id} — the enum is hand-numbered (not EnumUtil.MakeEnum) \
-             so the values are pinned at the source. Reordering would silently \
-             reassign meanings to lookup tables keyed off these ids"
+        let inherits: bool = env
+            .eval(
+                "return type(TalentButtonSelectMixin) == 'table' and \
+                 type(TalentButtonSelectMixin.OnLoad) == 'function'",
+            )
+            .expect("TalentButtonSelectMixin inheritance probe");
+        assert!(
+            inherits,
+            "TalentButtonSelectMixin must inherit from TalentButtonBaseMixin via \
+             CreateFromMixins (declared at the top of \
+             Blizzard_TalentButtonSelect.lua). OnLoad lives on the base mixin and \
+             must be reachable through the inheritance chain — without it, \
+             CHOICE-type talent buttons fail their template OnLoad dispatch"
         );
     }
 }
 
-#[test]
-fn talent_button_anim_util_exposes_animation_reset_hook() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+    fn talent_frame_base_mixin_inherits_callback_registry_capability(env: &WowLuaEnv) {
 
-    let kind: String = env
-        .eval("return type(TalentButtonAnimUtil.TalentButtonAnimationReset)")
-        .expect("TalentButtonAnimationReset probe");
-    assert_eq!(
-        kind, "function",
-        "TalentButtonAnimUtil.TalentButtonAnimationReset must be a function — \
-         passed as the resetterFunc to CreateFramePool by every talent frame \
-         that pools button animations. Missing this would leak animation \
-         state between pooled button reuses"
-    );
-
-    let state_kind: String = env
-        .eval("return type(TalentButtonAnimUtil.TalentButtonAnimState)")
-        .expect("TalentButtonAnimState probe");
-    assert_eq!(
-        state_kind, "table",
-        "TalentButtonAnimUtil.TalentButtonAnimState must be a table — \
-         enumerates the per-button animation states (Idle, Pulsing, etc.) \
-         that the reset hook clears"
-    );
+        let inherits: bool = env
+            .eval(
+                "return type(TalentFrameBaseMixin) == 'table' and \
+                 type(TalentFrameBaseMixin.OnLoad) == 'function' and \
+                 type(TalentFrameBaseMixin.RegisterCallback) == 'function'",
+            )
+            .expect("TalentFrameBaseMixin probe");
+        assert!(
+            inherits,
+            "TalentFrameBaseMixin must inherit from CallbackRegistryMixin — \
+             consumer code (e.g., PlayerSpells, Professions) keys off \
+             TalentFrameBaseMixin's OnConfigIDSet / OnNodeChanged callbacks to \
+             re-render their views when the underlying C_Traits config mutates. \
+             Without RegisterCallback the event router would have no subscribers"
+        );
+    }
 }
 
-#[test]
-fn talent_button_select_mixin_inherits_from_talent_button_base_mixin() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+    fn talent_util_get_talent_name_helper_is_callable_function(env: &WowLuaEnv) {
 
-    let inherits: bool = env
-        .eval(
-            "return type(TalentButtonSelectMixin) == 'table' and \
-             type(TalentButtonSelectMixin.OnLoad) == 'function'",
-        )
-        .expect("TalentButtonSelectMixin inheritance probe");
-    assert!(
-        inherits,
-        "TalentButtonSelectMixin must inherit from TalentButtonBaseMixin via \
-         CreateFromMixins (declared at the top of \
-         Blizzard_TalentButtonSelect.lua). OnLoad lives on the base mixin and \
-         must be reachable through the inheritance chain — without it, \
-         CHOICE-type talent buttons fail their template OnLoad dispatch"
-    );
-}
-
-#[test]
-fn talent_frame_base_mixin_inherits_callback_registry_capability() {
-    let env = load_full_game_ui();
-
-    let inherits: bool = env
-        .eval(
-            "return type(TalentFrameBaseMixin) == 'table' and \
-             type(TalentFrameBaseMixin.OnLoad) == 'function' and \
-             type(TalentFrameBaseMixin.RegisterCallback) == 'function'",
-        )
-        .expect("TalentFrameBaseMixin probe");
-    assert!(
-        inherits,
-        "TalentFrameBaseMixin must inherit from CallbackRegistryMixin — \
-         consumer code (e.g., PlayerSpells, Professions) keys off \
-         TalentFrameBaseMixin's OnConfigIDSet / OnNodeChanged callbacks to \
-         re-render their views when the underlying C_Traits config mutates. \
-         Without RegisterCallback the event router would have no subscribers"
-    );
-}
-
-#[test]
-fn talent_util_get_talent_name_helper_is_callable_function() {
-    let env = load_full_game_ui();
-
-    let kind: String = env
-        .eval("return type(TalentUtil.GetTalentName)")
-        .expect("TalentUtil.GetTalentName probe");
-    assert_eq!(
-        kind, "function",
-        "TalentUtil.GetTalentName must be a function — given an \
-         (overrideName, spellID) pair, returns the user-facing talent name \
-         with override priority. Used by every talent button tooltip and \
-         button label render path"
-    );
-
-    let result: String = env
-        .eval("return TalentUtil.GetTalentName('CustomName', 12345) or 'nil'")
-        .expect("GetTalentName invocation probe");
-    assert_eq!(
-        result, "CustomName",
-        "TalentUtil.GetTalentName('CustomName', 12345) must return the \
-         override name unchanged — override has priority over spellID lookup. \
-         The simulator's GetSpellInfo stub may return nil for unknown IDs but \
-         the override path bypasses that lookup entirely"
-    );
-}
-
-#[test]
-fn talent_button_util_geometry_constants_are_floats_in_expected_range() {
-    let env = load_full_game_ui();
-
-    let circle_offset: f64 = env
-        .eval("return TalentButtonUtil.CircleEdgeDiameterOffset")
-        .expect("CircleEdgeDiameterOffset probe");
-    assert!(
-        (circle_offset - 1.2).abs() < 1e-6,
-        "TalentButtonUtil.CircleEdgeDiameterOffset must equal 1.2 — fixed \
-         constant used by edge-render code to scale circle button outlines \
-         past the icon diameter so edges visibly attach to the button \
-         perimeter. Got: {circle_offset}"
-    );
-
-    let square_min: f64 = env
-        .eval("return TalentButtonUtil.SquareEdgeMinDiameterOffset")
-        .expect("SquareEdgeMinDiameterOffset probe");
-    let square_max: f64 = env
-        .eval("return TalentButtonUtil.SquareEdgeMaxDiameterOffset")
-        .expect("SquareEdgeMaxDiameterOffset probe");
-    assert!(
-        square_min < square_max,
-        "Square edge min={square_min} must be < max={square_max} — the \
-         min/max pair gives the talent renderer a range to interpolate edge \
-         attachment offset based on talent button size"
-    );
-}
-
-#[test]
-fn shared_talent_virtual_templates_are_not_global_frames() {
-    let env = load_full_game_ui();
-
-    for template_name in [
-        "TalentArrowEdgeTemplate",
-        "TalentStraightEdgeTemplate",
-        "TalentButtonTemplate",
-        "TalentDisplayTemplate",
-    ] {
         let kind: String = env
-            .eval(&format!("return type({template_name})"))
-            .unwrap_or_else(|_| panic!("{template_name} probe failed"));
+            .eval("return type(TalentUtil.GetTalentName)")
+            .expect("TalentUtil.GetTalentName probe");
         assert_eq!(
-            kind, "nil",
-            "_G.{template_name} must be nil — virtual XML templates live in \
-             the template registry only, never in `_G`. Talent component \
-             XMLs reference them via `inherits=\"...\"` which the XML loader \
-             resolves at parse time against the registry. A non-nil result \
-             would mean the loader is leaking virtual templates into the \
-             global namespace"
+            kind, "function",
+            "TalentUtil.GetTalentName must be a function — given an \
+             (overrideName, spellID) pair, returns the user-facing talent name \
+             with override priority. Used by every talent button tooltip and \
+             button label render path"
         );
+
+        let result: String = env
+            .eval("return TalentUtil.GetTalentName('CustomName', 12345) or 'nil'")
+            .expect("GetTalentName invocation probe");
+        assert_eq!(
+            result, "CustomName",
+            "TalentUtil.GetTalentName('CustomName', 12345) must return the \
+             override name unchanged — override has priority over spellID lookup. \
+             The simulator's GetSpellInfo stub may return nil for unknown IDs but \
+             the override path bypasses that lookup entirely"
+        );
+    }
+}
+
+prefork_full_ui_case! {
+    fn talent_button_util_geometry_constants_are_floats_in_expected_range(env: &WowLuaEnv) {
+
+        let circle_offset: f64 = env
+            .eval("return TalentButtonUtil.CircleEdgeDiameterOffset")
+            .expect("CircleEdgeDiameterOffset probe");
+        assert!(
+            (circle_offset - 1.2).abs() < 1e-6,
+            "TalentButtonUtil.CircleEdgeDiameterOffset must equal 1.2 — fixed \
+             constant used by edge-render code to scale circle button outlines \
+             past the icon diameter so edges visibly attach to the button \
+             perimeter. Got: {circle_offset}"
+        );
+
+        let square_min: f64 = env
+            .eval("return TalentButtonUtil.SquareEdgeMinDiameterOffset")
+            .expect("SquareEdgeMinDiameterOffset probe");
+        let square_max: f64 = env
+            .eval("return TalentButtonUtil.SquareEdgeMaxDiameterOffset")
+            .expect("SquareEdgeMaxDiameterOffset probe");
+        assert!(
+            square_min < square_max,
+            "Square edge min={square_min} must be < max={square_max} — the \
+             min/max pair gives the talent renderer a range to interpolate edge \
+             attachment offset based on talent button size"
+        );
+    }
+}
+
+prefork_full_ui_case! {
+    fn shared_talent_virtual_templates_are_not_global_frames(env: &WowLuaEnv) {
+
+        for template_name in [
+            "TalentArrowEdgeTemplate",
+            "TalentStraightEdgeTemplate",
+            "TalentButtonTemplate",
+            "TalentDisplayTemplate",
+        ] {
+            let kind: String = env
+                .eval(&format!("return type({template_name})"))
+                .unwrap_or_else(|_| panic!("{template_name} probe failed"));
+            assert_eq!(
+                kind, "nil",
+                "_G.{template_name} must be nil — virtual XML templates live in \
+                 the template registry only, never in `_G`. Talent component \
+                 XMLs reference them via `inherits=\"...\"` which the XML loader \
+                 resolves at parse time against the registry. A non-nil result \
+                 would mean the loader is leaking virtual templates into the \
+                 global namespace"
+            );
+        }
     }
 }
 

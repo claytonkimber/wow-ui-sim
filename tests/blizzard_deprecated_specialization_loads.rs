@@ -142,9 +142,8 @@ fn blizzard_deprecated_specialization_appears_in_game_discovery_only() {
     );
 }
 
-#[test]
-fn blizzard_deprecated_specialization_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_specialization_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -164,10 +163,10 @@ fn blizzard_deprecated_specialization_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_specialization_installs_four_direct_aliases_as_functions() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_specialization_installs_four_direct_aliases_as_functions(env: &WowLuaEnv) {
 
     let installed: bool = env
         .eval(
@@ -186,6 +185,7 @@ fn blizzard_deprecated_specialization_installs_four_direct_aliases_as_functions(
          are explicitly registered Rust impls (src/c_api/c_spec.rs:37/41/53/72), so each \
          global is a real function value — not a no-op closure"
     );
+}
 }
 
 #[test]
@@ -210,9 +210,8 @@ fn specialization_info_for_class_id_returns_nothing_past_class_specs() {
     );
 }
 
-#[test]
-fn blizzard_deprecated_specialization_direct_aliases_are_identity_equal_to_c_spec_info() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_specialization_direct_aliases_are_identity_equal_to_c_spec_info(env: &WowLuaEnv) {
 
     let aliases_match: bool = env
         .eval(
@@ -231,10 +230,10 @@ fn blizzard_deprecated_specialization_direct_aliases_are_identity_equal_to_c_spe
          literally reference the SAME registered Rust closure value"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_specialization_installs_two_wrapper_closures() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_specialization_installs_two_wrapper_closures(env: &WowLuaEnv) {
 
     let wrappers_installed: bool = env
         .eval(
@@ -266,10 +265,10 @@ fn blizzard_deprecated_specialization_installs_two_wrapper_closures() {
          C_SpecializationInfo.GetSpecializationMasterySpells / .GetTalentInfo"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_specialization_get_specialization_mastery_spells_returns_spell_ids() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_specialization_get_specialization_mastery_spells_returns_spell_ids(env: &WowLuaEnv) {
 
     let (first, second_is_nil): (i32, bool) = env
         .eval(
@@ -284,10 +283,10 @@ fn blizzard_deprecated_specialization_get_specialization_mastery_spells_returns_
     );
     assert!(second_is_nil, "Holy Paladin has a single mastery spell");
 }
+}
 
-#[test]
-fn blizzard_deprecated_specialization_get_talent_info_returns_nil_when_backing_returns_nil() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_specialization_get_talent_info_returns_nil_when_backing_returns_nil(env: &WowLuaEnv) {
 
     let returned_nil: bool = env
         .eval(
@@ -307,10 +306,10 @@ fn blizzard_deprecated_specialization_get_talent_info_returns_nil_when_backing_r
          wrapper has a guard that handles the unstubbed case gracefully"
     );
 }
+}
 
-#[test]
-fn blizzard_deprecated_specialization_talent_constants_are_populated() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_specialization_talent_constants_are_populated(env: &WowLuaEnv) {
 
     let (max_talent_tiers, num_talent_columns): (i32, i32) = env
         .eval("return MAX_TALENT_TIERS, NUM_TALENT_COLUMNS")
@@ -318,10 +317,10 @@ fn blizzard_deprecated_specialization_talent_constants_are_populated() {
     assert_eq!(max_talent_tiers, 7);
     assert_eq!(num_talent_columns, 3);
 }
+}
 
-#[test]
-fn blizzard_deprecated_specialization_load_deprecation_fallbacks_cvar_is_default_on() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_deprecated_specialization_load_deprecation_fallbacks_cvar_is_default_on(env: &WowLuaEnv) {
 
     let cvar_on: bool = env
         .eval("return GetCVarBool('loadDeprecationFallbacks')")
@@ -333,6 +332,7 @@ fn blizzard_deprecated_specialization_load_deprecation_fallbacks_cvar_is_default
          Deprecated_TalentConsts.lua:4 don't bail before the 6 globals (4 direct aliases + \
          2 wrappers) and 2 talent constants are defined"
     );
+}
 }
 
 #[test]

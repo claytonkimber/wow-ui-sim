@@ -1,117 +1,74 @@
-# PartyFrame tree: master reference vs rilua-migration regression
+# PartyFrame Tree and Startup-Hang Investigation
 
-## Status
+PartyFrame now loads, settles, and renders a four-member party at `120x244`. Current retail Edit Mode selection frames use raw frame level 1000; older LOW:3/4/5 dump expectations were stale.
 
-Startup hang is fixed. PartyFrame renders at `(120x244)` matching master.
-1 of 3 regression tests passes (`party_frame_has_master_reference_shape`);
-remaining failures are follow-up issues unrelated to the hang.
+## Current Retail Shape
 
-Test: [`tests/party_frame_tree.rs`](../../../tests/party_frame_tree.rs) —
-three assertions pinned against the master dump at commit `322eba4a`.
+At 1024×768 with four simulated party members, the relevant tree is:
 
-## Reference dump (master, commit `322eba4a`)
-
-```
-PartyFrame          [Frame]  (120x244) visible LOW:2 x=22  y=147  alpha=1.00
-  .Selection        [Frame]  (120x244) hidden  LOW:3 x=22  y=147  alpha=1.00
-  .Background       [Frame]  (144x250) hidden  LOW:3 x=22  y=141  alpha=0.50
-  .MemberFrame1     [Button] (120x53)  visible LOW:2 x=22  y=147  alpha=1.00
-  .MemberFrame2     [Button] (120x53)  visible LOW:2 x=22  y=210  alpha=1.00
-  .MemberFrame3     [Button] (120x53)  visible LOW:2 x=22  y=273  alpha=1.00
-  .MemberFrame4     [Button] (120x53)  visible LOW:2 x=22  y=336  alpha=1.00
+```text
+PartyFrame                         [Frame]  (120x244) visible LOW:1
+  .Selection                       [Frame]  (120x244) hidden  LOW:1000 [stored=1x1]
+    .MouseOverHighlight            [Frame]  (120x244) hidden  LOW:1001
+      .TopLeftCorner               [Texture] (16x16) hidden  LOW:1002
+  .Background                      [Frame]  (144x250) hidden  LOW:2
+  .MemberFrame1                    [Button] (120x53)  visible LOW:2
+  .MemberFrame2                    [Button] (120x53)  visible LOW:2
+  .MemberFrame3                    [Button] (120x53)  visible LOW:2
+  .MemberFrame4                    [Button] (120x53)  visible LOW:2
 ```
 
-Collected with:
-```bash
-cd /syncthing/Sync/Projects/wow/wow-ui-sim   # master worktree
-LD_LIBRARY_PATH=target/debug/deps \
-  WOW_SIM_NO_SAVED_VARS=1 WOW_SIM_NO_ADDONS=1 \
-  ./target/debug/wow-sim dump-tree --filter-key PartyFrame
-```
+`Blizzard_EditMode/Shared/EditModeSystemTemplates.xml` declares `EditModeSystemSelectionBaseTemplate` with `frameLevel="1000"`. `MouseOverHighlight` is its child and NineSlice corner textures are one level deeper, producing 1001 and 1002 respectively. The simulator's current dump follows that inheritance. The historical master dump pinned Selection at LOW:3 and no longer represents current retail source.
 
-## Resolved issues
+## Member Region Ordering Contract
 
-### 1. `intern_string_static` / `intern_string` ref mismatch (fixed)
+`PartyMemberFrameTemplate` declares `Portrait` in `BACKGROUND` and `Flash` and `Name` in `ARTWORK`. Focused coverage verifies those exact `GetDrawLayer()` results at sublevel 0 and verifies each region's semantic parent key, type, size, and visibility in the tree.
 
-The unit-frame load path lost the shared frame metatable partway through
-Blizzard UI bootstrap. `registry_set` stored the metatable under
-`intern_string_static("__rilua_frame_mt")` while `attach_frame_metatable`
-read via `intern_string("__rilua_frame_mt")`; those returned different
-`GcRef<LuaString>` values whenever the static pointer cache diverged
-from the content-keyed intern table. Fixed upstream in the rilua static-
-intern landing.
+Texture and FontString regions do not expose the Frame-only `GetFrameStrata()` or `GetFrameLevel()` client APIs. Their raw strata and level values in simulator dumps are diagnostic widget fields, not the client ordering contract. Effective region ordering follows the owning `MemberFrame1` frame and each region's draw layer.
 
-### 2. Missing group-state globals (fixed)
+## Portrait Texture Contract
 
-`UnitExists("partyN")`, `GetNumGroupMembers`, `GetNumSubgroupMembers`,
-`IsInGroup`, `UnitName`, `UnitClass`, `UnitLevel` had no real
-implementations. `PartyFrame:ShouldShow()` returned `nil` so the members
-never rendered. Backed by `SimState::party_members` in
-`src/lua_api/globals/rilua_group_queries.rs`. Additionally
-`A_Admin.SetPartySize(N)` pushes a synthetic `GROUP_ROSTER_UPDATE` event.
+The current retail runtime does not expose the class-circle portrait as an atlas. After the settled PartyFrame update, both the player and first party portrait report `GetAtlas() == nil`, `GetTexture() == 237669`, and `GetTextureFilePath() == Interface\\TargetingFrame\\UI-Classes-Circles`. The numeric fileDataID is the `GetTexture()` contract; the authored path is recovered through `GetTextureFilePath()`.
 
-### 3. `SetParentKey` stub (fixed)
+The retail source used by the simulator is `~/.cache/wow-ui-sim/blizzard-ui/retail/AddOns/Blizzard_UnitFrame/Mainline/UnitFrame.lua`. Its class-atlas branch calls `SetAtlas()` only when `UnitFrame_ShouldReplacePortrait(self)` is true. The default player and party path uses `SetPortraitTexture`, which leaves the class-circle texture as a fileDataID-backed texture.
 
-`src/lua_api/frame/methods/rilua_button_anchor_hierarchy/hierarchy.rs::set_parent_key`
-now calls `sync_child_to_rilua(parent_id, key, child_id)` so Lua-side
-`parent.key == child` resolves. A short-circuit in `sync_child_to_rilua`
-avoids redundant writes when `parent[key]` already points at the child —
-important because `PartyFrame:InitializePartyMemberFrames` re-runs on
-every `OnShow` pass.
+## Startup Hang Root Cause
 
-### 4. `C_UnitAuras.GetAuraSlots` infinite loop (fixed)
+The original investigation found several independent blockers while restoring the tree:
 
-`AuraUtil.ForEachAura` drives its iteration via a `repeat ... until
-continuationToken == nil` loop (Blizzard_FrameXMLUtil/AuraUtil.lua:114-117).
-The first return value of `GetAuraSlots` becomes `continuationToken`.
-Our stub returned an empty table, which is truthy in Lua, so the loop
-never terminated — hanging `EditModeManagerFrame:UpdateSystems()` at
-`TargetFrame:UpdateSystem -> UpdateSystemSettingBuffsOnTop -> UpdateAuras
--> ParseAllAuras`.
+1. Static and content-interned registry keys could diverge, so frame metatable lookup lost the shared metatable during bootstrap. The rilua static-intern fix restored stable identity.
+2. Missing party state globals made `PartyFrame:ShouldShow()` false. State-backed group queries and `A_Admin.SetPartySize()` now populate members and dispatch `GROUP_ROSTER_UPDATE`.
+3. `SetParentKey` did not synchronize the Lua parent field. Parent-key assignment now updates the frame's Lua-visible child mapping without redundant rewrites.
+4. `C_UnitAuras.GetAuraSlots` returned a truthy empty table as continuation token. `AuraUtil.ForEachAura` therefore looped forever while Edit Mode updated TargetFrame auras. Returning nil for the unmodeled continuation ends the iteration.
 
-Fix: `stub_nil` in `src/lua_api/globals/rilua_stubs/namespace_stubs.rs`
-so the continuation token is `nil` and the loop exits on first iteration.
+## Resolved Follow-ups
 
-### Bisection that found it
-
-Added per-call timestamp prints through `apply_post_load_workarounds →
-workarounds::apply → init_edit_mode_layout → apply_system_anchors`, then
-manually iterated `emm.registeredSystemFrames` calling each frame's
-`UpdateSystem` one by one. Frame 29 (`PartyFrame`) completed. Frame 30
-(`TargetFrame`) hung. Bisected `EditModeSystemMixin:UpdateSystem`'s body
-down to the settings loop where setting id 2 (`BuffsOnTop`) hangs in
-`ParseAllAuras`.
-
-## Open follow-ups (post-hang)
-
-### A. `PartyFrame.Selection:GetWidth()` returns 4, not 120
-
-The Selection child has explicit `TOPLEFT/BOTTOMRIGHT -> PartyFrame` so
-its resolved rect matches the parent (`120x244`). But `GetWidth()`
-returns the *stored* width (the explicit size set via `SetWidth/SetSize`)
-which is 4. Master returns 120. Either something on master forces a
-stored size on Selection, or master's GetWidth returns the anchor-
-resolved rect when no explicit size was set.
-
-Affects `party_frame_has_background_and_selection_children`.
-
-### B. MemberFrame y offsets have inverted sign
-
-Test computes `MF2:GetTop() - MF1:GetTop()` and expects +63 (master
-dump values 147, 210, 273, 336 — visually top-down increasing). WoW
-coordinate Y is bottom-up though, so MF2 below MF1 yields a negative
-delta. Either the test's `expected_y` table is in dump-coordinate space
-and the test should match +63 by taking the absolute, or master's
-`GetTop` returned dump-space values too.
-
-Affects `party_frame_member_frames_render_at_master_offsets`.
+- Anchored `PartyFrame.Selection:GetWidth()` now agrees with its resolved `120`-pixel registry width while preserving the XML stored size `1x1` in dumps.
+- Member frame vertical checks compare absolute stride because Lua geometry uses Y-up coordinates while dump coordinates are top-down. The four members retain the retail 63-pixel stride.
+- The dump excludes the orphaned builtin ghost frame and exposes one visible `PartyFrame` owned by `Blizzard_UnitFrame`.
+- Runtime lowercase aliases such as `self.portrait` and `self.name` remain in `children_keys` without replacing canonical XML `Portrait` and `Name` parent keys.
+- Member children retain semantic names and font size; player and party portraits retain the current numeric class-circle texture identity (`237669`) with no atlas, while `PowerBarAlt` and its `BG`/`BGL`/`BGR` descendants remain present and hidden in the settled tree.
 
 ## Verification
 
-```bash
-cargo test --test party_frame_tree -- --test-threads=1
-# Expected: 1 passed; 2 failed; 31s (no timeouts).
-```
+Focused coverage in `tests/party_frame_tree.rs` proves:
 
-`party_frame_has_master_reference_shape` passes (120x244 visible at
-x=22). The other two tests fail but no longer time out at 120s.
+- frame shape and member offsets
+- Selection/background attachment and resolved sizing
+- current retail Selection frame levels 1000/1001/1002
+- semantic child names and one visible PartyFrame root
+- member region `GetDrawLayer()` values and sublevels
+- member hover tooltip, current portrait texture identity, and name font
+
+## Sources
+
+- [party_frame_tree.rs](../../../tests/party_frame_tree.rs) — current behavioral and dump-tree coverage
+- [group_queries.rs](../../../src/lua_api/globals/group_queries.rs) — state-backed party query surface
+- [event system](../../event-system.md) — event dispatch context used by party updates
+- Current retail runtime source: `~/.cache/wow-ui-sim/blizzard-ui/retail/AddOns/Blizzard_UnitFrame/Mainline/UnitFrame.lua`
+
+## See Also
+
+- [[partyframe-portrait-composition]] — portrait and frame-art composition
+- [[partyframe-statusbar-textures]] — party health/mana texture handling
+- [frame data flow](../../frame-data-flow.md) — Rust/Lua frame synchronization

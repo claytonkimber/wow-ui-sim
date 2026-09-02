@@ -77,9 +77,8 @@ fn blizzard_covenant_renown_is_absent_from_game_auto_discovery() {
     );
 }
 
-#[test]
-fn blizzard_covenant_renown_loads_via_load_addon_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_covenant_renown_loads_via_load_addon_without_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -98,10 +97,10 @@ fn blizzard_covenant_renown_loads_via_load_addon_without_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_covenant_renown_frame_is_defined_and_parented_to_uiparent() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_covenant_renown_frame_is_defined_and_parented_to_uiparent(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &covenant_renown_toc())
         .expect("Blizzard_CovenantRenown should load via Rust loader");
 
@@ -122,10 +121,10 @@ fn blizzard_covenant_renown_frame_is_defined_and_parented_to_uiparent() {
          HeaderFrame must be reachable for the OnEvent dispatch hover-tooltip refresh"
     );
 }
+}
 
-#[test]
-fn blizzard_covenant_renown_main_mixin_methods_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_covenant_renown_main_mixin_methods_are_defined(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &covenant_renown_toc())
         .expect("Blizzard_CovenantRenown should load via Rust loader");
 
@@ -166,10 +165,10 @@ fn blizzard_covenant_renown_main_mixin_methods_are_defined() {
          and PROGRESS HelpTip flow)"
     );
 }
+}
 
-#[test]
-fn blizzard_covenant_renown_reward_and_header_mixins_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_covenant_renown_reward_and_header_mixins_are_defined(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &covenant_renown_toc())
         .expect("Blizzard_CovenantRenown should load via Rust loader");
 
@@ -198,10 +197,10 @@ fn blizzard_covenant_renown_reward_and_header_mixins_are_defined() {
          toggles the renown-available chevron based on weekly-cap + maximum)"
     );
 }
+}
 
-#[test]
-fn blizzard_covenant_renown_xml_template_is_registered() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_covenant_renown_xml_template_is_registered(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &covenant_renown_toc())
         .expect("Blizzard_CovenantRenown should load via Rust loader");
 
@@ -213,10 +212,10 @@ fn blizzard_covenant_renown_xml_template_is_registered() {
          in OnLoad depends on this template"
     );
 }
+}
 
-#[test]
-fn blizzard_covenant_renown_rewards_pool_is_created_on_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_covenant_renown_rewards_pool_is_created_on_load(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &covenant_renown_toc())
         .expect("Blizzard_CovenantRenown should load via Rust loader");
 
@@ -237,10 +236,10 @@ fn blizzard_covenant_renown_rewards_pool_is_created_on_load() {
          reachable via the alias (used by mainTextureKitRegions in SetupTextureKit)"
     );
 }
+}
 
-#[test]
-fn blizzard_covenant_renown_uipanel_registration_uses_left_area() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_covenant_renown_uipanel_registration_uses_left_area(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &covenant_renown_toc())
         .expect("Blizzard_CovenantRenown should load via Rust loader");
 
@@ -263,10 +262,10 @@ fn blizzard_covenant_renown_uipanel_registration_uses_left_area() {
          system"
     );
 }
+}
 
-#[test]
-fn blizzard_covenant_renown_covenant_type_enum_matches_expected_values() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_covenant_renown_covenant_type_enum_matches_expected_values(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &covenant_renown_toc())
         .expect("Blizzard_CovenantRenown should load via Rust loader");
 
@@ -288,4 +287,5 @@ fn blizzard_covenant_renown_covenant_type_enum_matches_expected_values() {
          {{None=0, Kyrian=1, Venthyr=2, NightFae=3, Necrolord=4}} before this addon can pick \
          the per-covenant ModelScene swirl/level FX"
     );
+}
 }

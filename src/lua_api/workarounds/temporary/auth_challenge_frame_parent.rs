@@ -77,7 +77,7 @@ pub(crate) fn apply_bootstrap(lua: &mut rilua::Lua) -> crate::Result<()> {
 }
 
 pub(crate) fn patch(env: &LoaderEnv<'_>) {
-    let _ = env.exec(AUTH_CHALLENGE_FRAME_PARENT_WORKAROUND_LUA);
+    let _ = env.exec_public(AUTH_CHALLENGE_FRAME_PARENT_WORKAROUND_LUA);
 }
 
 pub(crate) fn patch_env(env: &WowLuaEnv) {

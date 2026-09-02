@@ -288,9 +288,8 @@ fn blizzard_ptr_feedback_appears_in_full_addon_inventory() {
     );
 }
 
-#[test]
-fn blizzard_ptr_feedback_loads_explicitly_after_dependencies() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_ptr_feedback_loads_explicitly_after_dependencies(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -320,10 +319,10 @@ fn blizzard_ptr_feedback_loads_explicitly_after_dependencies() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_ptr_feedback_publishes_issue_reporter_root_frame() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_ptr_feedback_publishes_issue_reporter_root_frame(env: &WowLuaEnv) {
     load_ptr_feedback_with_deps(&env);
 
     let kind: String = env
@@ -370,10 +369,10 @@ fn blizzard_ptr_feedback_publishes_issue_reporter_root_frame() {
          Bindings.xml `default='F6'` declaration"
     );
 }
+}
 
-#[test]
-fn blizzard_ptr_feedback_virtual_template_not_in_global_env() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_ptr_feedback_virtual_template_not_in_global_env(env: &WowLuaEnv) {
     load_ptr_feedback_with_deps(&env);
 
     let kind: String = env
@@ -386,4 +385,5 @@ fn blizzard_ptr_feedback_virtual_template_not_in_global_env() {
          issue-reporter instantiates per zone-bug context). Virtual templates \
          live in the template registry, NOT in the global environment"
     );
+}
 }

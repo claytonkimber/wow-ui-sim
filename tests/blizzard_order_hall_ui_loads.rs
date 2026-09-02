@@ -23,7 +23,11 @@ fn order_hall_toc() -> PathBuf {
     order_hall_dir().join("Blizzard_OrderHallUI.toc")
 }
 
-const ORDER_HALL_TOC_FILES: &[&str] = &["Blizzard_OrderHallTalents.xml", "Localization.lua"];
+const ORDER_HALL_TOC_FILES: &[&str] = &[
+    "Blizzard_OrderHallUI_Bootstrap.lua",
+    "Blizzard_OrderHallTalents.xml",
+    "Localization.lua",
+];
 
 const PUBLIC_MIXINS: &[&str] = &[
     "OrderHallTalentFrameMixin",
@@ -98,7 +102,7 @@ fn blizzard_order_hall_find_toc_resolves_bare_variant() {
 }
 
 #[test]
-fn blizzard_order_hall_toc_declares_load_on_demand_with_no_dependencies() {
+fn blizzard_order_hall_toc_declares_load_on_demand_with_game_menu_dependency() {
     let toc = TocFile::from_file(&order_hall_toc()).expect("Blizzard_OrderHallUI TOC parses");
 
     assert!(
@@ -112,14 +116,10 @@ fn blizzard_order_hall_toc_declares_load_on_demand_with_no_dependencies() {
     assert!(!toc.is_load_first());
     assert!(!toc.is_secure_env());
 
-    assert!(
-        toc.dependencies().is_empty(),
-        "Zero `## RequiredDep:` / `## Dependencies:` — the talent UI has NO hard dependencies. \
-         It inherits PortraitFrameTemplate from foundational SharedXML (always loaded) and \
-         calls C_Garrison from a built-in C_* namespace. Notably the addon does NOT depend on \
-         Blizzard_GarrisonUI despite reusing Garrison talent terminology — the talent tree \
-         here is a self-contained reimplementation that shares only the API namespace and \
-         atlas naming convention"
+    assert_eq!(
+        toc.dependencies(),
+        vec!["Blizzard_GameMenuEsc".to_string()],
+        "Retail 12.1 declares Blizzard_GameMenuEsc as the Order Hall UI's single hard dependency."
     );
     assert!(
         toc.optional_deps().is_empty(),
@@ -189,7 +189,7 @@ fn blizzard_order_hall_toc_declares_metadata_in_raw_bytes() {
 }
 
 #[test]
-fn blizzard_order_hall_toc_lists_xml_first_localization_last() {
+fn blizzard_order_hall_toc_lists_bootstrap_xml_then_localization() {
     let toc = TocFile::from_file(&order_hall_toc()).expect("Blizzard_OrderHallUI TOC parses");
     let listed: Vec<String> = toc
         .files

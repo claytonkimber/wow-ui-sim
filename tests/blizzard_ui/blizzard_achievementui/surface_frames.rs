@@ -50,68 +50,17 @@ const ROOT: &str = "Blizzard_AchievementUI";
 const FRAME_NAME: &str = "AchievementFrame";
 const XML_SITE: &str = "Mainline/Blizzard_AchievementUI.xml:1505";
 
-/// PLAN-named children of `AchievementFrame`. Each tuple is
-/// (key, xml_site, routing_kind) where `routing_kind` is "parentKey" when the
-/// XML attaches the child via `parentKey="<Key>"` and "name-prefix" when the
-/// XML attaches via `name="$parent<Key>"` and the simulator's
-/// `infer_parent_key_from_child_name` repair derives the key by stripping the
-/// `AchievementFrame` prefix from the child's resolved name.
-///
-/// Both routes land in the same place — `AchievementFrame.<Key>` is the child
-/// frame — so callers don't see a difference, but a regression in either path
-/// would surface here:
-///
-/// - `parentKey="..."` route: handled by `append_parent_key_code` in
-///   `src/loader/xml_frame_codegen.rs:90`. A regression dropping the
-///   `parentKey=` attribute or a loader bug skipping the assignment would null
-///   one of the four explicit-key entries below.
-///
-/// - `name="$parent<Key>"` route: handled by
-///   `infer_parent_key_from_child_name` in
-///   `src/lua_api/globals/template/mod.rs:72`. A regression that removed the
-///   prefix-inference repair, or that changed the `name="$parentX"` token,
-///   would null one of the four name-inferred entries below.
+/// Direct children of `AchievementFrame` that remain direct in retail 12.1.
+/// Filter controls moved below `HeaderDetails.Filters` and are covered by a
+/// separate nested-path test.
 const PLAN_NAMED_CHILDREN: &[(&str, &str, &str)] = &[
-    (
-        "Header",
-        "Mainline/Blizzard_AchievementUI.xml:1660",
-        "parentKey",
-    ),
-    (
-        "Categories",
-        "Mainline/Blizzard_AchievementUI.xml:1729",
-        "parentKey",
-    ),
-    (
-        "FilterDropdown",
-        "Mainline/Blizzard_AchievementUI.xml:2348",
-        "parentKey",
-    ),
-    (
-        "SearchBox",
-        "Mainline/Blizzard_AchievementUI.xml:2356",
-        "parentKey",
-    ),
-    (
-        "Achievements",
-        "Mainline/Blizzard_AchievementUI.xml:1755",
-        "name-prefix",
-    ),
-    (
-        "Stats",
-        "Mainline/Blizzard_AchievementUI.xml:1816",
-        "name-prefix",
-    ),
-    (
-        "Summary",
-        "Mainline/Blizzard_AchievementUI.xml:1866",
-        "name-prefix",
-    ),
-    (
-        "Comparison",
-        "Mainline/Blizzard_AchievementUI.xml:2080",
-        "name-prefix",
-    ),
+    ("Header", "Mainline/Blizzard_AchievementUI.xml:1505", "parentKey"),
+    ("HeaderDetails", "Mainline/Blizzard_AchievementUI.xml:1675", "parentKey"),
+    ("Categories", "Mainline/Blizzard_AchievementUI.xml:1578", "parentKey"),
+    ("Achievements", "Mainline/Blizzard_AchievementUI.xml:1518", "name-prefix"),
+    ("Stats", "Mainline/Blizzard_AchievementUI.xml:1572", "name-prefix"),
+    ("Summary", "Mainline/Blizzard_AchievementUI.xml:1625", "name-prefix"),
+    ("Comparison", "Mainline/Blizzard_AchievementUI.xml:2080", "name-prefix"),
 ];
 
 #[test]
@@ -183,44 +132,8 @@ fn achievement_frame_publishes_expected_panel_identity() {
     });
 }
 
-/// Pin every PLAN-named child as a parent property on `AchievementFrame`.
-///
-/// PLAN names eight children: `Achievements`, `Stats`, `Summary`,
-/// `Categories`, `Comparison`, `SearchBox`, `FilterDropdown`, `Header`. The
-/// XML installs them via two distinct routes (see `PLAN_NAMED_CHILDREN`
-/// docs above): four use `parentKey="<Key>"` directly (`Header`,
-/// `Categories`, `FilterDropdown`, `SearchBox`), and four use
-/// `name="$parent<Key>"` with the prefix-inference repair filling in the
-/// parent property (`Achievements`, `Stats`, `Summary`, `Comparison`).
-/// Both routes converge on the same observable contract: every
-/// PLAN-named child is reachable as `AchievementFrame.<Key>`, is a Frame,
-/// and has `AchievementFrame` as its parent.
-///
-/// The single test asserts that contract for all eight children
-/// uniformly. Each assertion message names the routing kind and the XML
-/// site so a regression points to the right code path:
-///
-/// - A nil reading on a `parentKey`-routed child means either the XML
-///   dropped the `parentKey="<Key>"` attribute (the panel's Lua code
-///   that uses `AchievementFrame.Header.Points:SetText(...)` or
-///   `AchievementFrame.SearchBox:HasFocus()` would surface a
-///   nil-table-index error) or the loader's `append_parent_key_code`
-///   stopped routing `parentKey=` into the parent's per-instance table.
-///
-/// - A nil reading on a `name-prefix`-routed child means either the XML
-///   changed the `name="$parent<Key>"` token (so the resolved child
-///   name no longer has the parent's name as a prefix) or the
-///   simulator's `infer_parent_key_from_child_name` repair stopped
-///   running. Either way every consumer that walks
-///   `AchievementFrame.Achievements`, `.Stats`, `.Summary`, or
-///   `.Comparison` (notably the panel-stack push/pop code that toggles
-///   their visibility) would silently miss the child.
-///
-/// - A child whose `:GetParent():GetName()` is anything other than
-///   `AchievementFrame` means the child was reparented post-load — none
-///   of the panel's Lua code does that, so it would be a regression
-///   that breaks `AchievementFrame:Hide()` cascading to children and
-///   `SetUIScale` propagating from UIParent.
+/// Verify direct parent properties on `AchievementFrame` still resolve.
+
 #[test]
 fn achievement_frame_plan_named_children_are_reachable_as_parent_properties() {
     with_blizzard_addon_smoke_shape(&[ROOT], &[], |env, _loaded| {
@@ -263,9 +176,28 @@ fn achievement_frame_plan_named_children_are_reachable_as_parent_properties() {
     });
 }
 
-const SEARCH_PROGRESS_BAR_KEY: &str = "searchProgressBar";
-const SEARCH_PROGRESS_BAR_XML_SITE: &str = "Mainline/Blizzard_AchievementUI.xml:2501";
-const SEARCH_PROGRESS_BAR_PLAN_NAME: &str = "AchievementFrameSearchProgressBar";
+#[test]
+fn achievement_frame_filter_controls_use_current_nested_paths() {
+    with_blizzard_addon_smoke_shape(&[ROOT], &[], |env, _loaded| {
+        let paths: (String, String, String) = env
+            .eval(
+                r#"
+                return type(AchievementFrame.HeaderDetails.Filters.FilterDropdown),
+                       type(AchievementFrame.HeaderDetails.Filters.SearchBox),
+                       type(AchievementFrame.HeaderDetails.Filters.SearchBox.SearchProgressBar)
+                "#,
+            )
+            .expect("AchievementFrame filter-control path probes must run cleanly");
+
+        assert_eq!(
+            paths,
+            ("table".into(), "table".into(), "table".into()),
+            "Retail XML nests FilterDropdown and SearchBox below HeaderDetails.Filters, with \
+             SearchProgressBar below SearchBox."
+        );
+    });
+}
+
 const SEARCH_PROGRESS_BAR_HANDLER: &str = "AchievementFrameSearchProgressBar_OnUpdate";
 
 const COMPARISON_FRAME_NAME: &str = "AchievementFrameComparison";
@@ -404,162 +336,30 @@ fn achievement_frame_comparison_subtree_publishes_plan_named_paths() {
     });
 }
 
-/// Spec/source split for the search progress bar.
-///
-/// PLAN names this child as `AchievementFrameSearchProgressBar` (PascalCase
-/// global) with an `OnUpdate` script wired. Both claims are wrong against
-/// `Mainline/Blizzard_AchievementUI.xml:2501-2566`:
-///
-/// 1. The XML declares the StatusBar with `parentKey="searchProgressBar"`
-///    (camelCase, lowercase first letter) and **no `name=` attribute** at
-///    all — there is no `_G.AchievementFrameSearchProgressBar` global. The
-///    Lua source corroborates: every call-site uses
-///    `AchievementFrame.searchProgressBar` (camelCase property access on
-///    the parent) — see lines 297, 3262, 3295-3296, 3310, 3333.
-///
-/// 2. The XML wires three scripts at lines 2551-2564 — `OnShow`, `OnLoad`,
-///    `OnHide` — but **does NOT wire `OnUpdate` at load time**. OnUpdate
-///    is set dynamically by `AchievementFrameSearchBox_OnUpdate` at line
-///    3296 (`AchievementFrame.searchProgressBar:SetScript("OnUpdate", AchievementFrameSearchProgressBar_OnUpdate)`)
-///    only when search progress requires animated polling, and the OnHide
-///    script at line 2562 explicitly unsets it (`self:SetScript("OnUpdate", nil)`).
-///    At rest / immediately after addon load, `:GetScript("OnUpdate")`
-///    returns nil.
-///
-/// The OnUpdate function itself — `AchievementFrameSearchProgressBar_OnUpdate`
-/// at `Blizzard_AchievementUI.lua:3318` — IS a top-level global ready to
-/// be wired (zero-arg signature `(self, elapsed)`, polls
-/// `GetAchievementSearchProgress() / GetAchievementSearchSize()`,
-/// self-unwires when progress reaches the max value).
-///
-/// Test split along the spec/source boundary:
-///
-/// **Presence half** asserts the StatusBar is reachable as
-/// `AchievementFrame.searchProgressBar` (the actual route), is a
-/// StatusBar, has `AchievementFrame` as its parent, and the OnUpdate
-/// handler function `AchievementFrameSearchProgressBar_OnUpdate` exists
-/// as a global ready to be wired.
-///
-/// **Absence half** asserts `_G.AchievementFrameSearchProgressBar` is
-/// nil (the StatusBar has no name attribute, so no global registration
-/// happens) and `AchievementFrame.searchProgressBar:GetScript("OnUpdate")`
-/// is nil at load time (OnUpdate is dynamically attached only when
-/// search runs). A non-nil reading on either side would surface a
-/// meaningful regression: a global appearing means Blizzard added a
-/// `name="..."` attribute, an OnUpdate at load time means either
-/// the XML now wires it directly or some other init-time code attached
-/// it.
+/// Current retail search-progress-bar surface.
+const SEARCH_PROGRESS_BAR_PATH: &str =
+    "AchievementFrame.HeaderDetails.Filters.SearchBox.SearchProgressBar";
+
 #[test]
-fn achievement_frame_search_progress_bar_split_presence_absence() {
+fn achievement_frame_search_progress_bar_uses_nested_search_box_path() {
     with_blizzard_addon_smoke_shape(&[ROOT], &[], |env, _loaded| {
-        let property_type: String = env
+        let observations: (String, String, bool, String, String) = env
             .eval(&format!(
-                "return type(_G[{FRAME_NAME:?}][{SEARCH_PROGRESS_BAR_KEY:?}])"
+                r#"
+                local search_box = AchievementFrame.HeaderDetails.Filters.SearchBox
+                local bar = search_box.SearchProgressBar
+                return type(bar), bar:GetObjectType(), bar:GetParent() == search_box,
+                       type(_G[{handler:?}]),
+                       type(bar:GetScript("OnUpdate"))
+                "#,
+                handler = SEARCH_PROGRESS_BAR_HANDLER,
             ))
-            .expect("AchievementFrame.searchProgressBar probe must run cleanly");
+            .expect("nested SearchProgressBar surface probes must run cleanly");
 
-        assert_eq!(
-            property_type, "table",
-            "Expected `AchievementFrame.{SEARCH_PROGRESS_BAR_KEY}` to be a table after \
-             `{ROOT}` loads, got `{property_type}`. The XML at \
-             `{SEARCH_PROGRESS_BAR_XML_SITE}` declares this StatusBar with \
-             `parentKey=\"{SEARCH_PROGRESS_BAR_KEY}\"` (camelCase, lowercase first letter), \
-             routed through `append_parent_key_code` in \
-             `src/loader/xml_frame_codegen.rs:90`. A nil reading means either the XML \
-             dropped the `parentKey=` attribute or the loader stopped routing it. The \
-             Lua source touches this property at `Blizzard_AchievementUI.lua:297, 3262, \
-             3295-3296, 3310, 3333` — every one of those call-sites would surface a \
-             nil-table-method error."
-        );
-
-        let object_type: String = env
-            .eval(&format!(
-                "return _G[{FRAME_NAME:?}][{SEARCH_PROGRESS_BAR_KEY:?}]:GetObjectType()"
-            ))
-            .expect("`GetObjectType()` must run cleanly on the StatusBar");
-
-        assert_eq!(
-            object_type, "StatusBar",
-            "Expected `AchievementFrame.{SEARCH_PROGRESS_BAR_KEY}:GetObjectType()` to \
-             return `StatusBar`, got `{object_type}`. The XML at \
-             `{SEARCH_PROGRESS_BAR_XML_SITE}` declares this child as `<StatusBar \
-             parentKey=\"{SEARCH_PROGRESS_BAR_KEY}\" hidden=\"false\">` — a different \
-             object type means the XML was changed to a different widget kind, which \
-             would break `AchievementFrameSearchProgressBar_OnUpdate`'s \
-             `GetMinMaxValues` / `GetValue` / `SetValue` calls at \
-             `Blizzard_AchievementUI.lua:3319-3327`."
-        );
-
-        let parent_name: String = env
-            .eval(&format!(
-                "return _G[{FRAME_NAME:?}][{SEARCH_PROGRESS_BAR_KEY:?}]:GetParent():GetName()"
-            ))
-            .expect("`GetParent():GetName()` must run cleanly on the StatusBar");
-
-        assert_eq!(
-            parent_name, FRAME_NAME,
-            "Expected `AchievementFrame.{SEARCH_PROGRESS_BAR_KEY}:GetParent():GetName()` \
-             to return `{FRAME_NAME}`, got `{parent_name}`. The XML at \
-             `{SEARCH_PROGRESS_BAR_XML_SITE}` nests this StatusBar inside \
-             `AchievementFrame`'s `<Frames>` block, so its parent must be \
-             `AchievementFrame`. A different parent means the StatusBar was reparented \
-             post-load — the panel's Lua code addresses it as \
-             `AchievementFrame.searchProgressBar`, which would null out under reparenting."
-        );
-
-        let handler_type: String = env
-            .eval(&format!("return type(_G[{SEARCH_PROGRESS_BAR_HANDLER:?}])"))
-            .expect("OnUpdate handler global probe must run cleanly");
-
-        assert_eq!(
-            handler_type, "function",
-            "Expected `_G[{SEARCH_PROGRESS_BAR_HANDLER:?}]` to be a function after `{ROOT}` \
-             loads, got `{handler_type}`. The Lua source at \
-             `Blizzard_AchievementUI.lua:3318` declares `function {SEARCH_PROGRESS_BAR_HANDLER}(self, elapsed)` \
-             at file scope. This is the OnUpdate handler that gets dynamically wired by \
-             `AchievementFrameSearchBox_OnUpdate` at line 3296 when search progress \
-             requires animated polling. A nil reading means the file chunk failed before \
-             reaching the declaration or Blizzard refactored the handler onto a mixin \
-             namespace."
-        );
-
-        let global_type: String = env
-            .eval(&format!(
-                "return type(_G[{SEARCH_PROGRESS_BAR_PLAN_NAME:?}])"
-            ))
-            .expect("PLAN-named global probe must run cleanly");
-
-        assert_eq!(
-            global_type, "nil",
-            "Expected `_G[{SEARCH_PROGRESS_BAR_PLAN_NAME:?}]` to be nil after `{ROOT}` \
-             loads, got `{global_type}`. The XML at `{SEARCH_PROGRESS_BAR_XML_SITE}` \
-             declares this child with `parentKey=\"{SEARCH_PROGRESS_BAR_KEY}\"` and NO \
-             `name=` attribute, so no global registration runs. The Lua source addresses \
-             this StatusBar exclusively via the parent-property path \
-             `AchievementFrame.{SEARCH_PROGRESS_BAR_KEY}` (camelCase). A non-nil reading \
-             means Blizzard added a `name=\"{SEARCH_PROGRESS_BAR_PLAN_NAME}\"` attribute \
-             to the XML, at which point the spec needs updating to reflect the new \
-             access path."
-        );
-
-        let onupdate_script: String = env
-            .eval(&format!(
-                "return type(_G[{FRAME_NAME:?}][{SEARCH_PROGRESS_BAR_KEY:?}]:GetScript(\"OnUpdate\"))"
-            ))
-            .expect("`GetScript(\"OnUpdate\")` must run cleanly on the StatusBar");
-
-        assert_eq!(
-            onupdate_script, "nil",
-            "Expected `AchievementFrame.{SEARCH_PROGRESS_BAR_KEY}:GetScript(\"OnUpdate\")` \
-             to be nil after `{ROOT}` loads, got `{onupdate_script}`. The XML at \
-             `{SEARCH_PROGRESS_BAR_XML_SITE}` wires three scripts at lines 2551-2564 — \
-             `OnShow`, `OnLoad`, `OnHide` — but does NOT wire OnUpdate. The handler is \
-             attached dynamically by `AchievementFrameSearchBox_OnUpdate` at \
-             `Blizzard_AchievementUI.lua:3296` only when search progress requires \
-             animated polling, and the OnHide script at line 2562 explicitly unsets it. \
-             A non-nil reading at load time means either the XML now wires OnUpdate \
-             directly or some init-time Lua attached it, both of which would burn \
-             OnUpdate ticks every frame even when no search is running."
-        );
+        assert_eq!(observations.0, "table", "{SEARCH_PROGRESS_BAR_PATH} must exist.");
+        assert_eq!(observations.1, "StatusBar", "{SEARCH_PROGRESS_BAR_PATH} must be a StatusBar.");
+        assert!(observations.2, "SearchProgressBar must remain parented to SearchBox.");
+        assert_eq!(observations.3, "function", "{SEARCH_PROGRESS_BAR_HANDLER} must be global.");
+        assert_eq!(observations.4, "nil", "OnUpdate is installed only while search runs.");
     });
 }

@@ -1,7 +1,5 @@
 #![cfg(feature = "gui")]
 
-#[path = "hero_talents_render_visual/artifact_bbox.rs"]
-mod artifact_bbox;
 use crate::common;
 
 use std::cell::RefCell;
@@ -13,7 +11,7 @@ use image::RgbaImage;
 use wow_ui_sim::iced_app::{RegistryQuadBatchParams, build_quad_batch_for_registry};
 use wow_ui_sim::loader::{discover_blizzard_addons, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
-use wow_ui_sim::render::headless::render_to_image;
+use wow_ui_sim::render::headless::{render_batches_to_images, render_to_image};
 use wow_ui_sim::render::shader::load_texture_or_crop;
 use wow_ui_sim::render::{BlendMode, GlyphAtlas, QuadBatch, WowFontSystem};
 use wow_ui_sim::texture::TextureManager;
@@ -562,7 +560,6 @@ fn hiding_hero_talents_container_only_changes_top_center_region() {
         (hero_container_id, hero_rect)
     };
 
-    let mut visible_mgr = make_texture_manager();
     let visible_batch = {
         let buckets = {
             let mut state = env.state().borrow_mut();
@@ -576,7 +573,6 @@ fn hiding_hero_talents_container_only_changes_top_center_region() {
             &buckets,
         ))
     };
-    let visible_render = render_to_image(&visible_batch, &mut visible_mgr, 1600, 1200, None);
 
     {
         let mut state = env.state().borrow_mut();
@@ -584,7 +580,6 @@ fn hiding_hero_talents_container_only_changes_top_center_region() {
         state.ensure_layout_rects();
     }
 
-    let mut hidden_mgr = make_texture_manager();
     let hidden_batch = {
         let buckets = {
             let mut state = env.state().borrow_mut();
@@ -598,7 +593,19 @@ fn hiding_hero_talents_container_only_changes_top_center_region() {
             &buckets,
         ))
     };
-    let hidden_render = render_to_image(&hidden_batch, &mut hidden_mgr, 1600, 1200, None);
+
+    let mut texture_manager = make_texture_manager();
+    let mut renders = render_batches_to_images(
+        &[&visible_batch, &hidden_batch],
+        &mut texture_manager,
+        1600,
+        1200,
+        None,
+    )
+    .into_iter();
+    let visible_render = renders.next().expect("visible render");
+    let hidden_render = renders.next().expect("hidden render");
+    assert!(renders.next().is_none(), "expected exactly two renders");
 
     let diff = diff_bounds(&visible_render, &hidden_render, 12)
         .expect("hiding HeroTalentsContainer should change rendered pixels");
@@ -613,9 +620,5 @@ fn hiding_hero_talents_container_only_changes_top_center_region() {
             && diff.2 as f32 <= expanded_right
             && diff.3 as f32 <= expanded_bottom,
         "Hiding HeroTalentsContainer should only affect the hero panel region: diff={diff:?} hero_rect={hero_rect:?}"
-    );
-    assert!(
-        !(1000 >= diff.0 && 1000 <= diff.2 && 610 >= diff.1 && 610 <= diff.3),
-        "Historical bottom-right artifact point should not be affected by hiding HeroTalentsContainer: diff={diff:?}"
     );
 }

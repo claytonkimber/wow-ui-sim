@@ -56,6 +56,7 @@ local function __wow_pet_battle_seed_sample()
       power = 18,
       speed = 21,
       petType = 7,
+      breedQuality = 3,
       xp = 45,
       maxXP = 100,
       abilities = {
@@ -74,6 +75,7 @@ local function __wow_pet_battle_seed_sample()
       power = 15,
       speed = 17,
       petType = 9,
+      breedQuality = 3,
       xp = 15,
       maxXP = 100,
       abilities = {
@@ -89,6 +91,7 @@ local function __wow_pet_battle_seed_sample()
       power = 14,
       speed = 19,
       petType = 8,
+      breedQuality = 3,
       xp = 10,
       maxXP = 100,
       abilities = {
@@ -106,6 +109,7 @@ local function __wow_pet_battle_seed_sample()
       power = 16,
       speed = 14,
       petType = 9,
+      breedQuality = 3,
       xp = 0,
       maxXP = 100,
       abilities = {
@@ -121,6 +125,7 @@ local function __wow_pet_battle_seed_sample()
       power = 13,
       speed = 20,
       petType = 9,
+      breedQuality = 3,
       xp = 0,
       maxXP = 100,
       abilities = {
@@ -250,6 +255,10 @@ end
 C_PetBattles.GetLevel = function(owner, petIndex)
   local pet = __wow_pet_battle_get_pet(owner, petIndex)
   return pet and pet.level or 0
+end
+C_PetBattles.GetBreedQuality = function(owner, petIndex)
+  local pet = __wow_pet_battle_get_pet(owner, petIndex)
+  return pet and pet.breedQuality or 0
 end
 if C_PetBattles.GetXP == nil then
   C_PetBattles.GetXP = function(owner, petIndex)

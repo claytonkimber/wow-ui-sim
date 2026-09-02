@@ -79,9 +79,8 @@ fn blizzard_covenant_toasts_appears_in_game_discovery() {
     );
 }
 
-#[test]
-fn blizzard_covenant_toasts_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_covenant_toasts_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -102,10 +101,10 @@ fn blizzard_covenant_toasts_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_covenant_toasts_toplevel_frames_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_covenant_toasts_toplevel_frames_are_defined(env: &WowLuaEnv) {
 
     let frames_present: bool = env
         .eval(
@@ -127,10 +126,10 @@ fn blizzard_covenant_toasts_toplevel_frames_are_defined() {
          COVENANT_SANCTUM_RENOWN_LEVEL_CHANGED"
     );
 }
+}
 
-#[test]
-fn blizzard_covenant_toasts_celebration_banner_template_is_registered() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_covenant_toasts_celebration_banner_template_is_registered(env: &WowLuaEnv) {
     let _ = env;
 
     assert!(
@@ -143,10 +142,10 @@ fn blizzard_covenant_toasts_celebration_banner_template_is_registered() {
          inherit it"
     );
 }
+}
 
-#[test]
-fn blizzard_covenant_toasts_celebration_banner_mixin_methods_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_covenant_toasts_celebration_banner_mixin_methods_are_defined(env: &WowLuaEnv) {
 
     let methods_present: bool = env
         .eval(
@@ -168,10 +167,10 @@ fn blizzard_covenant_toasts_celebration_banner_mixin_methods_are_defined() {
          IconSwirlModelScene:AddEffect(effect, self))"
     );
 }
+}
 
-#[test]
-fn blizzard_covenant_toasts_choice_toast_mixin_methods_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_covenant_toasts_choice_toast_mixin_methods_are_defined(env: &WowLuaEnv) {
 
     let methods_present: bool = env
         .eval(
@@ -197,10 +196,10 @@ fn blizzard_covenant_toasts_choice_toast_mixin_methods_are_defined() {
          hiding the toast)"
     );
 }
+}
 
-#[test]
-fn blizzard_covenant_toasts_renown_toast_mixin_methods_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_covenant_toasts_renown_toast_mixin_methods_are_defined(env: &WowLuaEnv) {
 
     let methods_present: bool = env
         .eval(
@@ -239,10 +238,10 @@ fn blizzard_covenant_toasts_renown_toast_mixin_methods_are_defined() {
          RENOWN_REWARD_MILESTONE_TOOLTIP_TITLE; StopBanner; OnAnimFinished)"
     );
 }
+}
 
-#[test]
-fn blizzard_covenant_toasts_namespace_helper_is_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_covenant_toasts_namespace_helper_is_defined(env: &WowLuaEnv) {
 
     let helper_present: bool = env
         .eval(
@@ -264,4 +263,5 @@ fn blizzard_covenant_toasts_namespace_helper_is_defined() {
          and the CovenantRenownToast override use this to attach per-covenant swirl FX to the \
          IconSwirlModelScene"
     );
+}
 }

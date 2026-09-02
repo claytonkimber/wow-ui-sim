@@ -76,9 +76,9 @@ fn blizzard_load_locale_toc_declares_default_state_enabled_with_allow_load_both(
     assert!(!toc.is_secure_env());
     assert!(
         toc.dependencies().is_empty(),
-        "Zero `## Dependencies:` — the locale-marker addon is dependency-free. It only \
-         publishes 2 globals (LOCALE_enUS = true, UI_LOCALE = \"enUS\") with no calls into \
-         any external API surface"
+        "Zero `## Dependencies:` — the locale-marker addon is dependency-free. Current \
+         retail source publishes LOCALE_ptPT = true and UI_LOCALE = \"ptPT\" without \
+         calling any external API"
     );
     assert!(toc.optional_deps().is_empty());
     assert!(
@@ -151,9 +151,8 @@ fn blizzard_load_locale_toc_lists_single_lua_file() {
             .map(|p| p.to_string_lossy().into_owned())
             .collect::<Vec<_>>(),
         LOAD_LOCALE_TOC_FILES,
-        "TOC body must list exactly 1 file — LoadLocale.lua. The 3-line addon is one of \
-         the smallest in the Blizzard tree: `LOCALE_enUS = true; UI_LOCALE = \"enUS\";` \
-         with a single comment line above. No XML, no other Lua files, no Localization.lua"
+        "TOC body must list exactly 1 file — LoadLocale.lua. Current retail source contains \
+         the active ptPT marker and UI_LOCALE assignment, with no XML or localization file"
     );
 }
 
@@ -165,10 +164,7 @@ fn blizzard_load_locale_directory_holds_two_entries_one_toc_one_lua() {
     assert_eq!(
         entries, 2,
         "Directory must hold exactly 2 entries — Blizzard_LoadLocale.toc and \
-         LoadLocale.lua. The simulator ships only the enUS variant; on the real Blizzard \
-         tree, parallel directories Blizzard_LoadLocale_deDE / esES / frFR / etc carry \
-         per-locale copies of this addon, but only the locale matching the client's \
-         negotiated UI language ships in the live install"
+         LoadLocale.lua. The synced retail source contains only the active locale marker"
     );
 }
 
@@ -194,9 +190,8 @@ fn blizzard_load_locale_auto_discovered_on_every_screen() {
     }
 }
 
-#[test]
-fn blizzard_load_locale_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_load_locale_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let load_errors: Vec<String> = env
         .state()
@@ -206,7 +201,7 @@ fn blizzard_load_locale_loads_without_addon_specific_lua_errors() {
         .filter(|message| {
             message.contains("Blizzard_LoadLocale")
                 || message.contains("LoadLocale.lua")
-                || message.contains("LOCALE_enUS")
+                || message.contains("LOCALE_ptPT")
                 || message.contains("UI_LOCALE")
         })
         .cloned()
@@ -217,10 +212,10 @@ fn blizzard_load_locale_loads_without_addon_specific_lua_errors() {
         load_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_load_locale_is_addon_loaded_after_auto_discovery() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_load_locale_is_addon_loaded_after_auto_discovery(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_LoadLocale')")
@@ -233,59 +228,34 @@ fn blizzard_load_locale_is_addon_loaded_after_auto_discovery() {
          load_addon call required"
     );
 }
-
-#[test]
-fn blizzard_load_locale_publishes_locale_enus_global_as_true() {
-    let env = load_full_game_ui();
-
-    let kind: String = env
-        .eval("return type(LOCALE_enUS)")
-        .expect("LOCALE_enUS probe succeeds");
-    assert_eq!(
-        kind, "boolean",
-        "LOCALE_enUS must publish at `_G` as a boolean — LoadLocale.lua line 2 sets the \
-         locale-marker global to `true`. This is the canonical convention every Blizzard \
-         L10n table consumer probes (e.g. `if LOCALE_enUS then ... end` to gate \
-         locale-specific string overrides). NOT pre-stubbed by the simulator's runtime \
-         bootstrap — the addon load is the only path that publishes it"
-    );
-
-    let value: bool = env
-        .eval("return LOCALE_enUS")
-        .expect("LOCALE_enUS value probe succeeds");
-    assert!(
-        value,
-        "LOCALE_enUS must equal true exactly — the marker convention is `<locale> == true` \
-         only for the active locale, all other locale globals stay nil. A consumer can \
-         therefore probe `if LOCALE_enUS then` as a presence-check"
-    );
 }
 
-#[test]
-fn blizzard_load_locale_publishes_ui_locale_global_as_enus_string() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_load_locale_publishes_locale_ptpt_global_as_true(env: &WowLuaEnv) {
 
-    let kind: String = env
-        .eval("return type(UI_LOCALE)")
+    let marker: (String, bool, String) = env
+        .eval("return type(LOCALE_ptPT), LOCALE_ptPT, type(LOCALE_enUS)")
+        .expect("active locale-marker probe succeeds");
+    assert_eq!(
+        marker,
+        ("boolean".to_string(), true, "nil".to_string()),
+        "Current LoadLocale.lua publishes only the active LOCALE_ptPT marker. Inactive \
+         locale markers, including LOCALE_enUS, remain absent"
+    );
+}
+}
+
+prefork_full_ui_case! {
+fn blizzard_load_locale_publishes_ui_locale_global_as_ptpt_string(env: &WowLuaEnv) {
+
+    let locale: (String, String) = env
+        .eval("return type(UI_LOCALE), UI_LOCALE")
         .expect("UI_LOCALE probe succeeds");
     assert_eq!(
-        kind, "string",
-        "UI_LOCALE must publish at `_G` as a string. The simulator's shared_bootstrap.lua \
-         (lines 219-225) pre-seeds UI_LOCALE to `GetLocale()` or `\"enUS\"` if \
-         GetLocale is unavailable; LoadLocale.lua line 3 then re-assigns \
-         `UI_LOCALE = \"enUS\"` unconditionally, which idempotently confirms the value \
-         post-load"
+        locale,
+        ("string".to_string(), "ptPT".to_string()),
+        "Current LoadLocale.lua publishes UI_LOCALE = \"ptPT\", which \
+         LocalizationMachinery.lua uses as the l10n table key"
     );
-
-    let value: String = env
-        .eval("return UI_LOCALE")
-        .expect("UI_LOCALE value probe succeeds");
-    assert_eq!(
-        value, "enUS",
-        "UI_LOCALE must equal exactly the string `enUS`. The 4-character locale code is \
-         the canonical Blizzard format (lowercase region prefix + 2-letter uppercase \
-         country suffix — enUS / deDE / esES / esMX / frFR / itIT / koKR / ptBR / ruRU / \
-         zhCN / zhTW). UI_LOCALE feeds the `localeTable = l10nTable[UI_LOCALE]` lookup \
-         pattern at shared_bootstrap.lua line 238 inside SetupLocalization"
-    );
+}
 }

@@ -36,9 +36,8 @@ fn load_full_game_ui() -> WowLuaEnv {
     env
 }
 
-#[test]
-fn blizzard_battlefield_map_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_battlefield_map_loads_without_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -82,10 +81,10 @@ fn blizzard_battlefield_map_loads_without_errors() {
         "BattlefieldMapMixin/BattlefieldMapTabMixin should be defined"
     );
 }
+}
 
-#[test]
-fn battlefield_map_show_runs_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn battlefield_map_show_runs_without_errors(env: &WowLuaEnv) {
 
     let (loaded, _): (bool, Option<String>) = env
         .eval("return LoadAddOn('Blizzard_BattlefieldMap')")
@@ -109,10 +108,10 @@ fn battlefield_map_show_runs_without_errors() {
         errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn battlefield_map_options_persist_after_addon_loaded_event() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn battlefield_map_options_persist_after_addon_loaded_event(env: &WowLuaEnv) {
 
     let (loaded, _): (bool, Option<String>) = env
         .eval("return LoadAddOn('Blizzard_BattlefieldMap')")
@@ -131,4 +130,5 @@ fn battlefield_map_options_persist_after_addon_loaded_event() {
         options_present,
         "ADDON_LOADED handler should seed BattlefieldMapOptions defaults"
     );
+}
 }

@@ -1,10 +1,8 @@
 use std::path::PathBuf;
 
-use wow_ui_sim::loader::discover_blizzard_addons_for_screen;
-use wow_ui_sim::loader::load_addon;
+use wow_ui_sim::loader::{discover_blizzard_addons_for_screen, load_addon};
 use wow_ui_sim::lua_api::WowLuaEnv;
 use wow_ui_sim::screen::ScreenKind;
-use wow_ui_sim::startup::fire_startup_events_for_screen;
 use wow_ui_sim::toc::TocFile;
 
 fn blizzard_ui_dir() -> PathBuf {
@@ -41,30 +39,6 @@ const VIRTUAL_TEMPLATES: &[(&str, &str)] = &[
     ("SpellSearchPreviewContainerTemplate", "Frame"),
     ("SpellSearchBoxTemplate", "EditBox"),
 ];
-
-fn load_full_game_ui_with_spell_search_explicit() -> WowLuaEnv {
-    let env = WowLuaEnv::new().expect("Failed to create Lua environment");
-    env.set_screen_size(1024.0, 768.0);
-    env.set_screen_mode(ScreenKind::Game);
-
-    {
-        let mut state = env.state().borrow_mut();
-        state.addon_base_paths = vec![blizzard_ui_dir()];
-    }
-
-    wow_ui_sim::xml::register_intrinsic_templates();
-
-    let ui = blizzard_ui_dir();
-    let addons = discover_blizzard_addons_for_screen(&ui, ScreenKind::Game);
-    for (name, toc_path) in &addons {
-        load_addon(&env.loader_env(), toc_path)
-            .unwrap_or_else(|err| panic!("[load {name}] FAILED: {err}"));
-    }
-
-    env.apply_post_load_workarounds();
-    fire_startup_events_for_screen(&env, ScreenKind::Game);
-    env
-}
 
 #[test]
 fn toc_declares_load_on_demand_with_no_dependencies() {
@@ -315,9 +289,8 @@ fn spell_search_does_not_auto_discover_on_glue_screens() {
     }
 }
 
-#[test]
-fn explicit_load_addon_succeeds_with_no_addon_specific_lua_errors() {
-    let env = load_full_game_ui_with_spell_search_explicit();
+prefork_full_ui_case! {
+fn explicit_load_addon_succeeds_with_no_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -344,10 +317,10 @@ fn explicit_load_addon_succeeds_with_no_addon_specific_lua_errors() {
         matched
     );
 }
+}
 
-#[test]
-fn is_addon_loaded_reports_true_after_explicit_load() {
-    let env = load_full_game_ui_with_spell_search_explicit();
+prefork_full_ui_case! {
+fn is_addon_loaded_reports_true_after_explicit_load(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &spell_search_toc()).expect("Blizzard_SpellSearch should load");
 
     let loaded: bool = env
@@ -361,10 +334,10 @@ fn is_addon_loaded_reports_true_after_explicit_load() {
          it didn't surface in the eager Game-screen sweep"
     );
 }
+}
 
-#[test]
-fn util_publishes_namespace_with_three_enum_subtables() {
-    let env = load_full_game_ui_with_spell_search_explicit();
+prefork_full_ui_case! {
+fn util_publishes_namespace_with_three_enum_subtables(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &spell_search_toc()).expect("Blizzard_SpellSearch should load");
 
     let probe = "return type(SpellSearchUtil) == 'table' and \
@@ -383,10 +356,10 @@ fn util_publishes_namespace_with_three_enum_subtables() {
          Controller method routes its work"
     );
 }
+}
 
-#[test]
-fn match_type_enum_values_pin_eight_canonical_entries() {
-    let env = load_full_game_ui_with_spell_search_explicit();
+prefork_full_ui_case! {
+fn match_type_enum_values_pin_eight_canonical_entries(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &spell_search_toc()).expect("Blizzard_SpellSearch should load");
 
     let probe = "return SpellSearchUtil.MatchType.DescriptionMatch == 1 and \
@@ -408,10 +381,10 @@ fn match_type_enum_values_pin_eight_canonical_entries() {
          strongest match for assisted-combat-rotation auto-pick"
     );
 }
+}
 
-#[test]
-fn source_and_filter_type_enums_pin_canonical_values() {
-    let env = load_full_game_ui_with_spell_search_explicit();
+prefork_full_ui_case! {
+fn source_and_filter_type_enums_pin_canonical_values(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &spell_search_toc()).expect("Blizzard_SpellSearch should load");
 
     let probe = "return SpellSearchUtil.SourceType.Trait == 1 and \
@@ -431,10 +404,10 @@ fn source_and_filter_type_enums_pin_canonical_values() {
          Filter mixin's resultsBySourceType cache"
     );
 }
+}
 
-#[test]
-fn util_publishes_canonical_helper_functions() {
-    let env = load_full_game_ui_with_spell_search_explicit();
+prefork_full_ui_case! {
+fn util_publishes_canonical_helper_functions(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &spell_search_toc()).expect("Blizzard_SpellSearch should load");
 
     let probe = "return type(SpellSearchUtil.DoStringsMatch) == 'function' and \
@@ -459,10 +432,10 @@ fn util_publishes_canonical_helper_functions() {
          IsActionBarMatchType (3-way OR over the bar-absence MatchTypes)"
     );
 }
+}
 
-#[test]
-fn publishes_thirteen_mixin_tables() {
-    let env = load_full_game_ui_with_spell_search_explicit();
+prefork_full_ui_case! {
+fn publishes_thirteen_mixin_tables(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &spell_search_toc()).expect("Blizzard_SpellSearch should load");
 
     for mixin in PUBLISHED_MIXINS {
@@ -484,10 +457,10 @@ fn publishes_thirteen_mixin_tables() {
         );
     }
 }
+}
 
-#[test]
-fn derived_filter_mixins_inherit_base_filter_methods() {
-    let env = load_full_game_ui_with_spell_search_explicit();
+prefork_full_ui_case! {
+fn derived_filter_mixins_inherit_base_filter_methods(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &spell_search_toc()).expect("Blizzard_SpellSearch should load");
 
     let probe = "return type(SpellSearchTextFilterMixin.GetIsEnabled) == 'function' and \
@@ -511,10 +484,10 @@ fn derived_filter_mixins_inherit_base_filter_methods() {
          GetActiveSearchFilter dispatch would throw on every filter type"
     );
 }
+}
 
-#[test]
-fn derived_source_mixins_inherit_get_source_type() {
-    let env = load_full_game_ui_with_spell_search_explicit();
+prefork_full_ui_case! {
+fn derived_source_mixins_inherit_get_source_type(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &spell_search_toc()).expect("Blizzard_SpellSearch should load");
 
     let probe = "return type(TraitSearchSourceMixin.GetSourceType) == 'function' and \
@@ -531,10 +504,10 @@ fn derived_source_mixins_inherit_get_source_type() {
          resultsBySourceType lookups"
     );
 }
+}
 
-#[test]
-fn controller_publishes_fifteen_orchestration_methods() {
-    let env = load_full_game_ui_with_spell_search_explicit();
+prefork_full_ui_case! {
+fn controller_publishes_fifteen_orchestration_methods(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &spell_search_toc()).expect("Blizzard_SpellSearch should load");
 
     let probe = "return type(SpellSearchControllerMixin.Init) == 'function' and \
@@ -563,10 +536,10 @@ fn controller_publishes_fifteen_orchestration_methods() {
          hot-path that talent/spellbook UIs call to colorize matched rows"
     );
 }
+}
 
-#[test]
-fn preview_result_mixin_publishes_nine_methods() {
-    let env = load_full_game_ui_with_spell_search_explicit();
+prefork_full_ui_case! {
+fn preview_result_mixin_publishes_nine_methods(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &spell_search_toc()).expect("Blizzard_SpellSearch should load");
 
     let probe = "return type(SpellSearchPreviewResultMixin.Init) == 'function' and \
@@ -588,10 +561,10 @@ fn preview_result_mixin_publishes_nine_methods() {
          the parent ScrollBox dispatches through"
     );
 }
+}
 
-#[test]
-fn search_box_mixin_publishes_eight_input_methods() {
-    let env = load_full_game_ui_with_spell_search_explicit();
+prefork_full_ui_case! {
+fn search_box_mixin_publishes_eight_input_methods(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &spell_search_toc()).expect("Blizzard_SpellSearch should load");
 
     let probe = "return type(SpellSearchBoxMixin.OnLoad) == 'function' and \
@@ -613,10 +586,10 @@ fn search_box_mixin_publishes_eight_input_methods() {
          shorter than MIN_CHARACTER_SEARCH"
     );
 }
+}
 
-#[test]
-fn xml_registers_all_four_virtual_templates() {
-    let env = load_full_game_ui_with_spell_search_explicit();
+prefork_full_ui_case! {
+fn xml_registers_all_four_virtual_templates(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &spell_search_toc()).expect("Blizzard_SpellSearch should load");
 
     for (template, widget_type) in VIRTUAL_TEMPLATES {
@@ -646,10 +619,10 @@ fn xml_registers_all_four_virtual_templates() {
         );
     }
 }
+}
 
-#[test]
-fn preview_result_template_exposes_parent_key_children() {
-    let env = load_full_game_ui_with_spell_search_explicit();
+prefork_full_ui_case! {
+fn preview_result_template_exposes_parent_key_children(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &spell_search_toc()).expect("Blizzard_SpellSearch should load");
 
     let probe = "local row = CreateFrame('Button', nil, UIParent, \
@@ -676,10 +649,10 @@ fn preview_result_template_exposes_parent_key_children() {
          throw on every row binding"
     );
 }
+}
 
-#[test]
-fn preview_container_template_keyvalue_pins_maximum_entries() {
-    let env = load_full_game_ui_with_spell_search_explicit();
+prefork_full_ui_case! {
+fn preview_container_template_keyvalue_pins_maximum_entries(env: &WowLuaEnv) {
     load_addon(&env.loader_env(), &spell_search_toc()).expect("Blizzard_SpellSearch should load");
 
     let probe = "local container = CreateFrame('Frame', nil, UIParent, \
@@ -697,4 +670,5 @@ fn preview_container_template_keyvalue_pins_maximum_entries() {
          self.maximumEntries to gate displayedCount before inserting \
          additional results into the DataProvider. Got: {report}"
     );
+}
 }

@@ -36,9 +36,8 @@ fn load_full_game_ui() -> WowLuaEnv {
     env
 }
 
-#[test]
-fn blizzard_class_trial_top_level_frames_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_class_trial_top_level_frames_are_defined(env: &WowLuaEnv) {
 
     let frames_present: bool = env
         .eval(
@@ -64,10 +63,10 @@ fn blizzard_class_trial_top_level_frames_are_defined() {
         "Blizzard_ClassTrial mixin tables should be defined after load"
     );
 }
+}
 
-#[test]
-fn class_trial_timer_display_show_and_hide_run_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn class_trial_timer_display_show_and_hide_run_without_errors(env: &WowLuaEnv) {
 
     {
         let mut state = env.state().borrow_mut();
@@ -85,4 +84,5 @@ fn class_trial_timer_display_show_and_hide_run_without_errors() {
         "ClassTrialTimerDisplay Show/Hide emitted Lua errors:\n  {}",
         unexpected_errors.join("\n  ")
     );
+}
 }

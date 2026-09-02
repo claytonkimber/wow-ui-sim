@@ -199,9 +199,8 @@ fn blizzard_guild_rename_excluded_from_all_glue_screen_auto_discovery_passes() {
     }
 }
 
-#[test]
-fn blizzard_guild_rename_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_guild_rename_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let lua_errors: Vec<String> = env.state().borrow().lua_errors.clone();
     let related: Vec<&String> = lua_errors
@@ -229,10 +228,10 @@ fn blizzard_guild_rename_loads_without_addon_specific_lua_errors() {
             .join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_guild_rename_is_addon_loaded_returns_true_after_game_screen_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_guild_rename_is_addon_loaded_returns_true_after_game_screen_load(env: &WowLuaEnv) {
 
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_GuildRename')")
@@ -243,10 +242,10 @@ fn blizzard_guild_rename_is_addon_loaded_returns_true_after_game_screen_load() {
          `C_AddOns.IsAddOnLoaded('Blizzard_GuildRename')` should return true"
     );
 }
+}
 
-#[test]
-fn blizzard_guild_rename_publishes_simple_tooltip_region_mixin() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_guild_rename_publishes_simple_tooltip_region_mixin(env: &WowLuaEnv) {
 
     let exists: bool = env
         .eval(
@@ -263,10 +262,10 @@ fn blizzard_guild_rename_publishes_simple_tooltip_region_mixin() {
          MoneyFrame, GuildIcon, and ContextButton tooltip-on-hover surfaces"
     );
 }
+}
 
-#[test]
-fn blizzard_guild_rename_publishes_seven_mixin_globals() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_guild_rename_publishes_seven_mixin_globals(env: &WowLuaEnv) {
 
     for mixin in [
         "SimpleTooltipRegionMixin",
@@ -292,10 +291,10 @@ fn blizzard_guild_rename_publishes_seven_mixin_globals() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_guild_rename_frame_mixin_exposes_status_query_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_guild_rename_frame_mixin_exposes_status_query_methods(env: &WowLuaEnv) {
 
     for method in [
         "OnLoad",
@@ -342,10 +341,10 @@ fn blizzard_guild_rename_frame_mixin_exposes_status_query_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_guild_rename_flow_mixin_inherits_timed_callback_and_manager() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_guild_rename_flow_mixin_inherits_timed_callback_and_manager(env: &WowLuaEnv) {
 
     for method in [
         "OnLoad",
@@ -374,10 +373,10 @@ fn blizzard_guild_rename_flow_mixin_inherits_timed_callback_and_manager() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_guild_rename_title_flow_mixin_exposes_rename_and_refund_options() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_guild_rename_title_flow_mixin_exposes_rename_and_refund_options(env: &WowLuaEnv) {
 
     for method in [
         "OnLoad",
@@ -404,10 +403,10 @@ fn blizzard_guild_rename_title_flow_mixin_exposes_rename_and_refund_options() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_guild_rename_context_button_mixin_inherits_tooltip_and_overrides_on_enter() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_guild_rename_context_button_mixin_inherits_tooltip_and_overrides_on_enter(env: &WowLuaEnv) {
 
     let exists: bool = env
         .eval(
@@ -428,10 +427,10 @@ fn blizzard_guild_rename_context_button_mixin_inherits_tooltip_and_overrides_on_
          CreateFromMixins(SimpleTooltipRegionMixin)`"
     );
 }
+}
 
-#[test]
-fn blizzard_guild_rename_publishes_static_popup_dialog_entries() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_guild_rename_publishes_static_popup_dialog_entries(env: &WowLuaEnv) {
 
     for popup_key in [
         "CONFIRM_PURCHASE_GUILD_RENAME",
@@ -454,10 +453,10 @@ fn blizzard_guild_rename_publishes_static_popup_dialog_entries() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_guild_rename_publishes_guild_rename_frame_global() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_guild_rename_publishes_guild_rename_frame_global(env: &WowLuaEnv) {
 
     let exists: bool = env
         .eval(
@@ -473,4 +472,5 @@ fn blizzard_guild_rename_publishes_guild_rename_frame_global() {
          mixin=\"GuildRenameFrameMixin\">` so the named non-virtual frame materializes as a \
          runtime frame published under its declared name"
     );
+}
 }

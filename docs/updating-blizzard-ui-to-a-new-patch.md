@@ -17,8 +17,8 @@ resolution.
 |------|--------|----------------|
 | Per-profile file **list** (`retail.txt`, …) | Gethe branch tree | `data/blizzard-ui-files/<profile>.txt` |
 | File **content** | local WoW CASC (by FDID) | extracted to `~/.cache/wow-ui-sim/blizzard-ui/<profile>/AddOns` |
-| `path → FDID` map | community listfile + our overrides | `data/wow-ui-sim-listfile.csv` (generated) |
-| Extra FDIDs not in community listfile | hand-maintained | `data/listfile-overrides.csv` |
+| `path → FDID` map | community listfile + authoritative overrides | `data/wow-ui-sim-listfile.csv` (generated) |
+| Extra or canonicalized paths | hand-maintained overrides | `data/listfile-overrides.csv` |
 
 Profile → Gethe branch:
 
@@ -71,10 +71,19 @@ step 2).
 python3 tools/gen_limited_listfile.py
 ```
 
+The generator stores ordinary community rows with normalized lowercase paths. An
+entry in `data/listfile-overrides.csv` is authoritative for its normalized path
+and FDID: it replaces the source display path while preserving slash-normalized
+canonical casing. Generated rows sort by normalized path, so canonical casing
+does not change output ordering.
+
 ### 4. Rebuild and validate the sync
 
 The manifests and limited listfile are `include_str!`'d at compile time, so
-rebuild before syncing.
+rebuild before syncing. The rebuilt sync compares its active profile, CASC product,
+active `.build.info` identity, and compiled manifest hash with cache provenance. A
+mismatch automatically removes only that profile's `AddOns` cache before extraction;
+do not delete the cache manually.
 
 ```bash
 cargo build --bin wow-cli
@@ -90,8 +99,9 @@ The isolation script reports the exact list of any `missing or unusable` entries
 For each remaining miss:
 
 - **Missing from the listfile** (`path → FDID` unknown): look up the FDID (e.g.
-  on <https://wago.tools>) and add a `FDID;interface/addons/<path>` line to
-  `data/listfile-overrides.csv`, then rerun step 3.
+  on <https://wago.tools>) and add a verified `FDID;interface/addons/<path>` line to
+  `data/listfile-overrides.csv`, then rerun step 3. Use an override as well when
+  the generated entry must retain a canonical path casing.
 - **Stale content-usability guard**: some entries have a content check in
   `src/blizzard_ui_sync/profile_cache.rs` (`retail_cache_entry_is_usable`, the
   Mists variants) and in `scripts/test-retail-casc-isolation.py`
@@ -104,10 +114,13 @@ For each remaining miss:
 
 ### 6. Update the profile-specific required/hardcoded lists
 
-If a patch renames files referenced by the hardcoded lists in
-`src/blizzard_ui_sync/profile_cache.rs`
-(`RETAIL_REQUIRED_PROFILE_CACHE_ENTRIES`, `MISTS_REQUIRED_PROFILE_CACHE_ENTRIES`,
-`ptr_only_entry`, …), update them to the new paths.
+If a patch renames files referenced by the hardcoded lists or profile filters in
+`src/blizzard_ui_sync/profile_cache.rs`, update them to the new paths and verify
+that every file referenced by an active profile's manifest or TOC is included by
+that profile's sync filter and required-entry set. Do not retain a stale
+profile-only exclusion: retail 12.1's `Blizzard_CooldownBroadcaster_Bootstrap.lua`
+was incorrectly filtered as PTR-only, allowing a completed retail cache without a
+TOC-required file.
 
 ### 7. Re-capture baselines and commit
 

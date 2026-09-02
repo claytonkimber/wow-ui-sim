@@ -278,9 +278,8 @@ fn dep_directories_exist_on_disk() {
     }
 }
 
-#[test]
-fn full_game_load_publishes_mixins() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_publishes_mixins(env: &WowLuaEnv) {
 
     for mixin in MIXINS {
         let kind: String = env
@@ -302,10 +301,10 @@ fn full_game_load_publishes_mixins() {
         );
     }
 }
+}
 
-#[test]
-fn full_game_load_publishes_free_functions() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_publishes_free_functions(env: &WowLuaEnv) {
 
     for func in FREE_FUNCTIONS {
         let kind: String = env
@@ -325,10 +324,10 @@ fn full_game_load_publishes_free_functions() {
         );
     }
 }
+}
 
-#[test]
-fn full_game_load_publishes_global_tables() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_publishes_global_tables(env: &WowLuaEnv) {
 
     for global in REPRESENTATIVE_GLOBAL_TABLES {
         let kind: String = env
@@ -346,10 +345,11 @@ fn full_game_load_publishes_global_tables() {
         );
     }
 }
+}
 
-#[test]
-fn full_game_load_registers_representative_virtual_templates() {
-    let _env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_registers_representative_virtual_templates(env: &WowLuaEnv) {
+    let _env = env;
 
     for template in REPRESENTATIVE_VIRTUAL_TEMPLATES {
         let entry = wow_ui_sim::xml::get_template(template);
@@ -369,10 +369,10 @@ fn full_game_load_registers_representative_virtual_templates() {
         );
     }
 }
+}
 
-#[test]
-fn no_named_non_virtual_top_level_frames_published() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn no_named_non_virtual_top_level_frames_published(env: &WowLuaEnv) {
 
     for global in &[
         "UIPanelTemplatesFrame",
@@ -391,10 +391,10 @@ fn no_named_non_virtual_top_level_frames_published() {
         );
     }
 }
+}
 
-#[test]
-fn full_game_load_emits_no_addon_specific_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_emits_no_addon_specific_errors(env: &WowLuaEnv) {
 
     let errors: Vec<String> = env.state().borrow().lua_errors.clone();
     let addon_specific: Vec<&String> = errors
@@ -411,4 +411,5 @@ fn full_game_load_emits_no_addon_specific_errors() {
          cleanly without raising on the simulator's stub primitives. \
          Found: {addon_specific:?}"
     );
+}
 }

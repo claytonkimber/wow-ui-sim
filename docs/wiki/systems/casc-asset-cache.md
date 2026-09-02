@@ -69,11 +69,15 @@ The BLP byte cache is roughly **10× faster** than re-extracting steady-state, a
 
 ## Blizzard UI source cache
 
-`data/blizzard-ui-files/<profile>.txt` manifests list the Blizzard UI source files for each supported profile. `wow-cli casc sync-blizzard-ui` resolves each active-profile manifest entry as `Interface/AddOns/<entry>`, extracts it from the active CASC product into `~/.cache/wow-ui-sim/blizzard-ui/<profile>/AddOns`, and preserves Blizzard's original addon/file casing on disk. The bundled limited listfile is generated from the union of those profile manifests plus tracked `data/listfile-overrides.csv` rows for paths that the upstream community listfile has not published yet.
+`data/blizzard-ui-files/<profile>.txt` manifests list the Blizzard UI source files for each supported profile. The retail manifest mirrors the complete Gethe `live` AddOns tree, including `Classic/` and `Mainline/` family variants; this preserves source inventory even though retail runtime `[Family]` substitution selects `Mainline`. `wow-cli casc sync-blizzard-ui` resolves each active-profile manifest entry as `Interface/AddOns/<entry>`, extracts it from the active CASC product into `~/.cache/wow-ui-sim/blizzard-ui/<profile>/AddOns`, and preserves Blizzard's original addon/file casing on disk. The bundled limited listfile is generated from the union of those profile manifests plus tracked `data/listfile-overrides.csv` rows for paths missing from the upstream community listfile or requiring canonical display casing.
 
 Local install archives are tried first through `asset-resolver`. If the active product root/encoding metadata resolves an FDID but the local streaming install lacks that archive chunk, sync downloads the missing authoritative CASC blob from Blizzard's CDN by encoding key via the public `Osso/casc-extract` library. CDN archive indexes persist under `~/.cache/casc-extract/<product>-<build>/indices`.
 
 The GUI startup path uses the cache only. If the completion marker is missing, startup syncs the manifest from CASC and rechecks the cache. The old `Interface/BlizzardUI` symlink and `vendor/wow-ui-source` checkout are not part of runtime discovery.
+
+### Bundled limited listfile
+
+`tools/gen_limited_listfile.py` stores ordinary community rows with normalized lowercase paths. `data/listfile-overrides.csv` is authoritative: an override replaces the source display path for both normalized path and FDID resolution while preserving slash-normalized canonical casing. Generated rows sort by normalized path, keeping output deterministic when display casing differs.
 
 ### Retail-only isolation test
 
@@ -86,7 +90,7 @@ Run `scripts/test-retail-casc-isolation.py` to verify the retail manifest withou
 
 To add a genuinely required retail file:
 
-1. Confirm a retail `_Mainline.toc` or its transitive dependency references the file. Do not copy paths from Classic, PTR, or another profile manifest.
+1. Confirm the path is present in the Gethe `live` AddOns tree and referenced by a retail `_Mainline.toc` or its transitive dependency. Do not add a path merely because it appears in Classic, PTR, or another profile manifest.
 2. Confirm the path or FDID exists in the active retail CASC product. A file absent from retail CASC is a stale manifest candidate, not a file to fabricate locally.
 3. Add the addon-relative path to `data/blizzard-ui-files/retail.txt` using Blizzard's original casing.
 4. If the community listfile does not map the path yet, add a verified `FDID;interface/addons/...` row to `data/listfile-overrides.csv`.
@@ -111,7 +115,7 @@ When removing an unavailable entry, first prove it is not reachable from the ret
 - `scripts/test-retail-casc-isolation.py` — Bubblewrap test that masks non-retail WoW flavors
 - `Osso/casc-extract` — public helper crate used for missing CASC CDN chunks by encoding key
 - `data/blizzard-ui-files/` — per-profile manifests of Blizzard UI source files extractable from CASC
-- `data/listfile-overrides.csv` — tracked temporary path→FDID rows for manifest files absent from the upstream community listfile
+- `data/listfile-overrides.csv` — tracked authoritative path→FDID rows for missing or canonically cased paths
 - `src/texture.rs` — `TextureManager::load` and the in-memory cache
 - `asset-resolver/src/casc_resolver.rs` — `init_casc`, resolution metadata refresh, `extract_fdid_to_path`, `Installation::initialize`
 - `asset-resolver/src/casc_cache.rs` — `CascResolutionCache::open`, freshness check, `build_resolution_cache`, `resolve_fdid`

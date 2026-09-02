@@ -82,9 +82,8 @@ fn blizzard_communities_appears_in_game_discovery() {
     );
 }
 
-#[test]
-fn blizzard_communities_loads_without_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_communities_loads_without_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -100,10 +99,10 @@ fn blizzard_communities_loads_without_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_communities_toplevel_frames_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_communities_toplevel_frames_are_defined(env: &WowLuaEnv) {
 
     let frames_present: bool = env
         .eval(
@@ -126,10 +125,10 @@ fn blizzard_communities_toplevel_frames_are_defined() {
          CommunitiesGuildNewsFiltersFrame, CommunitiesSettingsDialog"
     );
 }
+}
 
-#[test]
-fn blizzard_communities_core_mixins_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_communities_core_mixins_are_defined(env: &WowLuaEnv) {
 
     let mixins_present: bool = env
         .eval(
@@ -157,10 +156,10 @@ fn blizzard_communities_core_mixins_are_defined() {
          GuildFactionBar / GuildAchievementPointDisplay)"
     );
 }
+}
 
-#[test]
-fn blizzard_communities_club_finder_mixins_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_communities_club_finder_mixins_are_defined(env: &WowLuaEnv) {
 
     let mixins_present: bool = env
         .eval(
@@ -189,10 +188,10 @@ fn blizzard_communities_club_finder_mixins_are_defined() {
          GuildCard/CommunitiesCard derivatives, InvitationsFrame, Tab, Role)"
     );
 }
+}
 
-#[test]
-fn blizzard_communities_frame_display_modes_are_populated() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_communities_frame_display_modes_are_populated(env: &WowLuaEnv) {
 
     let display_modes_present: bool = env
         .eval(
@@ -214,10 +213,10 @@ fn blizzard_communities_frame_display_modes_are_populated() {
          CommunitiesFrame children"
     );
 }
+}
 
-#[test]
-fn blizzard_communities_frame_methods_and_globals_are_defined() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_communities_frame_methods_and_globals_are_defined(env: &WowLuaEnv) {
 
     let methods_present: bool = env
         .eval(
@@ -249,4 +248,5 @@ fn blizzard_communities_frame_methods_and_globals_are_defined() {
          CommunitiesHyperlink namespace + GUILD_CHALLENGE_ORDER=={{1,4,2,3}} (from \
          Mainline/GuildInfo.lua) should be populated"
     );
+}
 }

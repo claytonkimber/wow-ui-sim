@@ -101,12 +101,55 @@
 //!   started passing resultCode as `text_arg1` would diverge the two
 //!   captures.
 
-use crate::common::blizzard_addon_harness::with_blizzard_addon_smoke_shape;
+use crate::common::blizzard_addon_harness::{
+    new_blizzard_addon_env, with_blizzard_addon_smoke_shape,
+};
+use crate::common::load_required_blizzard_addon;
+use crate::common::panel_fixtures::{blizzard_ui_dir, load_panel_addons};
 use wow_ui_sim::lua_api::WowLuaEnv;
 
 const ROOT: &str = "Blizzard_AccountStore";
 const POPUP_KEY: &str = "ACCOUNT_STORE_TRANSACTION_ERROR";
 const LOCALIZED_TEXT_SUBSTRING: &str = "The transaction could not be completed.";
+
+#[test]
+fn explicit_account_store_load_preserves_popup_after_static_popup_load() {
+    let ui_dir = blizzard_ui_dir();
+    let env = new_blizzard_addon_env(&ui_dir);
+
+    // AccountStore declares SharedXML, StaticPopup, and UIParentPanelManager.
+    // The panel fixture supplies the panel manager's required predecessor chain.
+    load_panel_addons(&env);
+    load_required_blizzard_addon(&env, &ui_dir, ROOT);
+    let popup_registered_before_static_popup_load: bool = env
+        .eval(&format!(
+            "return C_AddOns.IsAddOnLoaded('Blizzard_AccountStore') and type(StaticPopupDialogs[{POPUP_KEY:?}]) == 'table'"
+        ))
+        .expect("explicit AccountStore popup probe must run cleanly");
+    assert!(
+        popup_registered_before_static_popup_load,
+        "Explicitly loading `{ROOT}` must register its transaction-error popup before a later \
+         `Blizzard_StaticPopup` load."
+    );
+
+    env.exec("__account_store_popup_registry_before_reload = StaticPopupDialogs")
+        .expect("popup registry identity capture must run cleanly");
+    load_required_blizzard_addon(&env, &ui_dir, "Blizzard_StaticPopup");
+
+    let (same_registry, popup_type): (bool, String) = env
+        .eval(&format!(
+            "return rawequal(__account_store_popup_registry_before_reload, StaticPopupDialogs), type(StaticPopupDialogs[{POPUP_KEY:?}])"
+        ))
+        .expect("post-StaticPopup AccountStore popup probe must run cleanly");
+    assert!(
+        same_registry,
+        "Loading Blizzard_StaticPopup after `{ROOT}` must not replace its public StaticPopupDialogs registry"
+    );
+    assert_eq!(
+        popup_type, "table",
+        "The AccountStore transaction-error popup must survive the later explicit Blizzard_StaticPopup load"
+    );
+}
 
 #[test]
 fn transaction_error_popup_table_has_expected_six_fields() {

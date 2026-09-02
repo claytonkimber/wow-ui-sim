@@ -37,6 +37,7 @@ const MINIMAP_TOC_FILES: &[&str] = &[
 const REQUIRED_DEPENDENCIES: &[&str] = &[
     "Blizzard_ActionBar",
     "Blizzard_EditMode",
+    "Blizzard_FrameXMLUtil",
     "Blizzard_GameTooltip",
 ];
 
@@ -94,9 +95,10 @@ const GARRISON_FUNCTIONS: &[&str] = &[
     "GarrisonLandingPage_Toggle",
     "GarrisonMinimapBuilding_ShowPulse",
     "GarrisonMinimapMission_ShowPulse",
+    "GarrisonMinimapMission_HidePulse",
     "GarrisonMinimapInvasion_ShowPulse",
     "GarrisonMinimapShipmentCreated_ShowPulse",
-    "GarrisonMinimap_ShowCovenantCallingsNotification",
+    "GarrisonMinimap_CheckShowCovenantCallingsNotification",
     "GarrisonMinimap_OnCallingsUpdated",
     "GarrisonMinimap_SetQueuedHelpTip",
     "GarrisonMinimap_CheckQueuedHelpTip",
@@ -149,7 +151,7 @@ fn blizzard_minimap_find_toc_resolves_mainline_variant() {
 }
 
 #[test]
-fn blizzard_minimap_toc_declares_default_state_with_three_required_deps() {
+fn blizzard_minimap_toc_declares_default_state_with_four_required_deps() {
     let toc = TocFile::from_file(&minimap_mainline_toc()).expect("Blizzard_Minimap TOC parses");
     assert!(
         !toc.is_load_on_demand(),
@@ -167,8 +169,9 @@ fn blizzard_minimap_toc_declares_default_state_with_three_required_deps() {
         REQUIRED_DEPENDENCIES.len(),
         "TOC must declare exactly {} `## Dependencies:` entries; got {deps:?}. The minimap \
          depends on Blizzard_ActionBar (XP/reputation bar anchoring), Blizzard_EditMode \
-         (MinimapCluster registers as `EditModeMinimapSystemTemplate`), and \
-         Blizzard_GameTooltip (zone-text + game-time hover tooltips)",
+         (MinimapCluster registers as `EditModeMinimapSystemTemplate`), Blizzard_FrameXMLUtil \
+         (shared GameTime utility helpers), and Blizzard_GameTooltip (zone-text + game-time \
+         hover tooltips)",
         REQUIRED_DEPENDENCIES.len()
     );
     for required in REQUIRED_DEPENDENCIES {
@@ -304,9 +307,8 @@ fn blizzard_minimap_required_deps_appear_in_game_discovery() {
     }
 }
 
-#[test]
-fn blizzard_minimap_loads_without_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_minimap_loads_without_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let addon_errors: Vec<String> = env
         .state()
@@ -329,10 +331,10 @@ fn blizzard_minimap_loads_without_addon_specific_lua_errors() {
         addon_errors.join("\n  ")
     );
 }
+}
 
-#[test]
-fn blizzard_minimap_is_addon_loaded_after_auto_discovery() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_minimap_is_addon_loaded_after_auto_discovery(env: &WowLuaEnv) {
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_Minimap')")
         .expect("IsAddOnLoaded probe succeeds");
@@ -343,10 +345,10 @@ fn blizzard_minimap_is_addon_loaded_after_auto_discovery() {
          during the standard Game-screen boot pipeline"
     );
 }
+}
 
-#[test]
-fn blizzard_minimap_publishes_ten_minimap_mixins_as_tables() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_minimap_publishes_ten_minimap_mixins_as_tables(env: &WowLuaEnv) {
     for mixin in MINIMAP_MIXINS {
         let kind: String = env
             .eval(&format!("return type(_G.{mixin})"))
@@ -360,10 +362,10 @@ fn blizzard_minimap_publishes_ten_minimap_mixins_as_tables() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_minimap_publishes_addon_compartment_mixin_with_five_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_minimap_publishes_addon_compartment_mixin_with_five_methods(env: &WowLuaEnv) {
     let kind: String = env
         .eval("return type(_G.AddonCompartmentMixin)")
         .expect("AddonCompartmentMixin probe");
@@ -387,10 +389,10 @@ fn blizzard_minimap_publishes_addon_compartment_mixin_with_five_methods() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_minimap_publishes_module_level_constants() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_minimap_publishes_module_level_constants(env: &WowLuaEnv) {
     let probe = "\
         return MINIMAPPING_TIMER == 5.5 \
             and MINIMAPPING_FADE_TIMER == 0.5 \
@@ -399,11 +401,10 @@ fn blizzard_minimap_publishes_module_level_constants() {
             and MINIMAP_EXPANDER_MAXSIZE == 28 \
             and HUNTER_TRACKING == 1 \
             and TOWNSFOLK_TRACKING == 2 \
-            and GARRISON_ALERT_CONTEXT_BUILDING == 1 \
-            and GARRISON_ALERT_CONTEXT_INVASION == 3 \
-            and GAMETIME_AM == true \
-            and GAMETIME_PM == false \
-            and type(GARRISON_ALERT_CONTEXT_MISSION) == 'table' \
+            and type(MinimapPulseLock) == 'table' \
+            and MinimapPulseLock.GarrisonBuilding == 1 \
+            and MinimapPulseLock.GarrisonInvasion == 2 \
+            and MinimapPulseLock.RunesOfPower == 8 \
             and type(ExpansionLandingPageMode) == 'table' \
             and ExpansionLandingPageMode.Garrison == 1";
     let ok: bool = env
@@ -412,16 +413,15 @@ fn blizzard_minimap_publishes_module_level_constants() {
     assert!(
         ok,
         "Module-level constants must publish at `_G` with their declared values. \
-         Minimap.lua / GameTime.lua define a fixed set of canonical numbers + booleans \
-         (timing budgets, tracking enum, garrison-alert context codes, am/pm flags) that \
-         every consumer treats as a stable contract — addons read them by name to drive \
-         minimap pulse / fade animations and time-of-day display"
+         Minimap.lua defines canonical timing budgets, tracking categories, and the eight-entry \
+         MinimapPulseLock enum that consumers read by name to drive minimap pulse / fade \
+         animations. GameTime.lua no longer exports GAMETIME_AM / GAMETIME_PM globals"
     );
 }
+}
 
-#[test]
-fn blizzard_minimap_publishes_named_frames_with_correct_widget_types() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_minimap_publishes_named_frames_with_correct_widget_types(env: &WowLuaEnv) {
     for frame in NAMED_FRAMES {
         let exists: bool = env
             .eval(&format!("return type(_G.{frame}) == 'table'"))
@@ -437,10 +437,10 @@ fn blizzard_minimap_publishes_named_frames_with_correct_widget_types() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_minimap_publishes_gametime_helper_functions() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_minimap_publishes_gametime_helper_functions(env: &WowLuaEnv) {
     for func in GAMETIME_FUNCTIONS {
         let kind: String = env
             .eval(&format!("return type(_G.{func})"))
@@ -454,10 +454,10 @@ fn blizzard_minimap_publishes_gametime_helper_functions() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_minimap_publishes_minimap_helper_functions() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_minimap_publishes_minimap_helper_functions(env: &WowLuaEnv) {
     for func in MINIMAP_FUNCTIONS {
         let kind: String = env
             .eval(&format!("return type(_G.{func})"))
@@ -471,10 +471,10 @@ fn blizzard_minimap_publishes_minimap_helper_functions() {
         );
     }
 }
+}
 
-#[test]
-fn blizzard_minimap_publishes_garrison_helper_functions() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn blizzard_minimap_publishes_garrison_helper_functions(env: &WowLuaEnv) {
     for func in GARRISON_FUNCTIONS {
         let kind: String = env
             .eval(&format!("return type(_G.{func})"))
@@ -482,9 +482,10 @@ fn blizzard_minimap_publishes_garrison_helper_functions() {
         assert_eq!(
             kind, "function",
             "Garrison helper `{func}` must publish at `_G` as a function. Minimap.lua \
-             carries the legacy garrison-pulse + covenant-callings notification surface as \
-             11 free-standing functions; Blizzard_GarrisonUI calls these by name to drive \
-             building-activation pulses and queued help-tip routing on the minimap button"
+             carries the current 12-function garrison-pulse + covenant-callings surface, \
+             including Mission_HidePulse and CheckShowCovenantCallingsNotification; these \
+             exports drive pulse locks and queued help-tip routing on the minimap button"
         );
     }
+}
 }

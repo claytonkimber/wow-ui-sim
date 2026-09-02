@@ -8,15 +8,16 @@ use wow_ui_sim::startup::fire_startup_events_for_screen;
 use wow_ui_sim::toc::TocFile;
 
 fn blizzard_ui_dir() -> PathBuf {
-    wow_ui_sim::paths::default_blizzard_ui_addons_path().expect("Blizzard UI cache should be available")
+    wow_ui_sim::paths::default_blizzard_ui_addons_path()
+        .expect("Blizzard UI cache should be available")
 }
 
 fn store_ui_dir() -> PathBuf {
     blizzard_ui_dir().join("Blizzard_StoreUI")
 }
 
-fn store_ui_mainline_toc() -> PathBuf {
-    store_ui_dir().join("Blizzard_StoreUI_Mainline.toc")
+fn store_ui_toc() -> PathBuf {
+    store_ui_dir().join("Blizzard_StoreUI.toc")
 }
 
 const ALL_FOUR_SCREENS: &[ScreenKind] = &[
@@ -71,51 +72,49 @@ fn load_full_game_ui() -> WowLuaEnv {
 }
 
 #[test]
-fn find_toc_file_resolves_mainline_flavor() {
+fn find_toc_file_resolves_bare_toc() {
     let resolved = find_toc_file(&store_ui_dir()).expect("StoreUI TOC resolves");
     assert_eq!(
         resolved,
-        store_ui_mainline_toc(),
-        "No bare TOC — directory ships Blizzard_StoreUI_Mainline.toc + \
-         Blizzard_StoreUI_Mists.toc; find_toc_file selects the mainline \
-         variant for the simulator's mainline product target"
+        store_ui_toc(),
+        "Current retail cache ships one bare Blizzard_StoreUI.toc with \
+         per-file game-type annotations"
     );
 }
 
 #[test]
-fn toc_required_dep_pins_to_blizzard_shared_xml() {
-    let toc = TocFile::from_file(&store_ui_mainline_toc()).expect("TOC parses");
+fn toc_dependencies_include_shared_and_screen_scoped_addons() {
+    let toc = TocFile::from_file(&store_ui_toc()).expect("TOC parses");
 
     let deps = toc.dependencies();
     assert_eq!(
         deps,
-        vec!["Blizzard_SharedXML".to_string()],
-        "Singular `## RequiredDep:` keyword surfaces via dependencies() at \
-         toc.rs:209-217 (RequiredDep → Dependencies → RequiredDeps fallback \
-         chain). StoreUI requires Blizzard_SharedXML for ScopedModifier / \
-         PortraitFrameTemplateNoCloseButton / NineSlicePanelTemplate. Got: \
-         {deps:?}"
+        vec![
+            "Blizzard_SharedXML".to_string(),
+            "Blizzard_SimpleCheckout".to_string(),
+            "Blizzard_GlueParent".to_string(),
+            "Blizzard_FrameXMLBase".to_string(),
+        ],
+        "Repeated `## Dep:` directives include shared dependencies plus \
+         screen-scoped glue and game dependencies. Got: {deps:?}"
     );
 }
 
 #[test]
-fn toc_optional_dep_singular_keyword_does_not_parse() {
-    let toc = TocFile::from_file(&store_ui_mainline_toc()).expect("TOC parses");
+fn toc_declares_no_optional_dependencies() {
+    let toc = TocFile::from_file(&store_ui_toc()).expect("TOC parses");
 
     assert!(
         toc.optional_deps().is_empty(),
-        "TOC declares `## OptionalDep:` (singular) but optional_deps() at \
-         toc.rs:228-234 only reads `OptionalDeps:` (plural). The 3 optional \
-         deps (Blizzard_GlueParent, Blizzard_Shared_SimpleCheckout, \
-         Blizzard_FrameXMLBase) are silently dropped — Blizzard's parser \
-         likely accepts both forms; ours does not. Got: {:?}",
+        "Current StoreUI TOC declares every dependency through `## Dep:`. \
+         Got optional dependencies: {:?}",
         toc.optional_deps()
     );
 }
 
 #[test]
 fn toc_uses_secure_environment() {
-    let toc = TocFile::from_file(&store_ui_mainline_toc()).expect("TOC parses");
+    let toc = TocFile::from_file(&store_ui_toc()).expect("TOC parses");
 
     assert!(
         toc.is_secure_env(),
@@ -127,33 +126,31 @@ fn toc_uses_secure_environment() {
 
 #[test]
 fn toc_allow_load_both_resolves_to_all_four_screens() {
-    let toc = TocFile::from_file(&store_ui_mainline_toc()).expect("TOC parses");
+    let toc = TocFile::from_file(&store_ui_toc()).expect("TOC parses");
 
     for screen in ALL_FOUR_SCREENS {
         assert!(
             toc.allows_screen(*screen),
-            "`## AllowLoad: Both` (case-insensitive at toc.rs:307) must \
-             surface StoreUI on {screen:?} — store can be opened from the \
-             in-game escape menu AND from glue (login/select/create)"
+            "`## AllowLoad: Both` must surface StoreUI on {screen:?} — store \
+             can be opened from the in-game escape menu and from glue screens"
         );
     }
 }
 
 #[test]
-fn toc_game_type_mainline_is_not_restricted() {
-    let toc = TocFile::from_file(&store_ui_mainline_toc()).expect("TOC parses");
+fn toc_has_no_addon_level_game_type_restriction() {
+    let toc = TocFile::from_file(&store_ui_toc()).expect("TOC parses");
 
     assert!(
         !toc.is_game_type_restricted(),
-        "`## AllowLoadGameType: mainline` matches the `mainline` token at \
-         toc.rs:294-302, so is_game_type_restricted() returns false. The \
-         _Mists.toc sibling carries `mainline → mists` for that flavor"
+        "The bare TOC has no addon-level `## AllowLoadGameType`; flavor \
+         selection happens on individual body entries"
     );
 }
 
 #[test]
 fn toc_is_eager_no_load_on_demand_or_load_first() {
-    let toc = TocFile::from_file(&store_ui_mainline_toc()).expect("TOC parses");
+    let toc = TocFile::from_file(&store_ui_toc()).expect("TOC parses");
 
     assert!(
         !toc.is_load_on_demand(),
@@ -166,25 +163,27 @@ fn toc_is_eager_no_load_on_demand_or_load_first() {
 }
 
 #[test]
-fn toc_raw_bytes_pin_six_metadata_directives() {
-    let raw = std::fs::read_to_string(store_ui_mainline_toc()).expect("TOC reads utf-8");
+fn toc_raw_bytes_pin_current_metadata_directives() {
+    let raw = std::fs::read_to_string(store_ui_toc()).expect("TOC reads utf-8");
 
     let expected_directives = [
         "## Title: Blizzard_StoreUI",
         "## AllowLoad: Both",
-        "## AllowLoadGameType: mainline",
-        "## RequiredDep: Blizzard_SharedXML",
-        "## OptionalDep: Blizzard_GlueParent, Blizzard_Shared_SimpleCheckout, Blizzard_FrameXMLBase",
+        "## Dep: Blizzard_SharedXML",
+        "## Dep: Blizzard_SimpleCheckout",
+        "## Dep: Blizzard_GlueParent [AllowLoad glue]",
+        "## Dep: Blizzard_FrameXMLBase [AllowLoad game]",
         "## UseSecureEnvironment: 1",
     ];
 
     for directive in expected_directives {
         assert!(
             raw.contains(directive),
-            "Raw mainline TOC must pin `{directive}` — 6 metadata + 6 body"
+            "Raw bare TOC must contain current directive `{directive}`"
         );
     }
 
+    assert!(!raw.contains("## AllowLoadGameType:"));
     assert!(!raw.contains("## DefaultState"));
     assert!(!raw.contains("## SavedVariables"));
     assert!(!raw.contains("## LoadOnDemand"));
@@ -193,8 +192,8 @@ fn toc_raw_bytes_pin_six_metadata_directives() {
 }
 
 #[test]
-fn body_orders_six_entries_lua_xml_chain_terminating_in_localization() {
-    let toc = TocFile::from_file(&store_ui_mainline_toc()).expect("TOC parses");
+fn retail_body_orders_six_selected_entries_terminating_in_localization() {
+    let toc = TocFile::from_file(&store_ui_toc()).expect("TOC parses");
 
     let body: Vec<String> = toc
         .files
@@ -205,10 +204,9 @@ fn body_orders_six_entries_lua_xml_chain_terminating_in_localization() {
     assert_eq!(
         body.len(),
         BODY_FILES.len(),
-        "6 body entries — StoreButtonMixin (publishes mixin) → 3 XML files \
-         (each <Script file=...> chains a multi-Lua include set) → \
-         StoreUIInsecure (re-enters global env via SwapToGlobalEnvironment) \
-         → Localization (1 line). Got: {body:?}"
+        "Retail parsing selects six mainline-gated entries: StoreButtonMixin \
+         → three XML files → StoreUIInsecure → Shared_Localization. Got: \
+         {body:?}"
     );
 
     for (i, want) in BODY_FILES.iter().enumerate() {
@@ -231,9 +229,8 @@ fn appears_in_eager_discovery_on_all_four_screens() {
     }
 }
 
-#[test]
-fn full_game_load_emits_no_addon_specific_lua_errors() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn full_game_load_emits_no_addon_specific_lua_errors(env: &WowLuaEnv) {
 
     let errors = env.state().borrow().lua_errors.clone();
     let needles = [
@@ -259,10 +256,10 @@ fn full_game_load_emits_no_addon_specific_lua_errors() {
         matched
     );
 }
+}
 
-#[test]
-fn is_addon_loaded_reports_true_after_eager_load() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn is_addon_loaded_reports_true_after_eager_load(env: &WowLuaEnv) {
     let loaded: bool = env
         .eval("return C_AddOns.IsAddOnLoaded('Blizzard_StoreUI')")
         .expect("IsAddOnLoaded probe");
@@ -272,10 +269,10 @@ fn is_addon_loaded_reports_true_after_eager_load() {
          (AllowLoad: Both + non-LoD = always loaded eagerly)"
     );
 }
+}
 
-#[test]
-fn store_button_mixin_publishes_with_six_atlas_swap_methods() {
-    let env = load_full_game_ui();
+prefork_full_ui_case! {
+fn store_button_mixin_publishes_with_six_atlas_swap_methods(env: &WowLuaEnv) {
 
     let probe = "local function lookup(name) \
                     return _G[name] or (__secureenv and rawget(__secureenv, name)) \
@@ -309,6 +306,7 @@ fn store_button_mixin_publishes_with_six_atlas_swap_methods() {
              three-slice button states (6 methods total)"
         );
     }
+}
 }
 
 #[test]
@@ -402,28 +400,17 @@ fn store_ui_inbound_outbound_secure_bridge_files_exist() {
 }
 
 #[test]
-fn mists_flavor_toc_is_distinct_with_classic_paths() {
-    let mists_toc = store_ui_dir().join("Blizzard_StoreUI_Mists.toc");
-    let toc = TocFile::from_file(&mists_toc).expect("Mists TOC parses");
-
-    let body: Vec<String> = toc
-        .files
-        .iter()
-        .map(|p| p.to_string_lossy().to_string())
-        .collect();
+fn bare_toc_keeps_flavor_selection_on_body_entries() {
+    let raw = std::fs::read_to_string(store_ui_toc()).expect("TOC reads utf-8");
 
     assert!(
-        body.iter().any(|f| f.starts_with("Classic")),
-        "Mists TOC body must reference Classic\\* paths — the flavor split \
-         keeps mainline and mists assets in separate subdirectories. Got: \
-         {body:?}"
+        raw.contains("Blizzard_Shared_StoreButtonMixin.lua [AllowLoadGameType mainline]"),
+        "Current retail cache must expose the mainline StoreButtonMixin entry"
     );
-
-    let raw = std::fs::read_to_string(&mists_toc).expect("Mists TOC reads");
     assert!(
-        raw.contains("## AllowLoadGameType: mists"),
-        "Mists TOC must declare `## AllowLoadGameType: mists` — the parser \
-         flags this as is_game_type_restricted=true since `mists` is \
-         neither `mainline` nor `standard`"
+        raw.contains("[Family]\\Blizzard_StoreUIInsecure.lua [AllowLoadGameType classic]"),
+        "Current retail cache's bare TOC must retain its inline classic entry; \
+         this assertion observes the cached file without claiming another \
+         profile's parsed behavior"
     );
 }
