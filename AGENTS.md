@@ -22,6 +22,8 @@ After completing work that produces knowledge worth preserving, update the wiki:
 
 Follow the workflow in `SCHEMA.md`: check existing pages first (update > create), maintain cross-references, update `index.md` and `log.md`. Skip wiki updates for routine bug fixes, config tweaks, and cosmetic changes.
 
+**Also record simulator behaviour that misleads an addon author** — a handler the sim rejects that real WoW accepts, a global or `C_*` namespace that cannot be stubbed from test code, a Blizzard system that is not modelled (panel-manager mutual exclusivity), or output the runner swallows. These cost the most time because the addon looks broken when the simulator is the one diverging. Known cases of this class are listed in `_dev_/Wise/AGENTS.md` under "Simulator gotchas"; when you FIX one here, update that list too so the addon side stops working around it.
+
 ## Architecture Docs
 
 - `docs/layout-system.md` - Anchor/layout system: AnchorPoint, single vs multi-anchor resolution, cycle detection, coordinate systems
@@ -528,6 +530,56 @@ Generate PLAN.md-ready checkboxes for missing C_* methods, LE_* constants, and E
 ```bash
 wow-cli audit-api --gaps --format plan         # Paste-ready markdown checkboxes
 ```
+
+## Local Use: Windows + Docker, as an Addon Author
+
+*Local note for this checkout (`_dev_/wow-ui-sim`), not upstream guidance. The
+rest of this file documents developing **the simulator** with the native
+`wow-sim`/`wow-cli` binaries; this section covers using a **built image** to
+verify an addon from Windows, which is how Wise consumes it. Keep the two
+distinct — the CLI flags differ.*
+
+Companion doc: `_dev_/Wise/AGENTS.md` ("UI & Visual Verification" and
+"Simulator gotchas"), which holds the Wise-side workflow and the gotcha list.
+
+### Invocation
+
+Docker Desktop must be running first (`Start-Process "C:\Program
+Files\Docker\Docker\Docker Desktop.exe"`, ~1 min). A
+`npipe:////./pipe/dockerDesktopLinuxEngine` connect error means the daemon is
+down, not that anything is wrong with the image.
+
+```bash
+DOCKER="/c/Program Files/Docker/Docker/resources/bin/docker.exe"
+ADDON="C:\Program Files (x86)\World of Warcraft\_retail_\Interface\AddOns\Wise"
+
+MSYS_NO_PATHCONV=1 "$DOCKER" run --rm \
+  -v "${ADDON}:/app/Interface/AddOns/Wise" \
+  wow-ui-sim:12.0.7 run-tests Wise      # also: dump-tree [-f Filter] | lua-errors
+```
+
+- **`MSYS_NO_PATHCONV=1` is required** — git-bash otherwise mangles the
+  `:/app/...` mount path into a Windows path and the mount silently misses.
+- The addon directories under `_dev_` are junctioned into `Interface/AddOns`, so
+  the mounted tree is the live source, not a snapshot. Edits are picked up on the
+  next run with no copy step.
+- **`screenshot` renders via software Vulkan (Mesa lavapipe) baked into the
+  image** — no GPU or `--gpus` flag needed, and it is deterministic. It needs a
+  second `-v "${OUTDIR}:/out"` mount and writes `.webp` (~1600x1200). The
+  `XDG_RUNTIME_DIR is invalid` warning is harmless: offscreen render, no Wayland
+  session.
+- **`--exec-lua` is a global flag, not a `run-tests` option.** Pair it with a
+  cheap subcommand to run an ad-hoc probe and actually see its `print` output:
+  `--exec-lua '<code>' dump-tree -f NoSuchFrame`. A host mount for a script file
+  often will not resolve, so inline the code rather than using `@/path`.
+
+### Image tags
+
+Keep both `12.0.7` and `12.1.0` built. They are not interchangeable for test
+runs: a suite that asserts a 12.1 intrinsic is **absent** passes on 12.0.7 and
+fails on 12.1.0. **Pick the image that matches what the test asserts** before
+concluding the addon regressed. For Wise, `12.0.7` is the default and `12.1.0`
+is for deliberately checking 12.1 behaviour.
 
 ## Textures
 
