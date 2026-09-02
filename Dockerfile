@@ -58,7 +58,7 @@ RUN cargo build --release --bin wow-sim --no-default-features \
 # =============================================================================
 FROM alpine/git AS blizzard-ui
 
-ARG BLIZZARD_UI_TAG=12.0.7
+ARG BLIZZARD_UI_TAG=12.1.0
 RUN git clone --filter=blob:none --no-checkout --depth=1 --branch ${BLIZZARD_UI_TAG} \
         https://github.com/Gethe/wow-ui-source.git /wow-ui-source \
     && cd /wow-ui-source \

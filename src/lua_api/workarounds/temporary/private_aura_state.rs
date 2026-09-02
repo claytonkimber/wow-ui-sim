@@ -199,10 +199,48 @@ end
 
 pub(crate) fn apply_bootstrap(lua: &mut rilua::Lua) -> crate::Result<()> {
     lua.exec(PRIVATE_AURA_STATE_LUA)?;
+    // 12.1 removed this symbol. `C_UnitAuras` carries an `__index` metatable, so a
+    // plain `= nil` clears the raw key while lookups still resolve through the
+    // fallback; hide it the same way `src/ptr/strict_removals.lua` does.
     #[cfg(feature = "retail-12-1-0")]
-    lua.exec("C_UnitAuras.TriggerPrivateAuraShowDispelType = nil")?;
+    lua.exec(HIDE_TRIGGER_PRIVATE_AURA_SHOW_DISPEL_TYPE_LUA)?;
     Ok(())
 }
+
+#[cfg(feature = "retail-12-1-0")]
+const HIDE_TRIGGER_PRIVATE_AURA_SHOW_DISPEL_TYPE_LUA: &str = r#"
+do
+    local key = "TriggerPrivateAuraShowDispelType"
+    rawset(C_UnitAuras, key, nil)
+
+    local removedKeys = rawget(C_UnitAuras, "__wow_removed_keys")
+    if type(removedKeys) ~= "table" then
+        removedKeys = {}
+        rawset(C_UnitAuras, "__wow_removed_keys", removedKeys)
+    end
+    removedKeys[key] = true
+
+    local mt = getmetatable(C_UnitAuras) or {}
+    if not rawget(mt, "__wow_removed_filter") then
+        local oldIndex = mt.__index
+        mt.__index = function(t, lookupKey)
+            local removed = rawget(t, "__wow_removed_keys")
+            if type(removed) == "table" and removed[lookupKey] then
+                return nil
+            end
+            if type(oldIndex) == "function" then
+                return oldIndex(t, lookupKey)
+            end
+            if type(oldIndex) == "table" then
+                return oldIndex[lookupKey]
+            end
+            return nil
+        end
+        mt.__wow_removed_filter = true
+        setmetatable(C_UnitAuras, mt)
+    end
+end
+"#;
 
 #[cfg(test)]
 mod tests {
@@ -285,5 +323,24 @@ mod tests {
             .expect("private aura probe should run");
 
         assert_eq!(result, "ok");
+    }
+
+    /// 12.1 removed `C_UnitAuras.TriggerPrivateAuraShowDispelType`. `C_UnitAuras` has an
+    /// `__index` metatable, so a plain `= nil` clears the raw key while normal lookups still
+    /// resolve through the fallback. Assert against an index read, not `rawget`.
+    #[test]
+    #[cfg(feature = "retail-12-1-0")]
+    fn hides_trigger_private_aura_show_dispel_type_from_index_lookup() {
+        let env = WowLuaEnv::new().expect("lua env should initialize");
+
+        let visible: bool = env
+            .eval("return C_UnitAuras.TriggerPrivateAuraShowDispelType ~= nil")
+            .expect("removal probe should run");
+
+        assert!(
+            !visible,
+            "12.1 removed TriggerPrivateAuraShowDispelType; it must not resolve through the \
+             C_UnitAuras __index fallback"
+        );
     }
 }

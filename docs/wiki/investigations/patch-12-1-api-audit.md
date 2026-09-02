@@ -2,6 +2,11 @@
 
 Patch 12.1 API surface work in wow-ui-sim is split between compatible bridges that can be safely modeled as inert/additive simulator behavior and paused items that require exact Blizzard PTR observations before implementation.
 
+> **12.1.0 is live as of 2026-08-11** (build `12.1.0.69273`). `client-retail` now enables the
+> `retail-12-1-0` epoch, so everything below applies to the default retail build, not just PTR.
+> The switch was a one-line `Cargo.toml` change plus one genuine bug it exposed — see
+> [Live retail promotion](#live-retail-promotion).
+
 ## Content
 
 The per-item machine SSOTs are `data/patch-api/12.1-framexml.json` for the 432 FrameXML symbol occurrences and `data/patch-api/12.1-behaviors.json` for 54 independently testable non-FrameXML behavior boundaries. [[patch-api-audit-manifest]] documents validation and checklist generation. Draft `untriaged` resolutions remain completion blockers and are not approved exceptions.
@@ -116,6 +121,30 @@ A broad approval recorded on 2026-07-14 is superseded: the itemized checklist wa
 | Changed structure payloads with real service data | **Best-effort:** local state backs Battle.net, invites, Encounter Journal, Discord, housing, PlayerChoice, and `C_DelvesUI` TieredEntrance rows/rewards. | Exact Discord/housing/cooldown/pet/LFG/player-choice payloads remain service-dependent; inaccessible and secret private-aura payload fidelity is unknown. | **Evidence-required for PrivateAura.Payloads: unsafe.** Await authoritative/live evidence. |
 | Deprecated wrappers vs strict-removal timing | **Best-effort:** strict removals are hidden from addons after startup while preserving current Blizzard load compatibility. | Exact pre-startup visibility and per-wrapper retirement timing remain unknown and unsafe to move. | **Evidence-required: unsafe.** Await authoritative/live evidence. |
 | FrameXML symbol snapshot | **Complete:** [[patch-12-1-framexml-symbol-inventory]] contains 1 implemented, 431 best-effort, 0 exception-requested, and 0 untriaged occurrences. | Some rows deliberately document vendor defects or conservative source/runtime absence rather than exact behavioral fidelity. | No blanket exception requested or approved. |
+
+### Live retail promotion
+
+When 12.1.0 shipped to live retail on 2026-08-11, `client-retail` moved from `retail-12-0-7` to
+`retail-12-1-0`. Because the 12.1 deltas were gated on the epoch feature rather than on
+`client-ptr`, the promotion itself was a one-line `Cargo.toml` change plus the
+`retail_interface_matches_current_live_build` assertion (`120007` → `120100`) and the
+`BLIZZARD_UI_TAG` Docker default (`12.0.7` → `12.1.0`).
+
+Promoting the epoch activated the previously-inactive
+`retail_client_can_point_at_patch_12_1_api_epoch` test and surfaced one real bug:
+
+**`C_UnitAuras.TriggerPrivateAuraShowDispelType` was not actually removed.**
+`private_aura_state.rs` hid the 12.1-removed symbol with a plain
+`C_UnitAuras.TriggerPrivateAuraShowDispelType = nil`. `C_UnitAuras` carries an `__index`
+metatable, so that assignment cleared the raw key while lookups still resolved through the
+fallback — `rawget(...)` returned `nil` but `C_UnitAuras.TriggerPrivateAuraShowDispelType`
+still returned a function. The symbol therefore stayed addon-visible under the 12.1 epoch.
+The fix applies the same removed-key metatable filter that `src/ptr/strict_removals.lua`
+uses via `__wow_hide_namespace_key`.
+
+The general lesson: **assigning `nil` is not sufficient to remove a key from any `C_*`
+namespace that has an `__index` metatable.** Removals must go through the removed-keys filter,
+and a removal test must assert against a normal index read, not just `rawget`.
 
 ### Practical next step
 
